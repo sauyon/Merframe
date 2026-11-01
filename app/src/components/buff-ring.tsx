@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { BuffTimer } from "@/types";
 
 // Sized to sit just outside the game's reticle and read like its HUD: thin white strokes,
-// small uppercase text, colour only as a hint when something needs recasting.
+// small seconds left beside each arc, colour only as a hint when something needs recasting.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 const RADIUS = 42;
@@ -92,20 +92,16 @@ function Buff({
         x={x}
         y={y}
         fill={colour}
-        fillOpacity={0.8}
+        fillOpacity={0.9}
+        fontWeight={600}
         textAnchor={anchor}
         dominantBaseline="middle"
         fontSize={7}
-        letterSpacing={0.4}
         style={{
-          textTransform: "uppercase",
           filter: "drop-shadow(0 0 0.6px rgb(0 0 0 / 0.9))",
         }}
       >
-        {buff.label}{" "}
-        <tspan fontWeight={600} fillOpacity={1}>
-          {left === null ? "—" : Math.ceil(left)}
-        </tspan>
+        {left === null ? "—" : Math.ceil(left)}
       </text>
     </g>
   );
