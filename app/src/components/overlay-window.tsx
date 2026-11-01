@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { Route, Routes } from "react-router";
-import { BuffRing } from "@/components/buff-ring";
+import { BuffStrip } from "@/components/buff-strip";
 import {
   NotificationFade,
   NotificationOverlay,
@@ -137,7 +137,7 @@ export function OverlayWindow() {
           path="buffs"
           element={
             overlays.buffs && (
-              <BuffRing buffs={overlays.buffs} opacity={overlays.opacity} />
+              <BuffStrip buffs={overlays.buffs} opacity={overlays.opacity} />
             )
           }
         />

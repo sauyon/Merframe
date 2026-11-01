@@ -1,4 +1,4 @@
-//! Polls the local player's HUD buff tray and feeds the buff ring overlay.
+//! Polls the local player's HUD buff tray and feeds the buff strip overlay.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -19,11 +19,11 @@ const BUFF_TICK: Duration = Duration::from_millis(100);
 const IDLE_TICK: Duration = Duration::from_secs(2);
 /// The tray is rebuilt between missions; while it reads empty, look it up again this often.
 const SEARCH_EVERY: Duration = Duration::from_secs(1);
-/// Seconds an expired buff stays on the ring, so the drop is noticed.
+/// Seconds an expired buff stays on the strip, so the drop is noticed.
 const LINGER: f64 = 3.0;
 /// Remaining time jumping up by more than this means the buff was reapplied.
 const REFRESH_JUMP: f64 = 0.5;
-/// The ring counts down on its own; only resend when the end time moved more than this. The
+/// The strip counts down on its own; only resend when the end time moved more than this. The
 /// estimate jitters by a few hundred ms between polls.
 const DRIFT_MS: f64 = 1000.0;
 /// How often the equipped warframe's abilities are looked up again from the inventory.
@@ -52,7 +52,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             .flatten()
             .unwrap_or_default();
             if equipped != abilities {
-                debug!(?equipped, "Buff ring slots");
+                debug!(?equipped, "Buff strip slots");
                 abilities = equipped;
             }
         }
@@ -220,7 +220,7 @@ impl Ticking {
 }
 
 /// Effects the player keeps up by casting: ability buffs and arcanes that trigger on casts.
-/// Mod and weapon procs come and go on their own, so they would only crowd the ring.
+/// Mod and weapon procs come and go on their own, so they would only crowd the strip.
 fn cast(tag: &str) -> bool {
     ["/Language/Suits/", "/Language/Arcanes/"]
         .iter()
@@ -260,7 +260,7 @@ struct Entry {
     gone_at: Option<f64>,
 }
 
-/// Turns per-poll readings into what the ring shows. The game only tells us time remaining,
+/// Turns per-poll readings into what the strip shows. The game only tells us time remaining,
 /// so a buff's full length is the largest remaining value seen since it was last applied.
 struct Tracker {
     entries: Vec<Entry>,

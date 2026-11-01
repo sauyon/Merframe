@@ -169,7 +169,7 @@ pub struct NotificationTrigger {
     pub body: String,
 }
 
-/// One buff on the ring around the reticle.
+/// One buff on the countdown strip under the ability dots.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct BuffTimer {

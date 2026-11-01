@@ -461,7 +461,7 @@ export function OverlaysPage() {
         }
         description={
           master && settings.overlay_buffs
-            ? "A ring around the reticle counting down your timed buffs, read from the game."
+            ? "Countdown bars under the ability dots below the reticle, one fixed slot per ability, read from the game."
             : OFF
         }
       >
