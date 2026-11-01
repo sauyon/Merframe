@@ -1,3 +1,4 @@
+mod buffs;
 mod bundle;
 mod chunks;
 mod dialog;
@@ -17,6 +18,7 @@ mod upgrade;
 #[cfg(test)]
 mod fake;
 
+pub use buffs::{StatusEffect, TIMED, status_effects, status_list};
 pub use bundle::{RewardTile, reward_screen};
 pub use dialog::DialogRiven;
 pub use equip::{RelicPick, confirmed_relic, relic_pick, relic_picker_open};

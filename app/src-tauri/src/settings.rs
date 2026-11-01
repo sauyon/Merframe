@@ -384,10 +384,12 @@ pub struct DucateringSettings {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 #[serde(default)]
+#[allow(clippy::struct_excessive_bools, reason = "one switch per overlay")]
 pub struct OverlayToggles {
     pub overlay_relic_reward: bool,
     pub overlay_relic_recommendation: bool,
     pub overlay_riven: bool,
+    pub overlay_buffs: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -536,6 +538,7 @@ impl Default for OverlayToggles {
             overlay_relic_reward: true,
             overlay_relic_recommendation: true,
             overlay_riven: true,
+            overlay_buffs: true,
         }
     }
 }

@@ -101,6 +101,7 @@ pub(super) fn bounds_for(
         Kind::Riven => (700.0 * text, 900.0 * scale * text),
         Kind::Ducatering => (420.0 * text, 460.0 * text),
         Kind::Notification => (380.0 * text, 100.0 * text),
+        Kind::Buffs => (440.0 * scale * text, 440.0 * scale * text),
     };
     let width = width.round();
     let height = height.min(screen.height - 2.0 * MARGIN).round();
@@ -116,7 +117,11 @@ pub(super) fn bounds_for(
         OverlayPlacement::BottomRight => (right, bottom),
         OverlayPlacement::Centre => match kind {
             Kind::RelicReward => (middle - 15.0, (630.0 * scale).round()),
-            Kind::RelicRecommendation | Kind::Riven | Kind::Ducatering | Kind::Notification => {
+            Kind::RelicRecommendation
+            | Kind::Riven
+            | Kind::Ducatering
+            | Kind::Notification
+            | Kind::Buffs => {
                 (middle, (screen.height / 2.0 - height / 2.0).round())
             }
         },

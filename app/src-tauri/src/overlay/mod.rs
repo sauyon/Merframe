@@ -36,12 +36,13 @@ use riven::{arm_station_answer, on_dialog_answer, show_linked_riven, show_statio
 use screens::Screens;
 use window::{open, park, place, retire, reveal, screen_of, window_bounds};
 
-pub const KINDS: [Kind; 5] = [
+pub const KINDS: [Kind; 6] = [
     Kind::RelicReward,
     Kind::RelicRecommendation,
     Kind::Riven,
     Kind::Ducatering,
     Kind::Notification,
+    Kind::Buffs,
 ];
 
 const NOTIFICATION_LIFETIME: Duration = Duration::from_millis(6500);
@@ -59,6 +60,7 @@ pub enum Kind {
     Riven,
     Ducatering,
     Notification,
+    Buffs,
 }
 
 impl Kind {
@@ -69,11 +71,12 @@ impl Kind {
             Self::Riven => "overlay-riven",
             Self::Ducatering => "overlay-ducatering",
             Self::Notification => "overlay-notify",
+            Self::Buffs => "overlay-buffs",
         }
     }
 
     const fn permanent(self) -> bool {
-        matches!(self, Self::Notification)
+        matches!(self, Self::Notification | Self::Buffs)
     }
 
     pub(super) const fn route(self) -> &'static str {
@@ -83,6 +86,7 @@ impl Kind {
             Self::Riven => "index.html#/overlay/riven",
             Self::Ducatering => "index.html#/overlay/ducatering",
             Self::Notification => "index.html#/overlay/notify",
+            Self::Buffs => "index.html#/overlay/buffs",
         }
     }
 
@@ -93,6 +97,7 @@ impl Kind {
             Self::Riven => "Merframe riven",
             Self::Ducatering => "Merframe Ducatering",
             Self::Notification => "Merframe notification",
+            Self::Buffs => "Merframe buffs",
         }
     }
 }
@@ -105,6 +110,7 @@ pub fn enabled(settings: &Settings, kind: Kind) -> bool {
             Kind::Riven => settings.overlays.shown.overlay_riven,
             Kind::Ducatering => settings.overlays.ducatering.overlay_ducatering,
             Kind::Notification => settings.toasts.toasts_in_game,
+            Kind::Buffs => settings.overlays.shown.overlay_buffs,
         }
 }
 
@@ -127,6 +133,7 @@ fn placement_of(settings: &Settings, kind: Kind) -> OverlayPlacement {
         Kind::Riven => placements.overlay_riven_placement,
         Kind::Ducatering => settings.overlays.ducatering.overlay_ducatering_placement,
         Kind::Notification => settings.toasts.toasts_in_game_position.into(),
+        Kind::Buffs => OverlayPlacement::Centre,
     }
 }
 
@@ -162,6 +169,18 @@ pub struct NotificationTrigger {
     pub body: String,
 }
 
+/// One buff on the ring around the reticle.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct BuffTimer {
+    pub id: String,
+    pub label: String,
+    /// Seconds the buff lasted when it was last applied.
+    pub total: f64,
+    /// Unix milliseconds the buff runs out, `None` once it has dropped off.
+    pub ends_at: Option<f64>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct OverlayState {
@@ -175,6 +194,7 @@ pub struct OverlayState {
     pub riven: Option<RivenTrigger>,
     pub ducatering: Option<DucateringProgress>,
     pub notification: Option<NotificationTrigger>,
+    pub buffs: Option<Vec<BuffTimer>>,
     pub preview: Option<Kind>,
 }
 
@@ -191,6 +211,7 @@ impl Default for OverlayState {
             riven: None,
             ducatering: None,
             notification: None,
+            buffs: None,
             preview: None,
         }
     }
@@ -213,6 +234,7 @@ impl OverlayState {
             Kind::Riven => self.riven.is_some(),
             Kind::Ducatering => self.ducatering.is_some(),
             Kind::Notification => self.notification.is_some(),
+            Kind::Buffs => self.buffs.is_some(),
         }
     }
 
@@ -224,6 +246,7 @@ impl OverlayState {
             Kind::Riven => self.riven = None,
             Kind::Ducatering => self.ducatering = None,
             Kind::Notification => self.notification = None,
+            Kind::Buffs => self.buffs = None,
         }
     }
 }
@@ -436,6 +459,14 @@ pub fn on_ducatering<R: Runtime>(
             slots.ducatering = Some(progress);
         }),
         None => hide(app, state, Kind::Ducatering),
+    }
+}
+
+pub fn on_buffs<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, buffs: Vec<BuffTimer>) {
+    if buffs.is_empty() {
+        hide(app, state, Kind::Buffs);
+    } else {
+        show(app, state, Kind::Buffs, |slots| slots.buffs = Some(buffs));
     }
 }
 
@@ -785,7 +816,8 @@ mod tests {
                 "overlay-recommend",
                 "overlay-riven",
                 "overlay-ducatering",
-                "overlay-notify"
+                "overlay-notify",
+                "overlay-buffs"
             ]
         );
         assert!(Kind::Notification.permanent());

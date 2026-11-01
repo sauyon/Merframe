@@ -448,6 +448,25 @@ export function OverlaysPage() {
           />
         </Focused>
       </Section>
+
+      <Section
+        title="Buffs"
+        controls={
+          <CardControls
+            name="buffs"
+            enabled={settings.overlay_buffs}
+            disabled={!master}
+            onEnabled={(enabled) => saveSettings({ overlay_buffs: enabled })}
+          />
+        }
+        description={
+          master && settings.overlay_buffs
+            ? "A ring around the reticle counting down your timed buffs, read from the game."
+            : OFF
+        }
+      >
+        {null}
+      </Section>
     </Page>
   );
 }

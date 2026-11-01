@@ -45,7 +45,7 @@ const SHARED_KEY: u32 = 0x9828_c6d9;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LuaTable(u64);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LuaFunction(u64);
 
 #[derive(Debug, Clone, PartialEq)]

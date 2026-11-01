@@ -7,7 +7,8 @@
     "overlay-recommend",
     "overlay-riven",
     "overlay-ducatering",
-    "overlay-notify"
+    "overlay-notify",
+    "overlay-buffs"
   ],
   "permissions": ["core:default"]
 }

@@ -64,6 +64,7 @@ fn show_sample<R: Runtime>(
             on_ducatering(app, state, Some(progress));
         }
         Kind::Notification => bail!("Notifications are tested from the settings page"),
+        Kind::Buffs => bail!("The buff ring shows live buffs in a mission"),
     }
 
     Ok(())
