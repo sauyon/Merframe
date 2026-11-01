@@ -11,9 +11,13 @@ const THICKNESS = 1.2;
 const GAP = 0.12;
 /** Ability slots along the bottom of the ring. */
 const SLOTS = 4;
-/** How far around the ring the bottom slots, and the other buffs on top, each reach. */
-const SPREAD = (5 * Math.PI) / 6;
-const LABEL_OFFSET = 9;
+/** How far around the ring the ability slots reach along the bottom. Wide enough that the
+ * middle two slots' numbers clear the game's ability dots below the reticle. */
+const SLOT_SPREAD = Math.PI;
+/** How far around the ring the other buffs reach across the top. */
+const TOP_SPREAD = (5 * Math.PI) / 6;
+/** Numbers sit outside the ring, away from the crosshair. */
+const LABEL_OFFSET = 7;
 /** The arc warms once this share of the buff is left. */
 const WARN_SHARE = 0.25;
 const INK = "rgb(235 238 240)";
@@ -56,13 +60,11 @@ function Buff({
   buff,
   from,
   to,
-  inside,
   now,
 }: {
   buff: BuffTimer;
   from: number;
   to: number;
-  inside: boolean;
   now: number;
 }) {
   const left =
@@ -70,10 +72,7 @@ function Buff({
   const share =
     left === null ? 0 : Math.min(1, left / Math.max(buff.total, 0.001));
   const colour = left === null ? DOWN : share < WARN_SHARE ? WARN : INK;
-  const [x, y] = point(
-    (from + to) / 2,
-    RADIUS + (inside ? -LABEL_OFFSET : LABEL_OFFSET),
-  );
+  const [x, y] = point((from + to) / 2, RADIUS + LABEL_OFFSET);
 
   return (
     <g>
@@ -137,7 +136,7 @@ export function BuffRing({
   const now = useNow();
   // Abilities 1 to 4 sit along the bottom, left to right like the game's ability dots.
   // Clockwise around the bottom runs right to left, so slot 4 comes first.
-  const slots = sections(Math.PI, SPREAD, SLOTS)
+  const slots = sections(Math.PI, SLOT_SPREAD, SLOTS)
     .reverse()
     .map(([from, to], index) => ({
       from,
@@ -147,7 +146,7 @@ export function BuffRing({
   const others = buffs.filter(
     (buff) => buff.slot === null || buff.slot > SLOTS,
   );
-  const top = sections(0, SPREAD, Math.max(others.length, 1));
+  const top = sections(0, TOP_SPREAD, Math.max(others.length, 1));
 
   return (
     <svg
@@ -165,7 +164,7 @@ export function BuffRing({
             fill="none"
           />
           {buffs.length > 0 && (
-            <Buff buff={pick(buffs)} from={from} to={to} inside now={now} />
+            <Buff buff={pick(buffs)} from={from} to={to} now={now} />
           )}
         </g>
       ))}
@@ -180,7 +179,7 @@ export function BuffRing({
               strokeWidth={THICKNESS}
               fill="none"
             />
-            <Buff buff={buff} from={from} to={to} inside={false} now={now} />
+            <Buff buff={buff} from={from} to={to} now={now} />
           </g>
         );
       })}
