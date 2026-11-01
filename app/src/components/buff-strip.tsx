@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import type { BuffTimer, TextSize } from "@/types";
 
-// A strip of thin countdown bars just under the game's ability dots, which sit at the same
-// place below the screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4
-// keep fixed slots, left to right like the dots; other buffs flank them. Styled like the HUD:
-// off-white strokes, small seconds left under each bar, colour only as a recast hint.
+// Countdown seconds just under the game's ability dots, which sit at the same place below
+// the screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed
+// slots, each number right under its dot; other buffs flank them. Styled like the HUD:
+// off-white numbers, colour only as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The dots are measured in game at 2160p: 15 units
@@ -13,14 +13,12 @@ const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
 const SLOTS = 4;
-/** The dots' spacing; each ability's bar sits right under its dot. */
+/** The dots' spacing; each ability's number sits right under its dot. */
 const PITCH = 15;
-/** Where the bars run, just below the dots. */
-const BAR_Y = CENTRE + 85;
-const BAR_WIDTH = 12;
-const THICKNESS = 2;
+/** Where the numbers' tops sit, just below the dots. */
+const TOP = CENTRE + 83;
 /** Seconds at small text, scaled like the app's root size. */
-const FONT_SIZE = 9;
+const FONT_SIZE = 11;
 const TEXT_SCALE: Record<TextSize, number> = {
   small: 1,
   medium: 1.125,
@@ -28,7 +26,7 @@ const TEXT_SCALE: Record<TextSize, number> = {
 };
 /** Extra room between the ability slots and the other buffs, in pitches. */
 const GROUP_GAP = 0.5;
-/** The bar warms once this share of the buff is left. */
+/** The number warms once this share of the buff is left. */
 const WARN_SHARE = 0.25;
 const INK = "rgb(235 238 240)";
 const WARN = "rgb(240 190 110)";
@@ -48,23 +46,9 @@ function useNow() {
   return now;
 }
 
-/** The left edge of the bar at `position`, counted in pitches from the strip's middle. */
-function barX(position: number) {
-  return CENTRE + position * PITCH - BAR_WIDTH / 2;
-}
-
-function Track({ x }: { x: number }) {
-  return (
-    <line
-      x1={x}
-      x2={x + BAR_WIDTH}
-      y1={BAR_Y}
-      y2={BAR_Y}
-      stroke={INK}
-      strokeOpacity={0.14}
-      strokeWidth={THICKNESS}
-    />
-  );
+/** The middle of the slot at `position`, counted in pitches from the strip's middle. */
+function slotX(position: number) {
+  return CENTRE + position * PITCH;
 }
 
 function Buff({
@@ -85,32 +69,19 @@ function Buff({
   const colour = left === null ? DOWN : share < WARN_SHARE ? WARN : INK;
 
   return (
-    <g>
-      <line
-        x1={x}
-        x2={x + BAR_WIDTH * (left === null ? 1 : share)}
-        y1={BAR_Y}
-        y2={BAR_Y}
-        stroke={colour}
-        strokeOpacity={left === null ? 0.5 : 0.85}
-        strokeWidth={THICKNESS}
-      />
-      <text
-        x={x + BAR_WIDTH / 2}
-        y={BAR_Y + 2 + fontSize * 0.6}
-        fill={colour}
-        fillOpacity={0.9}
-        fontWeight={600}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={fontSize}
-        style={{
-          filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))",
-        }}
-      >
-        {left === null ? "—" : Math.ceil(left)}
-      </text>
-    </g>
+    <text
+      x={x}
+      y={TOP + fontSize / 2}
+      fill={colour}
+      fillOpacity={0.92}
+      fontWeight={600}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={fontSize}
+      style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
+    >
+      {left === null ? "—" : Math.ceil(left)}
+    </text>
   );
 }
 
@@ -138,7 +109,7 @@ export function BuffStrip({
   const now = useNow();
   const fontSize = FONT_SIZE * TEXT_SCALE[textSize];
   const slots = Array.from({ length: SLOTS }, (_, index) => ({
-    x: barX(index - (SLOTS - 1) / 2),
+    x: slotX(index - (SLOTS - 1) / 2),
     buffs: buffs.filter((buff) => buff.slot === index + 1),
   }));
   const others = buffs.filter(
@@ -151,23 +122,27 @@ export function BuffStrip({
       className="size-full"
       style={{ opacity: opacity / 100 }}
     >
-      {slots.map(({ x, buffs }) => (
-        <g key={x}>
-          <Track x={x} />
-          {buffs.length > 0 && (
-            <Buff buff={pick(buffs)} x={x} now={now} fontSize={fontSize} />
-          )}
-        </g>
+      {slots.map(
+        ({ x, buffs }) =>
+          buffs.length > 0 && (
+            <Buff
+              key={x}
+              buff={pick(buffs)}
+              x={x}
+              now={now}
+              fontSize={fontSize}
+            />
+          ),
+      )}
+      {others.map((buff, index) => (
+        <Buff
+          key={buff.id}
+          buff={buff}
+          x={slotX(flank(index))}
+          now={now}
+          fontSize={fontSize}
+        />
       ))}
-      {others.map((buff, index) => {
-        const x = barX(flank(index));
-        return (
-          <g key={buff.id}>
-            <Track x={x} />
-            <Buff buff={buff} x={x} now={now} fontSize={fontSize} />
-          </g>
-        );
-      })}
     </svg>
   );
 }
