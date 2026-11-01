@@ -11,6 +11,9 @@ import type { BuffTimer, TextSize } from "@/types";
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The dots are measured in game at 2160p: 15 units
 // apart, centred 77.5 units below the middle.
+//
+// An ability keeping up several buffs at once, like Tribute, shows the one that runs out
+// first, with a pip under it for each buff.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -30,6 +33,9 @@ const TEXT_SCALE: Record<TextSize, number> = {
   medium: 1.125,
   large: 1.25,
 };
+/** Pips under a slot's number, one per buff the ability keeps up. */
+const PIP_RADIUS = 1.1;
+const PIP_GAP = 3.6;
 /** Extra room between the ability slots and the other buffs, in pitches. */
 const GROUP_GAP = 0.5;
 /** The number warms once this share of the buff is left. */
@@ -57,6 +63,50 @@ function slotX(position: number) {
   return CENTRE + position * PITCH;
 }
 
+/** How much of the buff is left, or `null` once it has dropped off. */
+function remaining(buff: BuffTimer, now: number) {
+  return buff.ends_at === null
+    ? null
+    : Math.max(0, (buff.ends_at - now) / 1000);
+}
+
+/** The number's colour: off-white, warmer when nearly out, red once gone. */
+function colourOf(buff: BuffTimer, now: number) {
+  const left = remaining(buff, now);
+  const share =
+    left === null ? 0 : Math.min(1, left / Math.max(buff.total, 0.001));
+  return left === null ? DOWN : share < WARN_SHARE ? WARN : INK;
+}
+
+/** A dot per buff of one ability, each coloured by its own share left. */
+function Pips({
+  buffs,
+  x,
+  y,
+  now,
+}: {
+  buffs: BuffTimer[];
+  x: number;
+  y: number;
+  now: number;
+}) {
+  const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
+  return (
+    <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
+      {buffs.map((buff, index) => (
+        <circle
+          key={buff.id}
+          cx={start + index * PIP_GAP}
+          cy={y}
+          r={PIP_RADIUS}
+          fill={colourOf(buff, now)}
+          fillOpacity={0.92}
+        />
+      ))}
+    </g>
+  );
+}
+
 function Buff({
   buff,
   x,
@@ -68,11 +118,8 @@ function Buff({
   now: number;
   fontSize: number;
 }) {
-  const left =
-    buff.ends_at === null ? null : Math.max(0, (buff.ends_at - now) / 1000);
-  const share =
-    left === null ? 0 : Math.min(1, left / Math.max(buff.total, 0.001));
-  const colour = left === null ? DOWN : share < WARN_SHARE ? WARN : INK;
+  const left = remaining(buff, now);
+  const colour = colourOf(buff, now);
 
   return (
     <text
@@ -152,13 +199,17 @@ export function BuffStrip({
       {slots.map(
         ({ x, buffs }) =>
           buffs.length > 0 && (
-            <Buff
-              key={x}
-              buff={pick(buffs)}
-              x={x}
-              now={now}
-              fontSize={fontSize}
-            />
+            <g key={x}>
+              <Buff buff={pick(buffs)} x={x} now={now} fontSize={fontSize} />
+              {buffs.length > 1 && (
+                <Pips
+                  buffs={buffs}
+                  x={x}
+                  y={TOP + fontSize + PIP_GAP / 2}
+                  now={now}
+                />
+              )}
+            </g>
           ),
       )}
       {others.map((buff, index) => {

@@ -1,13 +1,17 @@
-//! Polls the local player's HUD buff tray and feeds the buff strip overlay.
+//! Polls the local player's buffs from game memory and feeds the buff strip overlay.
+//!
+//! Buffs come from more than one place, each a [`BuffSource`]: the HUD's buff tray, and the
+//! timers the HUD counts down under the ability icons, which is where abilities like Tribute
+//! keep theirs.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Runtime};
 use tracing::debug;
 use wf_mem::MemoryReader;
-use wf_scan::{LuaState, LuaTable, StatusEffect, status_effects, status_list};
+use wf_scan::{AbilityTimers, LuaState, LuaTable, StatusEffect, status_effects, status_list};
 
 use super::ticks;
 use crate::overlay::{self, BuffTimer};
@@ -29,18 +33,23 @@ const REFRESH_JUMP: f64 = 0.5;
 /// The strip counts down on its own; only resend when the end time moved more than this. The
 /// estimate jitters by a few hundred ms between polls.
 const DRIFT_MS: f64 = 1000.0;
+/// Ability timers live in the HUD, which is rebuilt between missions. Finding it scans the
+/// whole heap for several seconds, so it runs on its own thread, and while the HUD can't be
+/// read it is looked for again only this often, doubling up to [`HUD_SEARCH_MAX`] each time
+/// it isn't found, as in menus without one.
+const HUD_SEARCH_EVERY: Duration = Duration::from_secs(15);
+const HUD_SEARCH_MAX: Duration = Duration::from_secs(120);
 /// How often the equipped warframe's abilities are looked up again from the inventory.
 const LOADOUT_EVERY: Duration = Duration::from_secs(5);
 
 pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
     let mut tick = ticks(BUFF_TICK);
     let mut game: Option<Attached> = None;
-    let mut tray = Tray::default();
-    let mut ticking = Ticking::default();
+    let mut sources = buff_sources();
     let mut tracker = Tracker::new(LINGER);
     let mut sent: Vec<BuffTimer> = Vec::new();
     let started = Instant::now();
-    let mut seen = (None, 0);
+    let mut seen: Option<Vec<usize>> = None;
     let mut abilities: Vec<String> = Vec::new();
     let mut icons: Vec<(String, String)> = Vec::new();
     let mut loadout_read: Option<Instant> = None;
@@ -66,24 +75,27 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         }
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
-        let effects = if wanted {
+        let readings = if wanted {
             let owned = Arc::clone(&state);
             let cached = game.take();
-            let mut moved = tray;
-            let attempt = blocking("read the buff tray", move || {
+            let mut moved = std::mem::take(&mut sources);
+            let attempt = blocking("read buffs", move || {
                 let attached = reattach(&owned, cached)?;
-                let effects = moved.read(attached.reader.as_ref(), &attached.lua);
-                anyhow::Ok((attached, moved, effects))
+                let readings: Vec<Vec<Reading>> = moved
+                    .iter_mut()
+                    .map(|source| source.read(&attached.reader, &attached.lua))
+                    .collect();
+                anyhow::Ok((attached, moved, readings))
             })
             .await;
             match attempt {
-                Some(Ok((attached, read, effects))) => {
+                Some(Ok((attached, read, readings))) => {
                     game = Some(attached);
-                    tray = read;
-                    Some(effects)
+                    sources = read;
+                    Some(readings)
                 }
                 Some(Err(error)) => {
-                    debug!(?error, "Buff tray not read");
+                    debug!(?error, "Buffs not read");
                     None
                 }
                 None => None,
@@ -93,22 +105,25 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         };
 
         let now = started.elapsed().as_secs_f64();
-        let readings = effects.as_deref().map(|e| ticking.timed(e)).unwrap_or_default();
-        let counts = (effects.as_ref().map(Vec::len), readings.len());
+        let counts = readings
+            .as_ref()
+            .map(|by_source| by_source.iter().map(Vec::len).collect::<Vec<_>>());
         if counts != seen {
-            debug!(wanted, effects = counts.0, readings = counts.1, "Buff tray read");
-            seen = counts;
+            debug!(wanted, ?counts, "Buffs read");
+            seen.clone_from(&counts);
         }
+        let idle = readings.is_none();
+        let readings = merge(readings.unwrap_or_default(), &abilities);
         tracker.update(&readings, now);
-        let timers = timers(&tracker.shown(), unix_ms(), &abilities, &icons);
+        let timers = timers(&tracker.shown(), unix_ms(), &icons);
         if !same(&timers, &sent) {
             overlay::on_buffs(&app, &state, timers.clone());
             sent = timers;
         }
 
-        if effects.is_none() {
+        if idle {
             game = None;
-            tray = Tray::default();
+            sources = buff_sources();
             tokio::time::sleep(IDLE_TICK).await;
         }
     }
@@ -118,6 +133,130 @@ fn unix_ms() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0.0, |since| since.as_secs_f64() * 1000.0)
+}
+
+/// Somewhere in game memory that running buffs can be read from.
+trait BuffSource: Send {
+    /// The buffs running now; empty while the source can't be read.
+    fn read(&mut self, reader: &Arc<dyn MemoryReader>, lua: &LuaState) -> Vec<Reading>;
+}
+
+fn buff_sources() -> Vec<Box<dyn BuffSource>> {
+    vec![
+        Box::new(TraySource::default()),
+        Box::new(AbilityTimerSource::default()),
+    ]
+}
+
+/// The HUD's buff tray: effects from mods, arcanes and most abilities, by name.
+#[derive(Default)]
+struct TraySource {
+    tray: Tray,
+    ticking: Ticking,
+}
+
+impl BuffSource for TraySource {
+    fn read(&mut self, reader: &Arc<dyn MemoryReader>, lua: &LuaState) -> Vec<Reading> {
+        let effects = self.tray.read(reader.as_ref(), lua);
+        self.ticking.timed(&effects)
+    }
+}
+
+/// The timers the HUD runs under each ability icon, one per buff the ability keeps up. These
+/// carry no names, only which ability they belong to, so they take that ability's slot.
+#[derive(Default)]
+struct AbilityTimerSource {
+    timers: Option<AbilityTimers>,
+    searched: Option<Instant>,
+    search: Option<mpsc::Receiver<Option<AbilityTimers>>>,
+    /// Searches in a row that found nothing.
+    misses: u32,
+}
+
+impl AbilityTimerSource {
+    fn search_every(&self) -> Duration {
+        HUD_SEARCH_EVERY
+            .saturating_mul(1 << self.misses.min(3))
+            .min(HUD_SEARCH_MAX)
+    }
+
+    /// Starts looking for the HUD in the background, unless a search is running or one ran
+    /// too recently.
+    fn search(&mut self, reader: &Arc<dyn MemoryReader>) {
+        if self.search.is_some()
+            || self
+                .searched
+                .is_some_and(|at| at.elapsed() < self.search_every())
+        {
+            return;
+        }
+        self.searched = Some(Instant::now());
+        let (found, search) = mpsc::channel();
+        let reader = Arc::clone(reader);
+        let spawned = std::thread::Builder::new()
+            .name("locate ability timers".into())
+            .spawn(move || {
+                let located = AbilityTimers::locate(reader.as_ref()).unwrap_or_else(|error| {
+                    debug!(%error, "Ability timers not located");
+                    None
+                });
+                debug!(?located, "Ability timers searched for");
+                let _ = found.send(located);
+            });
+        match spawned {
+            Ok(_) => self.search = Some(search),
+            Err(error) => debug!(%error, "Ability timer search not started"),
+        }
+    }
+}
+
+impl BuffSource for AbilityTimerSource {
+    fn read(&mut self, reader: &Arc<dyn MemoryReader>, _lua: &LuaState) -> Vec<Reading> {
+        if let Some(search) = &self.search {
+            match search.try_recv() {
+                Ok(found) => {
+                    self.misses = if found.is_some() { 0 } else { self.misses + 1 };
+                    self.timers = found;
+                    self.search = None;
+                }
+                Err(mpsc::TryRecvError::Disconnected) => self.search = None,
+                Err(mpsc::TryRecvError::Empty) => {}
+            }
+        }
+        let read = self.timers.and_then(|timers| timers.read(reader.as_ref()));
+        if read.is_none() {
+            self.search(reader);
+        }
+        read.unwrap_or_default()
+            .into_iter()
+            .map(|timer| Reading {
+                id: format!("ability{}:{:x}", timer.ability, timer.key),
+                label: String::new(),
+                slot: u8::try_from(timer.ability + 1).ok(),
+                remaining: f64::from(timer.remaining),
+            })
+            .collect()
+    }
+}
+
+/// All sources' readings with their slots filled in. A slot the HUD runs ability timers for
+/// takes only those: the tray's entry for the same ability would count it twice.
+fn merge(by_source: Vec<Vec<Reading>>, abilities: &[String]) -> Vec<Reading> {
+    let mut readings: Vec<Reading> = by_source
+        .into_iter()
+        .flatten()
+        .map(|reading| Reading {
+            slot: reading.slot.or_else(|| slot(&reading.id, abilities)),
+            ..reading
+        })
+        .collect();
+    let timed: HashSet<u8> = readings
+        .iter()
+        .filter(|r| r.id.starts_with("ability"))
+        .filter_map(|r| r.slot)
+        .collect();
+    readings.retain(|r| r.id.starts_with("ability") || r.slot.is_none_or(|s| !timed.contains(&s)));
+    readings
 }
 
 /// Where the tray lives in the Lua state, and when it was last looked up.
@@ -150,16 +289,11 @@ impl Tray {
     }
 }
 
-fn timers(
-    shown: &[Shown],
-    now_ms: f64,
-    abilities: &[String],
-    icons: &[(String, String)],
-) -> Vec<BuffTimer> {
+fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffTimer> {
     shown
         .iter()
         .map(|buff| {
-            let slot = slot(&buff.id, abilities);
+            let slot = buff.slot;
             BuffTimer {
                 id: buff.id.clone(),
                 label: buff.label.clone(),
@@ -222,6 +356,8 @@ fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {
 struct Reading {
     id: String,
     label: String,
+    /// The ability slot, counted from 1, when the source knows it; otherwise found by name.
+    slot: Option<u8>,
     remaining: f64,
 }
 
@@ -252,6 +388,7 @@ impl Ticking {
             .map(|e| Reading {
                 id: format!("{}#{}", e.name_tag, e.id),
                 label: label(&e.name_tag),
+                slot: None,
                 remaining: f64::from(e.data),
             })
             .collect()
@@ -289,6 +426,7 @@ fn label(tag: &str) -> String {
 struct Shown {
     id: String,
     label: String,
+    slot: Option<u8>,
     /// `None` once the buff has dropped off.
     remaining: Option<f64>,
     total: f64,
@@ -329,12 +467,14 @@ impl Tracker {
                     };
                     shown.remaining = Some(reading.remaining);
                     shown.label.clone_from(&reading.label);
+                    shown.slot = reading.slot;
                     entry.gone_at = None;
                 }
                 None => self.entries.push(Entry {
                     shown: Shown {
                         id: reading.id.clone(),
                         label: reading.label.clone(),
+                        slot: reading.slot,
                         remaining: Some(reading.remaining),
                         total: reading.remaining,
                     },
@@ -343,8 +483,7 @@ impl Tracker {
             }
         }
         for entry in &mut self.entries {
-            if entry.shown.remaining.is_some() && !readings.iter().any(|r| r.id == entry.shown.id)
-            {
+            if entry.shown.remaining.is_some() && !readings.iter().any(|r| r.id == entry.shown.id) {
                 entry.shown.remaining = None;
                 entry.gone_at = Some(now);
             }
@@ -368,6 +507,7 @@ mod tests {
         Reading {
             id: id.into(),
             label: id.into(),
+            slot: None,
             remaining,
         }
     }
@@ -472,20 +612,32 @@ mod tests {
         ]
         .map(String::from);
         let slot_of = |tag: &str| slot(&format!("{tag}#7"), &titania);
-        assert_eq!(slot_of("/Lotus/Language/Suits/FairyDustAbilityName"), Some(1));
-        assert_eq!(slot_of("/Lotus/Language/Suits/BrokenRotAbilityName"), Some(3));
+        assert_eq!(
+            slot_of("/Lotus/Language/Suits/FairyDustAbilityName"),
+            Some(1)
+        );
+        assert_eq!(
+            slot_of("/Lotus/Language/Suits/BrokenRotAbilityName"),
+            Some(3)
+        );
         assert_eq!(
             slot_of("/Lotus/Language/Suits/FairyFlightAbilityAugment1Name"),
             Some(4)
         );
-        assert_eq!(slot_of("/Lotus/Language/Arcanes/AbilityDurationOnCastName"), None);
+        assert_eq!(
+            slot_of("/Lotus/Language/Arcanes/AbilityDurationOnCastName"),
+            None
+        );
     }
 
     #[test]
     fn other_buffs_take_the_icon_their_name_starts_with() {
         let icons = [
             ("AbilityDurationOnCast", "ArcaneProjectionAO.png"),
-            ("AbilityEfficiencyOnAbilityObjectCreation", "WarframeObjectCreation.png"),
+            (
+                "AbilityEfficiencyOnAbilityObjectCreation",
+                "WarframeObjectCreation.png",
+            ),
             ("PagemasterFinalChapter", "DanteResolution.png"),
             ("Pagemaster", "Wrong.png"),
             ("FairyDust", "FaerieDust.png"),
@@ -506,6 +658,7 @@ mod tests {
         let shown = |id: &str| Shown {
             id: format!("{id}#1"),
             label: String::new(),
+            slot: slot(&format!("{id}#1"), &titania),
             remaining: Some(5.0),
             total: 10.0,
         };
@@ -515,11 +668,42 @@ mod tests {
                 shown("/Lotus/Language/Arcanes/AbilityDurationOnCastName"),
             ],
             0.0,
-            &titania,
             &icons,
         );
-        assert_eq!(sent[0].icon, None, "slotted buffs sit under their dot instead");
+        assert_eq!(
+            sent[0].icon, None,
+            "slotted buffs sit under their dot instead"
+        );
         assert_eq!(sent[1].icon.as_deref(), Some("ArcaneProjectionAO.png"));
+    }
+
+    #[test]
+    fn ability_timers_take_their_slot_over_the_tray() {
+        let titania = [
+            "/Lotus/Powersuits/Fairy/Abilities/FairyDustAbility",
+            "/Lotus/Powersuits/Fairy/Abilities/FairySoulAbility",
+        ]
+        .map(String::from);
+        let timer = |key: u32, remaining: f64| Reading {
+            id: format!("ability1:{key:x}"),
+            label: String::new(),
+            slot: Some(2),
+            remaining,
+        };
+        let tray = vec![
+            r("/Lotus/Language/Suits/FairySoulAbilityName#4", 100.0),
+            r("/Lotus/Language/Suits/FairyDustAbilityName#5", 20.0),
+        ];
+        let merged = merge(vec![tray, vec![timer(1, 118.0), timer(2, 64.0)]], &titania);
+        let slots: Vec<_> = merged.iter().map(|r| (r.id.as_str(), r.slot)).collect();
+        assert_eq!(
+            slots,
+            [
+                ("/Lotus/Language/Suits/FairyDustAbilityName#5", Some(1)),
+                ("ability1:1", Some(2)),
+                ("ability1:2", Some(2)),
+            ]
+        );
     }
 
     #[test]
@@ -527,17 +711,17 @@ mod tests {
         let shown = [Shown {
             id: "a".into(),
             label: "A".into(),
+            slot: None,
             remaining: Some(10.0),
             total: 20.0,
         }];
-        let first = timers(&shown, 0.0, &[], &[]);
+        let first = timers(&shown, 0.0, &[]);
         let later = timers(
             &[Shown {
                 remaining: Some(9.9),
                 ..shown[0].clone()
             }],
             100.0,
-            &[],
             &[],
         );
         assert!(same(&later, &first));
@@ -547,7 +731,6 @@ mod tests {
                 ..shown[0].clone()
             }],
             100.0,
-            &[],
             &[],
         );
         assert!(!same(&recast, &first));
