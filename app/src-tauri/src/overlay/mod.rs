@@ -175,6 +175,8 @@ pub struct NotificationTrigger {
 pub struct BuffTimer {
     pub id: String,
     pub label: String,
+    /// The ability slot, counted from 1, the buff comes from; `None` for other buffs.
+    pub slot: Option<u8>,
     /// Seconds the buff lasted when it was last applied.
     pub total: f64,
     /// Unix milliseconds the buff runs out, `None` once it has dropped off.

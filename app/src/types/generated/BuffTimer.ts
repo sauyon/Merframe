@@ -5,6 +5,10 @@
  */
 export type BuffTimer = { id: string, label: string, 
 /**
+ * The ability slot, counted from 1, the buff comes from; `None` for other buffs.
+ */
+slot: number | null, 
+/**
  * Seconds the buff lasted when it was last applied.
  */
 total: number, 

@@ -128,6 +128,15 @@ pub struct Item {
     pub fusion_limit: Option<u32>,
     #[serde(rename = "levelStats")]
     pub level_stats: Option<Vec<LevelStat>>,
+    /// A warframe's abilities in slot order.
+    pub abilities: Option<Vec<Ability>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Ability {
+    #[serde(rename = "uniqueName")]
+    pub unique_name: String,
+    pub name: String,
 }
 
 pub const DEFAULT_MAX_RANK: u32 = 30;
@@ -275,6 +284,7 @@ pub(crate) mod tests {
             upgrade_entries: None,
             fusion_limit: None,
             level_stats: None,
+            abilities: None,
         }
     }
 

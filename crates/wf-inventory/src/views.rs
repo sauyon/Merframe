@@ -191,7 +191,7 @@ pub(crate) mod tests {
     use crate::model::Inventory;
     use chrono::Datelike;
 
-    const FIXTURE: &str = include_str!("../../../fixtures/inventory.json");
+    pub(crate) const FIXTURE: &str = include_str!("../../../fixtures/inventory.json");
 
     fn fixture() -> Inventory {
         Inventory::parse(FIXTURE).unwrap()

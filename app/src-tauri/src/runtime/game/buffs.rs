@@ -13,7 +13,7 @@ use super::ticks;
 use crate::overlay::{self, BuffTimer};
 use crate::runtime::attach::{Attached, reattach};
 use crate::runtime::blocking;
-use crate::state::{AppState, read};
+use crate::state::{AppState, lock, read};
 
 const BUFF_TICK: Duration = Duration::from_millis(100);
 const IDLE_TICK: Duration = Duration::from_secs(2);
@@ -26,6 +26,8 @@ const REFRESH_JUMP: f64 = 0.5;
 /// The ring counts down on its own; only resend when the end time moved more than this. The
 /// estimate jitters by a few hundred ms between polls.
 const DRIFT_MS: f64 = 1000.0;
+/// How often the equipped warframe's abilities are looked up again from the inventory.
+const LOADOUT_EVERY: Duration = Duration::from_secs(5);
 
 pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
     let mut tick = ticks(BUFF_TICK);
@@ -36,8 +38,24 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut sent: Vec<BuffTimer> = Vec::new();
     let started = Instant::now();
     let mut seen = (None, 0);
+    let mut abilities: Vec<String> = Vec::new();
+    let mut loadout_read: Option<Instant> = None;
     loop {
         tick.tick().await;
+        if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
+            loadout_read = Some(Instant::now());
+            let owned = Arc::clone(&state);
+            let equipped = blocking("read the equipped abilities", move || {
+                lock(&owned.core).equipped_abilities()
+            })
+            .await
+            .flatten()
+            .unwrap_or_default();
+            if equipped != abilities {
+                debug!(?equipped, "Buff ring slots");
+                abilities = equipped;
+            }
+        }
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
         let effects = if wanted {
@@ -74,7 +92,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             seen = counts;
         }
         tracker.update(&readings, now);
-        let timers = timers(&tracker.shown(), unix_ms());
+        let timers = timers(&tracker.shown(), unix_ms(), &abilities);
         if !same(&timers, &sent) {
             overlay::on_buffs(&app, &state, timers.clone());
             sent = timers;
@@ -119,16 +137,31 @@ impl Tray {
     }
 }
 
-fn timers(shown: &[Shown], now_ms: f64) -> Vec<BuffTimer> {
+fn timers(shown: &[Shown], now_ms: f64, abilities: &[String]) -> Vec<BuffTimer> {
     shown
         .iter()
         .map(|buff| BuffTimer {
             id: buff.id.clone(),
             label: buff.label.clone(),
+            slot: slot(&buff.id, abilities),
             total: buff.total,
             ends_at: buff.remaining.map(|left| (now_ms + left * 1000.0).round()),
         })
         .collect()
+}
+
+/// The ability slot, counted from 1, whose ability the buff comes from. Buff names share
+/// their ability's stem: `.../Suits/FairyDustAbilityName` comes from `.../FairyDustAbility`.
+fn slot(id: &str, abilities: &[String]) -> Option<u8> {
+    let tag = id.rsplit_once('#').map_or(id, |(tag, _)| tag);
+    let key = tag.rsplit('/').next()?;
+    let (index, _) = abilities
+        .iter()
+        .enumerate()
+        .filter_map(|(index, ability)| Some((index, ability.rsplit('/').next()?)))
+        .filter(|(_, stem)| key.starts_with(stem))
+        .max_by_key(|(_, stem)| stem.len())?;
+    u8::try_from(index + 1).ok()
 }
 
 fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {
@@ -136,6 +169,7 @@ fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {
         && now.iter().zip(sent).all(|(a, b)| {
             a.id == b.id
                 && a.label == b.label
+                && a.slot == b.slot
                 && (a.total - b.total).abs() < REFRESH_JUMP
                 && match (a.ends_at, b.ends_at) {
                     (Some(x), Some(y)) => (x - y).abs() < DRIFT_MS,
@@ -390,6 +424,25 @@ mod tests {
     }
 
     #[test]
+    fn buffs_take_their_ability_slot() {
+        let titania = [
+            "/Lotus/Powersuits/Fairy/Abilities/FairyDustAbility",
+            "/Lotus/Powersuits/Fairy/Abilities/FairySoulAbility",
+            "/Lotus/Powersuits/BrokenFrame/Abilities/BrokenRotAbility",
+            "/Lotus/Powersuits/Fairy/Abilities/FairyFlightAbility",
+        ]
+        .map(String::from);
+        let slot_of = |tag: &str| slot(&format!("{tag}#7"), &titania);
+        assert_eq!(slot_of("/Lotus/Language/Suits/FairyDustAbilityName"), Some(1));
+        assert_eq!(slot_of("/Lotus/Language/Suits/BrokenRotAbilityName"), Some(3));
+        assert_eq!(
+            slot_of("/Lotus/Language/Suits/FairyFlightAbilityAugment1Name"),
+            Some(4)
+        );
+        assert_eq!(slot_of("/Lotus/Language/Arcanes/AbilityDurationOnCastName"), None);
+    }
+
+    #[test]
     fn countdown_is_not_resent_every_tick() {
         let shown = [Shown {
             id: "a".into(),
@@ -397,13 +450,14 @@ mod tests {
             remaining: Some(10.0),
             total: 20.0,
         }];
-        let first = timers(&shown, 0.0);
+        let first = timers(&shown, 0.0, &[]);
         let later = timers(
             &[Shown {
                 remaining: Some(9.9),
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
         );
         assert!(same(&later, &first));
         let recast = timers(
@@ -412,6 +466,7 @@ mod tests {
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
         );
         assert!(!same(&recast, &first));
     }

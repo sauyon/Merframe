@@ -161,6 +161,30 @@ impl Core {
         self.account.as_ref().map(|account| &account.inventory)
     }
 
+    /// The equipped warframe's abilities in slot order, with a subsumed Helminth ability in
+    /// the slot it replaces.
+    pub fn equipped_abilities(&self) -> Option<Vec<String>> {
+        let (suit, config) = self.inventory()?.equipped_suit()?;
+        let mut abilities: Vec<String> = self
+            .catalog
+            .item(&suit.item_type)?
+            .abilities
+            .as_ref()?
+            .iter()
+            .map(|ability| ability.unique_name.clone())
+            .collect();
+        let helminth = suit
+            .configs
+            .get(config)
+            .and_then(|config| config.ability_override.as_ref());
+        if let Some(helminth) = helminth
+            && let Some(slot) = abilities.get_mut(helminth.index)
+        {
+            slot.clone_from(&helminth.ability);
+        }
+        Some(abilities)
+    }
+
     pub fn latest_snapshot(&self) -> Option<&Snapshot> {
         self.latest_snapshot.as_ref()
     }
