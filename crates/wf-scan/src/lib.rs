@@ -7,7 +7,7 @@ mod http;
 mod inventory;
 mod kiosk;
 mod logbuf;
-mod lua;
+pub mod lua;
 mod relic;
 mod roots;
 mod station;

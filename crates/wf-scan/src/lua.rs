@@ -42,7 +42,7 @@ const GLOBAL_STATE_FIELDS: usize = 0x1000;
 const SHARED_KEY_TAG: u32 = 1;
 const SHARED_KEY: u32 = 0x9828_c6d9;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LuaTable(u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -250,6 +250,23 @@ impl LuaTable {
         tables.sort_unstable_by_key(|table| table.0);
         tables.dedup();
         tables
+    }
+
+    pub fn entries<R: MemoryReader + ?Sized>(self, reader: &R) -> Vec<(String, LuaValue)> {
+        self.nodes(reader)
+            .unwrap_or_default()
+            .as_chunks::<NODE>()
+            .0
+            .iter()
+            .filter_map(|node| {
+                let key = &node[NODE_KEY..];
+                if key_tag(key) != Some(u32::from(STRING_TAG)) {
+                    return None;
+                }
+                let name = read_text(reader, read_u64_le(key, 0)?)?;
+                Some((name, value(reader, &node[..NODE_KEY])?))
+            })
+            .collect()
     }
 
     pub fn items<R: MemoryReader + ?Sized>(self, reader: &R) -> Vec<LuaValue> {
