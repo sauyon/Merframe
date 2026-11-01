@@ -19,6 +19,9 @@ const BUFF_TICK: Duration = Duration::from_millis(100);
 const IDLE_TICK: Duration = Duration::from_secs(2);
 /// The tray is rebuilt between missions; while it reads empty, look it up again this often.
 const SEARCH_EVERY: Duration = Duration::from_secs(1);
+/// The old tray can linger in memory with a few frozen entries, so it never reads empty;
+/// even while it reads, look it up again this often.
+const RECHECK_EVERY: Duration = Duration::from_secs(5);
 /// Seconds an expired buff stays on the strip, so the drop is noticed.
 const LINGER: f64 = 3.0;
 /// Remaining time jumping up by more than this means the buff was reapplied.
@@ -130,7 +133,12 @@ impl Tray {
             .list
             .map(|list| status_effects(reader, list))
             .unwrap_or_default();
-        if effects.is_empty() && self.searched.is_none_or(|at| at.elapsed() >= SEARCH_EVERY) {
+        let every = if effects.is_empty() {
+            SEARCH_EVERY
+        } else {
+            RECHECK_EVERY
+        };
+        if self.searched.is_none_or(|at| at.elapsed() >= every) {
             self.searched = Some(Instant::now());
             self.list = status_list(reader, lua);
             effects = self
