@@ -13,6 +13,9 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   version:
     runs-on: ubuntu-24.04
@@ -20,10 +23,10 @@ jobs:
       version: ${{ steps.read.outputs.version }}
       release: ${{ steps.read.outputs.release }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - id: read
         run: |
-          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "merframe") | .version')
+          version=$(cargo metadata --locked --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "merframe") | .version')
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
             echo "release=false" >> "$GITHUB_OUTPUT"
@@ -37,34 +40,85 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest]
+        os: [ubuntu-22.04, windows-2022]
     runs-on: ${{ matrix.os }}
-    env:
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: .github/scripts/check-runner.ps1
       - if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-      - uses: pnpm/action-setup@v6
+        run: docker build --tag merframe-builder packaging/build
+      - if: runner.os == 'Windows'
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           package_json_file: app/package.json
-      - uses: actions/setup-node@v7
+      - if: runner.os == 'Windows'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: lts/*
+          node-version-file: .node-version
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
-      - run: rustup toolchain install
-      - uses: Swatinem/rust-cache@v2
-      - run: pnpm install --frozen-lockfile
+      - if: runner.os == 'Windows'
+        run: rustup toolchain install
+      - if: runner.os == 'Windows'
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - if: runner.os == 'Windows'
         working-directory: app
-      - run: pnpm tauri build --config src-tauri/tauri.release.conf.json
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm deps:check
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm test
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo test --locked --workspace
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm tauri build --no-bundle -- --locked
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          pnpm native:prepare
+      - if: runner.os == 'Windows'
         working-directory: app
+        run: pnpm tauri bundle --config src-tauri/tauri.release.conf.json
+        env:
+          MERFRAME_NATIVE_OFFLINE: '1'
+          TAURI_BUNDLER_TOOLS_GITHUB_MIRROR_TEMPLATE: http://127.0.0.1:9/unverified-download-refused
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       - if: runner.os == 'Linux'
-        run: .github/scripts/repack-appimage.sh
-      - uses: actions/upload-artifact@v7
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -v "$GITHUB_WORKSPACE/target/cargo-cache:/root/.cargo" \
+            merframe-builder bash -euc '
+              cd app
+              pnpm install --frozen-lockfile
+              pnpm deps:check
+              pnpm test
+              cargo test --locked --workspace
+              pnpm tauri build --no-bundle -- --locked
+              pnpm native:prepare
+            '
+      - if: runner.os == 'Linux'
+        run: |
+          docker run --rm --network none \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -v "$GITHUB_WORKSPACE/target/cargo-cache:/root/.cargo" \
+            -e MERFRAME_NATIVE_OFFLINE=1 \
+            -e TAURI_SIGNING_PRIVATE_KEY -e TAURI_SIGNING_PRIVATE_KEY_PASSWORD \
+            -e APPIMAGE_EXTRACT_AND_RUN=1 \
+            -e APPIMAGETOOL_RUNTIME_FILE=/workspace/target/.tauri/runtime-x86_64 \
+            -e LDAI_RUNTIME_FILE=/workspace/target/.tauri/runtime-x86_64 \
+            merframe-builder bash -euc '
+              cd app
+              pnpm tauri bundle --config src-tauri/tauri.release.conf.json
+              cd ..
+              bash .github/scripts/repack-appimage.sh
+            '
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bundle-${{ matrix.os }}
           if-no-files-found: error
@@ -84,10 +138,12 @@ jobs:
     needs: version
     if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-24.04
-    container: archlinux:base-devel
+    container: archlinux:base-devel@sha256:624bdc7fc6615155d67bc34cf7146c0c9fd0e3c92943977da63a630e4ca49c30
     steps:
-      - run: pacman -Syu --noconfirm git webkit2gtk-4.1 gtk3 hicolor-icon-theme cargo nodejs pnpm
-      - uses: actions/checkout@v7
+      - run: |
+          printf 'Server = https://archive.archlinux.org/repos/2026/11/01/$repo/os/$arch\n' > /etc/pacman.d/mirrorlist
+          pacman -Syyuu --noconfirm git webkit2gtk-4.1 gtk3 hicolor-icon-theme cargo nodejs pnpm
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: |
           useradd -m builder
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -95,10 +151,12 @@ jobs:
           chown -R builder packaging/arch
           cd packaging/arch
           sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
+          source_hash=$(sha256sum "Merframe-$VERSION.tar.gz" | cut -d ' ' -f 1)
+          sed -i "s/^sha256sums=.*/sha256sums=('$source_hash')/" PKGBUILD
           su builder -c "makepkg --noconfirm"
         env:
           VERSION: ${{ needs.version.outputs.version }}
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bundle-arch
           if-no-files-found: error
@@ -110,8 +168,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: bundles
           merge-multiple: true
@@ -123,7 +181,7 @@ jobs:
           find bundles -name '*.sig' -delete
         env:
           VERSION: ${{ needs.version.outputs.version }}
-      - uses: softprops/action-gh-release@v3
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: Merframe ${{ needs.version.outputs.version }}

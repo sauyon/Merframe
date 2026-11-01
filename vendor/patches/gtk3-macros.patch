@@ -1,0 +1,25 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -53,7 +53,10 @@
+ version = "1.0"
+ 
+ [dependencies.proc-macro-error]
+-version = "1.0"
++package = "proc-macro-error3"
++version = "=3.1.1"
++default-features = false
++features = ["syn2-error"]
+ 
+ [dependencies.proc-macro2]
+ version = "1.0"
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -5,6 +5,8 @@
+ mod util;
+ 
+ use proc_macro::TokenStream;
++// The maintained fork's generated code uses its canonical crate name.
++extern crate proc_macro_error as proc_macro_error3;
+ use proc_macro_error::proc_macro_error;
+ use syn::{parse_macro_input, DeriveInput};
+ 

@@ -1,0 +1,137 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -100,8 +100,9 @@
+ [target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies.url]
+ version = "2"
+ 
+-[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies.zbus]
+-version = "5.9"
++[target.'cfg(any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"))'.dependencies.dbus]
++version = "=0.9.12"
++features = ["vendored"]
+ 
+ [target.'cfg(target_os = "ios")'.dependencies.tauri]
+ version = "2.12"
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -60,7 +60,7 @@
+     /// Failed to convert the path to a `file://` URL, which is required to reveal it via D-Bus on Linux and BSD.
+     #[error("Failed to convert path to file:// url")]
+     FailedToConvertPathToFileUrl,
+-    /// Forwarded from a [`zbus::Error`] raised while talking to the file manager or the desktop portal over D-Bus.
++    /// Forwarded from the native D-Bus file-manager connection.
+     #[error(transparent)]
+     #[cfg(any(
+         target_os = "linux",
+@@ -69,7 +69,7 @@
+         target_os = "netbsd",
+         target_os = "openbsd"
+     ))]
+-    Zbus(#[from] zbus::Error),
++    Dbus(#[from] dbus::Error),
+ }
+ 
+ impl Serialize for Error {
+--- a/src/reveal_item_in_dir.rs
++++ b/src/reveal_item_in_dir.rs
+@@ -209,74 +209,36 @@
+ ))]
+ mod imp {
+     use super::*;
+-    use std::collections::HashMap;
+-    use std::path::PathBuf;
++    use std::time::Duration;
+ 
+     pub fn reveal_items_in_dir(paths: &[PathBuf]) -> crate::Result<()> {
+-        let connection = zbus::blocking::Connection::session()?;
+-
+-        reveal_with_filemanager1(paths, &connection).or_else(|e| {
+-            // Fallback to opening the directory of the first item if revealing multiple items fails.
+-            if let Some(first_path) = paths.first() {
+-                reveal_with_open_uri_portal(first_path, &connection)
+-            } else {
+-                Err(e)
++        if paths.is_empty() {
++            return Ok(());
++        }
++        let uris: Vec<String> = paths.iter().map(|path| {
++            url::Url::from_file_path(path)
++                .map(|uri| uri.to_string())
++                .map_err(|_| crate::Error::FailedToConvertPathToFileUrl)
++        }).collect::<crate::Result<_>>()?;
++        let reveal = || -> crate::Result<()> {
++            let connection = dbus::blocking::Connection::new_session()?;
++            let proxy = connection.with_proxy(
++                "org.freedesktop.FileManager1",
++                "/org/freedesktop/FileManager1",
++                Duration::from_secs(5),
++            );
++            let result: Result<(), dbus::Error> = proxy.method_call(
++                "org.freedesktop.FileManager1", "ShowItems", (uris, ""),
++            );
++            result.map_err(Into::into)
++        };
++        // Desktops without FileManager1 can still open the containing directory.
++        reveal().or_else(|error| {
++            match paths[0].parent() {
++                Some(parent) => crate::open::open(parent, None::<&str>),
++                None => Err(error),
+             }
+         })
+-    }
+-
+-    fn reveal_with_filemanager1(
+-        paths: &[PathBuf],
+-        connection: &zbus::blocking::Connection,
+-    ) -> crate::Result<()> {
+-        let uris: Result<Vec<_>, _> = paths
+-            .iter()
+-            .map(|path| {
+-                url::Url::from_file_path(path)
+-                    .map_err(|_| crate::Error::FailedToConvertPathToFileUrl)
+-            })
+-            .collect();
+-        let uris = uris?;
+-        let uri_strs: Vec<&str> = uris.iter().map(|uri| uri.as_str()).collect();
+-
+-        #[zbus::proxy(
+-            interface = "org.freedesktop.FileManager1",
+-            default_service = "org.freedesktop.FileManager1",
+-            default_path = "/org/freedesktop/FileManager1"
+-        )]
+-        trait FileManager1 {
+-            async fn ShowItems(&self, name: Vec<&str>, arg2: &str) -> crate::Result<()>;
+-        }
+-
+-        let proxy = FileManager1ProxyBlocking::new(connection)?;
+-
+-        proxy.ShowItems(uri_strs, "")
+-    }
+-
+-    fn reveal_with_open_uri_portal(
+-        path: &Path,
+-        connection: &zbus::blocking::Connection,
+-    ) -> crate::Result<()> {
+-        let uri = url::Url::from_file_path(path)
+-            .map_err(|_| crate::Error::FailedToConvertPathToFileUrl)?;
+-
+-        #[zbus::proxy(
+-            interface = "org.freedesktop.portal.Desktop",
+-            default_service = "org.freedesktop.portal.OpenURI",
+-            default_path = "/org/freedesktop/portal/desktop"
+-        )]
+-        trait PortalDesktop {
+-            async fn OpenDirectory(
+-                &self,
+-                arg1: &str,
+-                name: &str,
+-                arg3: HashMap<&str, &str>,
+-            ) -> crate::Result<()>;
+-        }
+-
+-        let proxy = PortalDesktopProxyBlocking::new(connection)?;
+-
+-        proxy.OpenDirectory("", uri.as_str(), HashMap::new())
+     }
+ }
+ 

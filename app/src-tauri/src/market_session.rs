@@ -14,8 +14,9 @@ pub fn store_token<R: Runtime>(
     state: &AppState,
     token: &str,
 ) -> anyhow::Result<()> {
+    settings::set_token(app, Some(token))?;
     *write(&state.market) = Arc::new(state.anonymous_market().with_token(token.to_owned()));
-    settings::set_token(app, Some(token))
+    Ok(())
 }
 
 pub fn record_account<R: Runtime>(

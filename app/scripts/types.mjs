@@ -9,6 +9,7 @@ execFileSync(
   "cargo",
   [
     "test",
+    "--locked",
     "-q",
     "--manifest-path",
     "src-tauri/Cargo.toml",

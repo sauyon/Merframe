@@ -1,6 +1,7 @@
 mod analytics;
 mod auctions;
 pub mod commands;
+mod credentials;
 pub mod envelope;
 pub mod error;
 pub mod event_feed;
@@ -32,9 +33,16 @@ pub fn closes_app(label: &str) -> bool {
 }
 
 pub fn is_own_page(url: &Url) -> bool {
-    url.scheme() == "tauri"
-        || url.host_str() == Some("tauri.localhost")
-        || (cfg!(dev) && url.host_str() == Some("localhost"))
+    if !url.username().is_empty() || url.password().is_some() {
+        return false;
+    }
+    matches!(
+        (url.scheme(), url.host_str(), url.port()),
+        ("tauri", Some("localhost"), None) | ("http", Some("tauri.localhost"), None)
+    ) || (cfg!(dev)
+        && url.scheme() == "http"
+        && url.host_str() == Some("localhost")
+        && url.port() == Some(1420))
 }
 
 fn navigation_guard<R: Runtime>() -> TauriPlugin<R> {
@@ -254,10 +262,42 @@ mod tests {
         for foreign in [
             "https://warframe.market/im/chats",
             "http://tauri.localhost.example.com/",
+            "http://tauri.localhost:9999/",
+            "https://tauri.localhost/",
+            "tauri://example.com/",
+            "http://localhost:9999/",
+            "http://user:password@tauri.localhost/",
             "file:///etc/passwd",
         ] {
             assert!(!is_own_page(&Url::parse(foreign).unwrap()), "{foreign}");
         }
+    }
+
+    #[test]
+    fn dev_server_uses_configured_origin() {
+        assert_eq!(
+            is_own_page(&Url::parse("http://localhost:1420/").unwrap()),
+            cfg!(dev)
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn glib_string_iterator_backport_handles_both_directions() {
+        use gtk::glib::{Variant, variant::ToVariant};
+
+        // GLib is built at opt-level=2 in this workspace. This exercises the
+        // iterator out-pointer that was miscompiled before the safety backport.
+        let value = Variant::array_from_iter::<String>(
+            ["alpha", "beta", "gamma", "delta"].map(|s| s.to_variant()),
+        );
+        let mut iter = value.array_iter_str().unwrap();
+        assert_eq!(iter.next(), Some("alpha"));
+        assert_eq!(iter.next_back(), Some("delta"));
+        assert_eq!(iter.collect::<Vec<_>>(), ["beta", "gamma"]);
+        assert_eq!(value.array_iter_str().unwrap().nth(2), Some("gamma"));
+        assert_eq!(value.array_iter_str().unwrap().nth_back(2), Some("beta"));
+        assert_eq!(value.array_iter_str().unwrap().last(), Some("delta"));
     }
 
     #[test]

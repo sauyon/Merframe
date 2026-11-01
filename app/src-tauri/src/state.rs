@@ -248,12 +248,24 @@ impl AppState {
             .context("Reading the local store")?;
 
         let mut market = anonymous_client(&http);
-        if let Some(token) = settings::token(app)? {
-            market = market.with_token(token);
-        }
+        let session_loaded = match settings::token(app) {
+            Ok(Some(token)) => {
+                market = market.with_token(token);
+                true
+            }
+            Ok(None) => false,
+            Err(error) => {
+                tracing::warn!(%error, "Saved market session unavailable; continuing anonymously");
+                false
+            }
+        };
 
         let status = GameStatus {
-            market_account: settings::account(app)?,
+            market_account: if session_loaded {
+                settings::account(app)?
+            } else {
+                None
+            },
             overlay_support: crate::overlay::probe(),
             ..GameStatus::default()
         };

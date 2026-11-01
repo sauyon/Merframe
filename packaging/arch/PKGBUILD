@@ -1,5 +1,5 @@
 pkgname=merframe
-pkgver=0.1.7
+pkgver=${MERFRAME_PACKAGE_VERSION:-0.8.1}
 pkgrel=1
 pkgdesc="Companion app for Warframe: inventory, foundry, mastery, relics, rivens, warframe.market and world timers"
 arch=('x86_64')
@@ -7,8 +7,13 @@ url="https://github.com/akshualy/Merframe"
 license=('GPL-3.0-or-later')
 depends=('webkit2gtk-4.1' 'gtk3' 'hicolor-icon-theme')
 makedepends=('cargo' 'nodejs' 'pnpm')
-source=("Merframe-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+# build.sh and release CI supply the reviewed checkout archive and checksum.
+source=("Merframe-$pkgver.tar.gz")
+sha256sums=("${MERFRAME_SOURCE_SHA256:?Run bash packaging/arch/build.sh from a clean checkout}")
+[[ ${sha256sums[0]} =~ ^[0-9a-fA-F]{64}$ ]] || {
+  echo 'The Arch source archive requires a full SHA-256 checksum.' >&2
+  return 1
+}
 options=('!lto' '!debug')
 
 prepare() {
@@ -18,7 +23,7 @@ prepare() {
 
 build() {
   cd "Merframe-$pkgver/app"
-  CFLAGS="${CFLAGS/-O2/}" pnpm tauri build --no-bundle
+  CFLAGS="${CFLAGS/-O2/}" pnpm tauri build --no-bundle -- --locked
 }
 
 package() {

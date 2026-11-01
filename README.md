@@ -53,7 +53,7 @@ Windows may warn you on install that the application is not known. This is norma
 `AppImage` is the preferred way of running the application on Linux.
 Due to how GitHub serves files, you must set the execution permission yourself: `chmod +x ./Merframe_amd64.AppImage`.
 
-On Arch, you may install the `.pkg.tar.zst` with `pacman -U`, or build it from source with `makepkg` in `packaging/arch/`.
+On Arch, you may install the `.pkg.tar.zst` with `pacman -U`, or run `bash packaging/arch/build.sh` from a reviewed, clean checkout. The script packages that exact commit and verifies the local source archive. The release workflow uses the pinned Arch container and archive snapshot for native build dependencies.
 
 ### Updating
 
@@ -71,19 +71,27 @@ You will need:
 
 ```bash
 cd app
-pnpm install  # Only on first run or after updates
+pnpm install --frozen-lockfile  # Only on first run or after updates
 pnpm tauri dev
 ```
 
 You can also build a debug binary and run that instead:
 ```bash
 cd app
-pnpm tauri build --debug
+pnpm tauri build --debug -- --locked
 ../target/debug/merframe  # Linux, available after the above command
 ..\target\debug\merframe.exe  # Windows
 ```
 
 Running the app from cargo is not supported as that will not start the Vite server.
+
+Use the Node version in `.node-version`, the pnpm version in `app/package.json`, and the Rust toolchain in `rust-toolchain.toml`. Direct Rust and JavaScript dependencies use exact versions; commit both lockfiles and build with `--locked` / `--frozen-lockfile` to preserve transitive versions and checksums. `.npmrc` saves new JavaScript dependencies as exact versions. Update pins and lockfiles together after reviewing dependency changes.
+
+Run `pnpm deps:check` from `app/` to check the direct dependency pins, lockfile agreement, CI action commits, container digest and toolchain versions. Release builds run this check too. Linux release builds use `packaging/build/Dockerfile`, with a base-image digest, signed Ubuntu snapshot, and hash-verified Rust, Node and pnpm archives. Arch builds use a digest-pinned image and a dated Arch archive. Windows release builds require the exact hosted image version recorded in `.github/build-inputs.json`; a runner update stops the build until the new image is reviewed. GitHub does not let a standard hosted job select an older image revision, so retaining an older pin may require a matching self-hosted runner.
+
+Native bundler assets are recorded in `.github/build-inputs.json` and checked with SHA-256 before extraction/execution by `pnpm native:prepare`. Release bundling uses the private `target/.tauri` cache; Linux bundles run with networking disabled. Windows installers require an existing WebView2 runtime and do not download a bootstrapper.
+
+Five compatibility backports under `vendor/` preserve Tauri's GTK3 support. `vendor/upstream.json` records the original registry archive hashes, reviewed changes and every source-file hash, all checked by `pnpm deps:check`. GLib 0.18.5 contains upstream's mutable out-pointer fix for RUSTSEC-2024-0429; its version is retained honestly, so generic version-only scanners may still flag it. The old macro diagnostics and D-Bus dependency paths have been replaced. These source fixes are verified rather than globally suppressing advisories. Third-party game data and OS-managed runtimes remain live inputs by design.
 
 When a Rust type sent to the front end changes, run `pnpm types` in `app/` to regenerate `app/src/types/generated/` and its `index.ts`.
 `pnpm types:check` fails when this needs to be done. The generated files are committed so that `pnpm build` doesn't need cargo.
@@ -94,12 +102,11 @@ App data holds the SQLite store, the last inventory as `inventory.json.gz`, WFCD
 
 ## Privacy
 
-The warframe.market session token (allows acting as you) is stored in plaintext in `market_token` in the app data directory.
-It is readable by the user's own processes, just as any other desktop client's session would be.
-The token does not contain your password.
+The warframe.market session token (allows acting as you) is stored in Windows Credential Manager or the desktop Secret Service on Linux (for example GNOME Keyring or KDE Wallet). Merframe does not write new plaintext token files. Existing `market_token` files and legacy JSON tokens migrate on the next successful credential-store access; plaintext copies are removed only after the secure write is verified. Logging out removes both secure and legacy copies.
 
-Merframe is not sending any of your personal data anywhere outside your PC.
-All third party calls are item-specific lookups and carry no information outside your IP (since the request is coming from your PC).
+Linux needs an unlocked Secret Service. If the credential store is unavailable, inventory and world-state features remain usable anonymously; saving a market login reports an error instead of falling back to plaintext. Other programs running as your user may still be able to access your OS credentials. The token does not contain your password.
+
+Inventory and analytics are kept locally. Signing in sends your email and password directly to warframe.market over HTTPS, and authenticated trading requests send the session token to that service. Optional Discord notifications send configured alert text to your webhook. Public item/price lookups also expose your IP address to their providers.
 
 Services Merframe talks to:
 - `api.warframe.com`: the public world state, polled every 5 to 10 minutes.

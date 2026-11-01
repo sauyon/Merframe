@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/*", "app/src-tauri"]
+exclude = ["vendor/*"]
 
 [workspace.package]
 edition = "2024"
@@ -9,25 +10,25 @@ license = "GPL-3.0-or-later"
 rust-version = "1.98"
 
 [workspace.dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-thiserror = "2"
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
-anyhow = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util"] }
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "gzip", "brotli"] }
-tracing = "0.1"
-memchr = "2"
-rusqlite = { version = "0.37", features = ["bundled"] }
-chrono = { version = "0.4", features = ["serde"] }
-ts-rs = { version = "12", features = ["serde-compat", "chrono-impl"] }
-flate2 = "1"
-indexmap = "2.14"
-notify = "8"
-notify-rust = "4"
-gdk = "0.18"
-gtk = "0.18"
-windows-sys = { version = "0.60", features = [
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+thiserror = "=2.0.21"
+axum = { version = "=0.8.9", default-features = false, features = ["http1", "json", "tokio"] }
+anyhow = "=1.0.104"
+tokio = { version = "=1.53.3", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "io-util"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["json", "rustls", "gzip", "brotli"] }
+tracing = "=0.1.44"
+memchr = "=2.8.3"
+rusqlite = { version = "=0.37.0", features = ["bundled"] }
+chrono = { version = "=0.4.45", features = ["serde"] }
+ts-rs = { version = "=12.0.1", features = ["serde-compat", "chrono-impl"] }
+flate2 = "=1.1.10"
+indexmap = "=2.14.2"
+notify = "=8.2.0"
+notify-rust = "=4.18.2"
+gdk = "=0.18.2"
+gtk = "=0.18.2"
+windows-sys = { version = "=0.60.2", features = [
     "Win32_System_Memory",
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_Diagnostics_Debug",
@@ -35,24 +36,28 @@ windows-sys = { version = "0.60", features = [
     "Win32_Foundation",
     "Win32_System_ProcessStatus",
 ] }
-regex = "1"
-async-stream = "0.3"
-futures-core = "0.3"
-tokio-stream = "0.1"
-tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
-futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
-tauri = { version = "2", features = [] }
-tauri-build = { version = "2", features = [] }
-tauri-plugin-clipboard-manager = "2"
-tauri-plugin-dialog = "2"
-tauri-plugin-notification = "2"
-tauri-plugin-opener = "2"
-tauri-plugin-process = "2"
-tauri-plugin-store = "2"
-tauri-plugin-updater = { version = "2", default-features = false, features = ["system-proxy", "zip"] }
-tauri-plugin-window-state = "2"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-schemars = { version = "1", features = ["chrono04"] }
+regex = "=1.13.1"
+async-stream = "=0.3.6"
+futures-core = "=0.3.34"
+tokio-stream = "=0.1.19"
+tokio-tungstenite = { version = "=0.28.0", features = ["rustls-tls-webpki-roots"] }
+futures-util = { version = "=0.3.34", default-features = false, features = ["sink", "std"] }
+tauri = { version = "=2.12.1", features = [] }
+tauri-build = { version = "=2.7.1", features = [] }
+tauri-plugin-clipboard-manager = "=2.4.1"
+tauri-plugin-dialog = "=2.8.1"
+tauri-plugin-notification = "=2.5.1"
+tauri-plugin-opener = "=2.7.0"
+tauri-plugin-process = "=2.4.0"
+tauri-plugin-store = "=2.5.0"
+# Releases use raw MSI/EXE/AppImage files; legacy ZIP updates add an unused parser.
+tauri-plugin-updater = { version = "=2.13.1", default-features = false, features = ["system-proxy"] }
+tauri-plugin-window-state = "=2.5.0"
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }
+schemars = { version = "=1.2.3", features = ["chrono04"] }
+keyring-core = "=1.0.1"
+windows-native-keyring-store = "=1.1.0"
+dbus-secret-service-keyring-store = { version = "=1.0.1", default-features = false, features = ["crypto-openssl", "vendored"] }
 wf-mem = { path = "crates/wf-mem" }
 wf-scan = { path = "crates/wf-scan" }
 wf-inventory = { path = "crates/wf-inventory" }
@@ -62,6 +67,15 @@ wf-market = { path = "crates/wf-market" }
 wf-worldstate = { path = "crates/wf-worldstate" }
 wf-core = { path = "crates/wf-core" }
 wf-mongo = { path = "crates/wf-mongo" }
+
+# Reviewed compatibility backports; upstream archives and file hashes are recorded
+# in vendor/upstream.json and checked by pnpm deps:check.
+[patch.crates-io]
+glib = { path = "vendor/glib-0.18.5" }
+glib-macros = { path = "vendor/glib-macros-0.18.5" }
+gtk3-macros = { path = "vendor/gtk3-macros-0.18.2" }
+notify-rust = { path = "vendor/notify-rust-4.18.2" }
+tauri-plugin-opener = { path = "vendor/tauri-plugin-opener-2.7.0" }
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

@@ -153,10 +153,26 @@ pub async fn test_notifications<R: Runtime>(
 
 #[tauri::command]
 pub async fn open_url<R: Runtime>(app: AppHandle<R>, url: String) -> CommandResult<()> {
+    let url = browser_url(&url)?;
     Ok(app
         .opener()
-        .open_url(url, None::<&str>)
+        .open_url(url.as_str(), None::<&str>)
         .context("Opening the URL")?)
+}
+
+fn browser_url(url: &str) -> CommandResult<tauri::Url> {
+    let parsed = tauri::Url::parse(url)
+        .map_err(|_| CommandError::from("Not a valid browser URL".to_owned()))?;
+    if !matches!(parsed.scheme(), "http" | "https")
+        || parsed.host_str().is_none()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+    {
+        return Err(CommandError::from(
+            "Only HTTP and HTTPS browser URLs without credentials are allowed".to_owned(),
+        ));
+    }
+    Ok(parsed)
 }
 
 #[tauri::command]
@@ -230,4 +246,36 @@ pub async fn prefetch_images(
         .flatten()
         .collect();
     Ok(held)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::browser_url;
+
+    #[test]
+    fn browser_links_allow_web_pages() {
+        for url in [
+            "https://wiki.warframe.com/w/Braton_Prime",
+            "https://warframe.market/items/braton_prime_set",
+            "http://example.com/",
+        ] {
+            assert!(browser_url(url).is_ok(), "{url}");
+        }
+    }
+
+    #[test]
+    fn browser_links_reject_files_and_protocol_handlers() {
+        for url in [
+            "file:///C:/Windows/System32/calc.exe",
+            "C:\\Windows\\System32\\calc.exe",
+            "\\\\server\\share\\program.exe",
+            "javascript:alert(1)",
+            "ms-settings:windowsupdate",
+            "steam://run/123",
+            "https://user:password@example.com/",
+            "not a URL",
+        ] {
+            assert!(browser_url(url).is_err(), "{url}");
+        }
+    }
 }

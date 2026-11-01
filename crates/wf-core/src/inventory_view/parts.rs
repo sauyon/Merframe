@@ -335,12 +335,13 @@ mod tests {
 
     #[test]
     fn untradable_prime_part_stays_in_set() {
-        let components = fixtures::COMPONENTS.replacen(
+        let original = fixtures::COMPONENTS.replace("\r\n", "\n");
+        let components = original.replacen(
             "\"uniqueName\": \"/Lotus/Types/Recipes/Weapons/WeaponParts/BratonPrimeBarrel\",\n    \"name\": \"Barrel\",\n    \"tradable\": true,",
             "\"uniqueName\": \"/Lotus/Types/Recipes/Weapons/WeaponParts/BratonPrimeBarrel\",\n    \"name\": \"Barrel\",\n    \"tradable\": false,",
             1,
         );
-        assert_ne!(components, fixtures::COMPONENTS);
+        assert_ne!(components, original);
         let catalog = Catalog::from_json(fixtures::ITEMS, fixtures::RELICS, &components).unwrap();
         let stocked = priced(
             catalog,

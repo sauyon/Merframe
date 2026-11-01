@@ -25,7 +25,8 @@ mod market_loop;
 
 use feeds::{arbitration_task, price_task, world_state_task};
 use game::{
-    buffs_task, ducatering_task, inventory_task, kiosk_task, log_task, process_task, trade_task};
+    buffs_task, ducatering_task, inventory_task, kiosk_task, log_task, process_task, trade_task,
+};
 use market_loop::{auto_close, last_trade_done, market_presence_task, market_task};
 
 pub(crate) use attach::{Attached, reattach};
@@ -329,19 +330,34 @@ async fn show<R: Runtime>(
     body: &str,
     settings: &Settings,
 ) -> anyhow::Result<()> {
-    let mut notification = notify_rust::Notification::new();
-    notification.summary(title).body(body).auto_icon();
-    if settings.notifications.sound_notifications_enabled {
-        notification.sound_name(NOTIFICATION_SOUND);
-    }
-    let handle = notification
-        .show_async()
-        .await
-        .context("Sending the desktop notification")?;
-    tauri::async_runtime::spawn(async move {
-        handle.wait_for_action_async(|_| {}).await;
+    let title = title.to_owned();
+    let body = body.to_owned();
+    let sound = settings.notifications.sound_notifications_enabled;
+    let (sent, received) = tokio::sync::oneshot::channel();
+    // The native D-Bus handle stays on its worker thread. Report delivery as
+    // soon as it succeeds, then retain the connection until dismissal.
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut notification = notify_rust::Notification::new();
+        notification.summary(&title).body(&body).auto_icon();
+        if sound {
+            notification.sound_name(NOTIFICATION_SOUND);
+        }
+        match notification
+            .show()
+            .context("Sending the desktop notification")
+        {
+            Ok(handle) => {
+                let _ = sent.send(Ok(()));
+                handle.wait_for_action(|_| {});
+            }
+            Err(error) => {
+                let _ = sent.send(Err(error));
+            }
+        }
     });
-    Ok(())
+    received
+        .await
+        .context("The desktop notification worker stopped")?
 }
 
 pub async fn test_notifications<R: Runtime>(

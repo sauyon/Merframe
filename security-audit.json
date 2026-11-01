@@ -1,0 +1,193 @@
+{
+  "audit_date": "2026-11-01",
+  "base_commit": "781028c29aac023501363d2a465bce1023203991",
+  "assessment": "All findings listed in the initial audit have been remediated in source or build configuration. Registry dependency advisory scans are clean. GLib uses a verified local safety backport; generic version-only scanners still identify its unchanged upstream version.",
+  "scope": [
+    "Tracked Rust and TypeScript/JavaScript source, build scripts, Cargo/pnpm manifests and lockfiles, Tauri capabilities/CSP/updater settings, CI and Arch packaging.",
+    "Targeted searches and review for persistence, process injection/writes, credential theft, network uploads, obfuscated execution, install hooks, unsafe URL opening and path traversal.",
+    "Windows Defender custom scan of the project directory, with remediation disabled.",
+    "npm advisory audit, OSV queries for every locked Rust registry package, and npm integrity verification for every locked JavaScript package."
+  ],
+  "malware_scan": {
+    "tool": "Microsoft Defender MpCmdRun 4.18.26100.4-0",
+    "mode": "Custom project scan, -DisableRemediation",
+    "exit_code": 0,
+    "result": "Final custom project scan completed with exit code 0: found no threats.",
+    "signature_freshness": "Read from Defender during final validation; signature updated within the preceding 24 hours.",
+    "signature_version": "1.463.73.0",
+    "signature_updated_utc": "2026-11-01T05:59:43+00:00"
+  },
+  "dependency_checks": {
+    "direct_rust_registry_pins": 40,
+    "rust_dependency_declarations_checked": 98,
+    "direct_npm_pins": 41,
+    "rust_registry_packages_checked": 596,
+    "npm_packages_verified_against_registry": 303,
+    "npm_integrity_mismatches": 0,
+    "npm_advisory_result": {
+      "vulnerabilities": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0
+      },
+      "dependencies": 304,
+      "devDependencies": 0,
+      "optionalDependencies": 0,
+      "totalDependencies": 304
+    },
+    "registry_packages_with_advisories": [],
+    "locally_patched_upstream_advisories": [
+      {
+        "name": "glib",
+        "version": "0.18.5",
+        "upstream_version_advisories": [
+          "GHSA-wrw7-89jp-8q8g",
+          "RUSTSEC-2024-0429"
+        ],
+        "status": "verified local safety backport"
+      },
+      {
+        "name": "glib-macros",
+        "version": "0.18.5",
+        "upstream_version_advisories": [],
+        "status": "no advisories"
+      },
+      {
+        "name": "gtk3-macros",
+        "version": "0.18.2",
+        "upstream_version_advisories": [],
+        "status": "no advisories"
+      },
+      {
+        "name": "notify-rust",
+        "version": "4.18.2",
+        "upstream_version_advisories": [],
+        "status": "no advisories"
+      },
+      {
+        "name": "tauri-plugin-opener",
+        "version": "2.7.0",
+        "upstream_version_advisories": [],
+        "status": "no advisories"
+      }
+    ],
+    "vendor_integrity_manifest": "vendor/upstream.json",
+    "native_build_input_lock": ".github/build-inputs.json"
+  },
+  "changes": [
+    "Pinned all direct Rust registry dependencies with exact = versions and all direct JavaScript dependencies with exact versions; synchronized pnpm specifiers without changing resolved JavaScript packages.",
+    "Updated tokio 1.53.2 to 1.53.3, rustls 0.23.45 to 0.23.46, rustls-webpki 0.103.15 to 0.103.16, webpki-roots 1.0.9 to 1.0.10, and webpki-root-certs 1.0.9 to 1.0.10.",
+    "Removed the unused legacy ZIP updater feature, eliminating zip 4.6.1 and its advisory findings. Current release metadata uses raw EXE/MSI/AppImage/DEB/RPM assets.",
+    "Restricted the Rust open_url command to parsed HTTP/HTTPS URLs without embedded credentials, preventing OS file and custom protocol handler launches from untrusted links.",
+    "Restricted webview navigation to the configured local application and development origins, including scheme and port checks.",
+    "Pinned seven distinct GitHub Actions to verified upstream commit SHAs and the Arch build container to a verified registry digest.",
+    "Pinned Node 24.15.0 in .node-version and CI, retained existing pnpm 10.29.3 and Rust 1.98.1 pins, and pinned the editor Rust formatter instead of using nightly.",
+    "Added frozen/locked build instructions and Cargo flags in release, packaging and type-generation scripts; added app/.npmrc save-exact=true.",
+    "Limited the default workflow token to contents:read and supplied updater signing secrets only to build/signing steps.",
+    "Added pnpm deps:check and ran it in release builds to enforce application dependency pins, lockfile agreement, action SHAs, container digests and exact toolchain versions.",
+    "Applied the four remediations recorded in resolved_findings, and corrected both existing tests to normalize Windows CRLF line endings.",
+    "Added exact per-file vendor hashes and small upstream-relative review patches under vendor/patches; the pin check rejects source drift.",
+    "Replaced the deleted continuous AppImage tool asset with numbered release 1.9.1 and its verified SHA-256 hash.",
+    "Updated privacy documentation for credential-store migration and actual authentication/webhook traffic.",
+    "Arch packaging now consumes an exact clean-checkout source archive with a mandatory SHA-256 checksum, rather than downloading the old unpatched release. Dirty checkouts and SKIP hashes are rejected."
+  ],
+  "validation": {
+    "windows_rust_workspace_tests": {
+      "passed": 962,
+      "failed": 0
+    },
+    "linux_rust_workspace_tests": {
+      "passed": 982,
+      "failed": 0
+    },
+    "glib_optimized_regression": "passed on Linux: tests::glib_string_iterator_backport_handles_both_directions",
+    "windows_native_credential_round_trip": "passed: unique temporary native-store entry created, read and deleted",
+    "linux_secret_service_round_trip": "passed: unique temporary entry created, read and deleted in an isolated GNOME Keyring / D-Bus session",
+    "migration_failure_tests": "passed: persistence precedes plaintext cleanup, existing secure values win, failed writes preserve legacy data, cleanup can retry, backend secret bytes are not reported",
+    "frontend_tests": {
+      "passed": 142,
+      "failed": 0,
+      "files": 12
+    },
+    "frontend_build": "passed on Windows and Linux: tsc --noEmit && vite build",
+    "frozen_pnpm_lockfile": "passed with pnpm 10.29.3; resolved JavaScript graph unchanged",
+    "dependency_pin_check": "passed: 41 npm pins, 98 Rust declarations, 5 verified source backports, action commits, toolchains and native input pins",
+    "tamper_rejection_tests": "passed: changed vendor source, modified native archive and unreviewed Windows image version were rejected",
+    "windows_nsis_packaging": "passed using an isolated copy of the existing debug executable; SHA-256-verified WiX/NSIS cache and further GitHub helper downloads blocked; no installer was run or published",
+    "linux_offline_packaging": "passed: DEB, RPM and AppImage produced with networking disabled, from the current Linux source build with debug symbols stripped for test compression speed. These unsigned test packages are not release artifacts; bundle-type patch warnings on the stripped test binary mean updater delivery/signing was not end-to-end verified.",
+    "workflow_validation": "passed: SHA-256-verified Actionlint 1.7.12",
+    "shell_syntax": "passed: bash -n for release scripts and PKGBUILD",
+    "formatting": "Changed Rust files pass rustfmt; unrelated formatting differences were preserved.",
+    "diff_whitespace": "passed: git diff --check",
+    "arch_source_guards": "passed: dirty checkout and SKIP checksum rejected; shell syntax valid",
+    "linux_appimage_repack": "passed: numbered appimagetool 1.9.1 repacked the current Linux AppDir with the pinned runtime and networking disabled, without signing or publication"
+  },
+  "limitations": [
+    "The audit is a targeted code, dependency and malware review, not a proof that every line of all upstream code is benign.",
+    "Published upstream installers, signing infrastructure, live game services and the already-running app were not replaced or independently audited.",
+    "No GitHub release was published; hosted CI execution, Arch package execution and production updater signing/delivery were not end-to-end exercised.",
+    "OS snapshot packages were frozen and authenticated by their distribution package manager; a separate native-OS CVE database scan was not performed."
+  ],
+  "references": [
+    "https://api.osv.dev/v1/querybatch",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0386.html",
+    "https://rustsec.org/advisories/RUSTSEC-2026-0346.html",
+    "https://rustsec.org/advisories/RUSTSEC-2024-0429.html",
+    "https://docs.github.com/en/actions/reference/security/secure-use",
+    "https://github.com/AppImage/appimagetool",
+    "https://registry.npmjs.org/",
+    "https://github.com/gtk-rs/gtk-rs-core/commit/b5a4071e439bef2b5eea76c3aa25e5ae84839e34",
+    "https://github.com/gamma0987/proc-macro-error3",
+    "https://github.com/AppImage/appimagetool/releases/tag/1.9.1"
+  ],
+  "resolved_findings": [
+    {
+      "id": "UPSTREAM-GLIB",
+      "status": "remediated",
+      "resolution": "Backported upstream commit b5a4071e439bef2b5eea76c3aa25e5ae84839e34 to verified glib 0.18.5 source. Both forward and reverse string iteration pass the Linux regression test with the GLib library compiled at opt-level=2. The original version is retained, and the complete reviewed source and patch hashes are enforced."
+    },
+    {
+      "id": "UPSTREAM-MAINTENANCE",
+      "status": "remediated",
+      "resolution": "Removed proc-macro-error, proc-macro-error2, zvariant, zvariant_derive and zbus_names from the resolved graph. GTK macros use maintained proc-macro-error3 3.1.1 with Syn 2 support. Notifications and file-manager integration use the supported native dbus 0.9.12 backend. Native notification delivery remains async to callers, with its connection retained on a worker thread."
+    },
+    {
+      "id": "PLAINTEXT-SESSION",
+      "status": "remediated",
+      "resolution": "Tokens now use Windows Credential Manager with local-machine persistence, or Linux Secret Service with encrypted D-Bus communication. No new plaintext fallback is written. Legacy file/JSON copies migrate only after a verified secure write; logout removes both formats. Unavailable keyrings leave the app usable anonymously and report login-save errors without leaking backend secret bytes."
+    },
+    {
+      "id": "BUILD-EXTERNAL-INPUTS",
+      "status": "remediated",
+      "resolution": "Linux builds use a digest-pinned Ubuntu builder, a signed dated package snapshot and hash-verified Rust/Node/pnpm/CA archives. Arch uses a digest-pinned container and fixed archive date. Windows checks its exact hosted image revision and refuses unreviewed drift. Eight native tool archives/assets have SHA-256 checks, use a private cache and are verified before execution. Linux bundling was tested with networking disabled; Windows blocks further GitHub helper downloads. Installers require the OS WebView2 runtime rather than fetching a bootstrapper."
+    }
+  ],
+  "remaining_findings": [],
+  "review_notes": [
+    "GLib version 0.18.5 is intentionally retained. Its generic upstream advisory is addressed by the reviewed patch, not by changing a version number or globally suppressing the advisory.",
+    "Existing plaintext tokens migrate when the rebuilt app next accesses an unlocked OS credential store. A failed migration preserves the old token rather than silently losing it; anonymous operation continues until the store is available.",
+    "Standard GitHub-hosted Windows jobs cannot request historical image revisions. The exact-image guard intentionally stops releases after image rotation until pins are reviewed or a matching self-hosted runner is used.",
+    "Public game feeds and OS-managed runtimes remain live runtime inputs. Memory access remains read-only; authenticated requests go to warframe.market and optional notifications go to the configured webhook.",
+    "Unrelated buff/timer changes were edited concurrently. They were preserved. Validation numbers below describe the tested source snapshots, not a promise about later edits in the shared workspace."
+  ],
+  "remediation_file_sha256": {
+    "Cargo.toml": "e947c223247015cd7fa51bf1b7430bb575ef69e0e5e6d72b609c03159f0c153a",
+    "Cargo.lock": "c16412e66c3c6260d658f9db10807506af387f84c9ebc9b2784add887a075e90",
+    "app/src-tauri/src/credentials.rs": "18be2af458bd40f9665b3ed238e3a14d95ba9d7e93568cf81cc8437bee55028e",
+    "app/src-tauri/src/settings.rs": "0a8cd4b5f6a973d4fc01c69fd1b6dee45c94f1774e8fc12faed885355ffbfb20",
+    "app/src-tauri/src/state.rs": "c0d222eb29de1013846843c1cf03b5c4018c1187c005f960b8a956dd500f7542",
+    "app/src-tauri/src/market_session.rs": "9ebb498fe471587c6e90b3ed4f57c4b0b7399dc92737b3dd99244fe6d97fbd81",
+    "app/src-tauri/src/runtime/mod.rs": "26f5034f113b6060dd9941308ed596c58c869514dbfc0d110057936a842240ee",
+    ".github/workflows/release.yml": "80f4bbe1c1516671943f836eea9b4c7da579d54219a0fae99c53644b241151eb",
+    ".github/build-inputs.json": "b645fc03a0b22ed8ebf0029c4ddb653786e714a0c023ecb354d301256a53fb06",
+    "packaging/build/Dockerfile": "a529691335f868b29f186601e0be32a0abc1aaffafe3fb9b8bbbb21383be000a",
+    "vendor/upstream.json": "c34b545ebc048c3576685e24ed22b50d2597e1269af44c6567f0a8277191601b",
+    ".gitignore": "24eb74f149326514f11d27418169aa65141dabcca6ea4032c8230a56ee00b4f6",
+    "README.md": "e02ed6405a6b22f27aaf6170238528bed089bd4a578e6677ac4512f3879de0c1",
+    "app/scripts/check-dependencies.mjs": "3bc4a325c774b39198e73e96b855fcfc3e3bd7c889a6787c06da4cf1acec6f63",
+    "packaging/arch/PKGBUILD": "96f2ccf433544b05f14fe5dfb503911de3a9441c5b0b5d02c743e2d0207df91f",
+    "packaging/arch/build.sh": "24e64c4197663ac199455fa4e97e048b124f296d0edd365e8043d2374fdec0b5"
+  }
+}

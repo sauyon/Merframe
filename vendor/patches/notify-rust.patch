@@ -1,0 +1,11 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -54,7 +54,7 @@
+ d = ["dbus"]
+ d_vendored = ["dbus/vendored"]
+ debug_namespace = []
+-default = ["z"]
++default = ["d_vendored"]
+ images = [
+     "images_no_default_features",
+     "image/rayon",

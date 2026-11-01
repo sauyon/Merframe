@@ -1,0 +1,73 @@
+{
+  "runners": {
+    "ubuntu-22.04": "20261026.341.1",
+    "windows-2022": "20261026.347.1"
+  },
+  "ubuntuSnapshot": "20261101T000000Z",
+  "archSnapshot": "2026/11/01",
+  "assets": [
+    {
+      "platform": "linux",
+      "repo": "AppImage/appimagetool",
+      "release": "1.9.1",
+      "id": 324406736,
+      "file": "appimagetool",
+      "sha256": "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+    },
+    {
+      "platform": "linux",
+      "repo": "tauri-apps/binary-releases",
+      "id": 274691722,
+      "file": "AppRun-x86_64",
+      "sha256": "f30140a43a0a59e46db21bdefdf749b9e9f2c6946e92afabbacf98b8ae73fb4f"
+    },
+    {
+      "platform": "linux",
+      "repo": "tauri-apps/binary-releases",
+      "id": 576945544,
+      "file": "linuxdeploy-07333c6-x86_64.AppImage",
+      "sha256": "36a2d7e274d12e1050d0e9ecfe11d339ed54720b2bec464c286d53f8b07f5c62"
+    },
+    {
+      "platform": "linux",
+      "repo": "linuxdeploy/linuxdeploy-plugin-appimage",
+      "id": 602435573,
+      "file": "linuxdeploy-plugin-appimage.AppImage",
+      "sha256": "49d6a17160675a6bd1781699aae6bdf7692d98552e02a3671d2183d10547842e"
+    },
+    {
+      "platform": "linux",
+      "repo": "AppImage/type2-runtime",
+      "id": 657374641,
+      "file": "runtime-x86_64",
+      "sha256": "617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46"
+    },
+    {
+      "platform": "win32",
+      "repo": "tauri-apps/binary-releases",
+      "id": 317051073,
+      "file": "nsis.zip",
+      "sha256": "c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1",
+      "extract": ".",
+      "rename": [
+        "nsis-3.11",
+        "NSIS"
+      ]
+    },
+    {
+      "platform": "win32",
+      "repo": "tauri-apps/nsis-tauri-utils",
+      "id": 345882097,
+      "file": "NSIS/Plugins/x86-unicode/additional/nsis_tauri_utils.dll",
+      "sha256": "5ba143b5db4a87d32d6e7802e033330aae56cbceabe0d1e3ba41948385ad4709"
+    },
+    {
+      "platform": "win32",
+      "repo": "wixtoolset/wix3",
+      "id": 158158052,
+      "file": "wix.zip",
+      "sha256": "6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31",
+      "extract": "WixTools314"
+    }
+  ]
+}
