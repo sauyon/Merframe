@@ -177,6 +177,8 @@ pub struct BuffTimer {
     pub label: String,
     /// The ability slot, counted from 1, the buff comes from; `None` for other buffs.
     pub slot: Option<u8>,
+    /// The game's icon for a buff outside the ability slots, as an item image name.
+    pub icon: Option<String>,
     /// Seconds the buff lasted when it was last applied.
     pub total: f64,
     /// Unix milliseconds the buff runs out, `None` once it has dropped off.

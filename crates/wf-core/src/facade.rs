@@ -88,6 +88,12 @@ fn unmastered<'a>(account: Option<&Account>, catalog: &'a Catalog) -> HashSet<&'
     })
 }
 
+/// The last part of a game path: `/Lotus/Upgrades/.../AbilityDurationOnCast` gives
+/// `AbilityDurationOnCast`.
+fn stem(unique_name: &str) -> String {
+    unique_name.rsplit('/').next().unwrap_or(unique_name).to_owned()
+}
+
 impl Core {
     pub fn new(
         store: Store,
@@ -183,6 +189,31 @@ impl Core {
             slot.clone_from(&helminth.ability);
         }
         Some(abilities)
+    }
+
+    /// Icons for HUD buffs, keyed by the stem a buff's name starts with: an arcane by the last
+    /// part of its path (`AbilityDurationOnCast`), an ability by its name without the
+    /// `Ability` suffix (`PagemasterFinalChapter`).
+    pub fn buff_icons(&self) -> Vec<(String, String)> {
+        let arcanes = self
+            .catalog
+            .items()
+            .filter(|item| item.category == "Arcanes")
+            .filter_map(|item| Some((stem(&item.unique_name), item.image_name.clone()?)));
+        let abilities = self
+            .catalog
+            .items()
+            .filter_map(|item| item.abilities.as_ref())
+            .flatten()
+            .filter_map(|ability| {
+                let stem = stem(&ability.unique_name);
+                let stem = stem.strip_suffix("Ability").unwrap_or(&stem).to_owned();
+                Some((stem, ability.image_name.clone()?))
+            });
+        let mut icons: Vec<(String, String)> = arcanes.chain(abilities).collect();
+        icons.sort();
+        icons.dedup_by(|a, b| a.0 == b.0);
+        icons
     }
 
     pub fn latest_snapshot(&self) -> Option<&Snapshot> {

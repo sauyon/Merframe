@@ -39,18 +39,23 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let started = Instant::now();
     let mut seen = (None, 0);
     let mut abilities: Vec<String> = Vec::new();
+    let mut icons: Vec<(String, String)> = Vec::new();
     let mut loadout_read: Option<Instant> = None;
     loop {
         tick.tick().await;
         if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
             loadout_read = Some(Instant::now());
             let owned = Arc::clone(&state);
-            let equipped = blocking("read the equipped abilities", move || {
-                lock(&owned.core).equipped_abilities()
+            let looked_up = blocking("read the equipped abilities", move || {
+                let core = lock(&owned.core);
+                (core.equipped_abilities(), core.buff_icons())
             })
-            .await
-            .flatten()
-            .unwrap_or_default();
+            .await;
+            let (equipped, known) = looked_up.unwrap_or_default();
+            let equipped = equipped.unwrap_or_default();
+            if !known.is_empty() {
+                icons = known;
+            }
             if equipped != abilities {
                 debug!(?equipped, "Buff strip slots");
                 abilities = equipped;
@@ -92,7 +97,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             seen = counts;
         }
         tracker.update(&readings, now);
-        let timers = timers(&tracker.shown(), unix_ms(), &abilities);
+        let timers = timers(&tracker.shown(), unix_ms(), &abilities, &icons);
         if !same(&timers, &sent) {
             overlay::on_buffs(&app, &state, timers.clone());
             sent = timers;
@@ -137,24 +142,49 @@ impl Tray {
     }
 }
 
-fn timers(shown: &[Shown], now_ms: f64, abilities: &[String]) -> Vec<BuffTimer> {
+fn timers(
+    shown: &[Shown],
+    now_ms: f64,
+    abilities: &[String],
+    icons: &[(String, String)],
+) -> Vec<BuffTimer> {
     shown
         .iter()
-        .map(|buff| BuffTimer {
-            id: buff.id.clone(),
-            label: buff.label.clone(),
-            slot: slot(&buff.id, abilities),
-            total: buff.total,
-            ends_at: buff.remaining.map(|left| (now_ms + left * 1000.0).round()),
+        .map(|buff| {
+            let slot = slot(&buff.id, abilities);
+            BuffTimer {
+                id: buff.id.clone(),
+                label: buff.label.clone(),
+                slot,
+                icon: slot.is_none().then(|| icon(&buff.id, icons)).flatten(),
+                total: buff.total,
+                ends_at: buff.remaining.map(|left| (now_ms + left * 1000.0).round()),
+            }
         })
         .collect()
+}
+
+/// The last part of a buff's name: `.../Suits/FairyDustAbilityName#35` gives
+/// `FairyDustAbilityName`.
+fn key(id: &str) -> &str {
+    let tag = id.rsplit_once('#').map_or(id, |(tag, _)| tag);
+    tag.rsplit('/').next().unwrap_or(tag)
+}
+
+/// The icon whose stem the buff's name starts with, the longest when several do.
+fn icon(id: &str, icons: &[(String, String)]) -> Option<String> {
+    let key = key(id);
+    icons
+        .iter()
+        .filter(|(stem, _)| !stem.is_empty() && key.starts_with(stem.as_str()))
+        .max_by_key(|(stem, _)| stem.len())
+        .map(|(_, image)| image.clone())
 }
 
 /// The ability slot, counted from 1, whose ability the buff comes from. Buff names share
 /// their ability's stem: `.../Suits/FairyDustAbilityName` comes from `.../FairyDustAbility`.
 fn slot(id: &str, abilities: &[String]) -> Option<u8> {
-    let tag = id.rsplit_once('#').map_or(id, |(tag, _)| tag);
-    let key = tag.rsplit('/').next()?;
+    let key = key(id);
     let (index, _) = abilities
         .iter()
         .enumerate()
@@ -170,6 +200,7 @@ fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {
             a.id == b.id
                 && a.label == b.label
                 && a.slot == b.slot
+                && a.icon == b.icon
                 && (a.total - b.total).abs() < REFRESH_JUMP
                 && match (a.ends_at, b.ends_at) {
                     (Some(x), Some(y)) => (x - y).abs() < DRIFT_MS,
@@ -443,6 +474,47 @@ mod tests {
     }
 
     #[test]
+    fn other_buffs_take_the_icon_their_name_starts_with() {
+        let icons = [
+            ("AbilityDurationOnCast", "ArcaneProjectionAO.png"),
+            ("AbilityEfficiencyOnAbilityObjectCreation", "WarframeObjectCreation.png"),
+            ("PagemasterFinalChapter", "DanteResolution.png"),
+            ("Pagemaster", "Wrong.png"),
+            ("FairyDust", "FaerieDust.png"),
+        ]
+        .map(|(stem, image)| (stem.to_owned(), image.to_owned()));
+        let icon_of = |tag: &str| icon(&format!("{tag}#7"), &icons);
+        assert_eq!(
+            icon_of("/Lotus/Language/Arcanes/AbilityDurationOnCastName").as_deref(),
+            Some("ArcaneProjectionAO.png")
+        );
+        assert_eq!(
+            icon_of("/Lotus/Language/Suits/PagemasterFinalChapterJourneyName").as_deref(),
+            Some("DanteResolution.png")
+        );
+        assert_eq!(icon_of("/Lotus/Language/Suits/Unknown"), None);
+
+        let titania = ["/Lotus/Powersuits/Fairy/Abilities/FairyDustAbility".to_owned()];
+        let shown = |id: &str| Shown {
+            id: format!("{id}#1"),
+            label: String::new(),
+            remaining: Some(5.0),
+            total: 10.0,
+        };
+        let sent = timers(
+            &[
+                shown("/Lotus/Language/Suits/FairyDustAbilityName"),
+                shown("/Lotus/Language/Arcanes/AbilityDurationOnCastName"),
+            ],
+            0.0,
+            &titania,
+            &icons,
+        );
+        assert_eq!(sent[0].icon, None, "slotted buffs sit under their dot instead");
+        assert_eq!(sent[1].icon.as_deref(), Some("ArcaneProjectionAO.png"));
+    }
+
+    #[test]
     fn countdown_is_not_resent_every_tick() {
         let shown = [Shown {
             id: "a".into(),
@@ -450,13 +522,14 @@ mod tests {
             remaining: Some(10.0),
             total: 20.0,
         }];
-        let first = timers(&shown, 0.0, &[]);
+        let first = timers(&shown, 0.0, &[], &[]);
         let later = timers(
             &[Shown {
                 remaining: Some(9.9),
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
             &[],
         );
         assert!(same(&later, &first));
@@ -466,6 +539,7 @@ mod tests {
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
             &[],
         );
         assert!(!same(&recast, &first));

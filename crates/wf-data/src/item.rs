@@ -137,6 +137,8 @@ pub struct Ability {
     #[serde(rename = "uniqueName")]
     pub unique_name: String,
     pub name: String,
+    #[serde(rename = "imageName")]
+    pub image_name: Option<String>,
 }
 
 pub const DEFAULT_MAX_RANK: u32 = 30;

@@ -9,6 +9,10 @@ export type BuffTimer = { id: string, label: string,
  */
 slot: number | null, 
 /**
+ * The game's icon for a buff outside the ability slots, as an item image name.
+ */
+icon: string | null, 
+/**
  * Seconds the buff lasted when it was last applied.
  */
 total: number, 

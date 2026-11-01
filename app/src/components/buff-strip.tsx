@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useItemImageSrc } from "@/components/item-image";
 import type { BuffTimer, TextSize } from "@/types";
 
 // Countdown seconds just under the game's ability dots, which sit at the same place below
 // the screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed
-// slots, each number right under its dot; other buffs flank them. Styled like the HUD:
-// off-white numbers, colour only as a recast hint.
+// slots, each number right under its dot; other buffs flank them, each under the game's icon
+// for it standing in for a dot. Styled like the HUD: off-white numbers and icons, colour only
+// as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The dots are measured in game at 2160p: 15 units
@@ -15,8 +17,12 @@ const CENTRE = SIZE / 2;
 const SLOTS = 4;
 /** The dots' spacing; each ability's number sits right under its dot. */
 const PITCH = 15;
+/** The dots' centre line. */
+const DOT_Y = CENTRE + 77.5;
 /** Where the numbers' tops sit, just below the dots. */
 const TOP = CENTRE + 83;
+/** Icons of the other buffs, centred on the dots' line. */
+const ICON_SIZE = 14;
 /** Seconds at small text, scaled like the app's root size. */
 const FONT_SIZE = 11;
 const TEXT_SCALE: Record<TextSize, number> = {
@@ -85,6 +91,27 @@ function Buff({
   );
 }
 
+/** The game's icon for a buff, tinted off-white like the HUD's own buff icons. */
+function Icon({ name, x }: { name: string; x: number }) {
+  const src = useItemImageSrc(name);
+  if (!src) {
+    return null;
+  }
+  return (
+    <image
+      href={src}
+      x={x - ICON_SIZE / 2}
+      y={DOT_Y - ICON_SIZE / 2}
+      width={ICON_SIZE}
+      height={ICON_SIZE}
+      style={{
+        filter:
+          "brightness(0) invert(0.93) drop-shadow(0 0 1px rgb(0 0 0 / 0.9))",
+      }}
+    />
+  );
+}
+
 /** Of several buffs from one ability, the running one that ends first. */
 function pick(buffs: BuffTimer[]) {
   const end = (buff: BuffTimer) => buff.ends_at ?? Number.POSITIVE_INFINITY;
@@ -134,15 +161,15 @@ export function BuffStrip({
             />
           ),
       )}
-      {others.map((buff, index) => (
-        <Buff
-          key={buff.id}
-          buff={buff}
-          x={slotX(flank(index))}
-          now={now}
-          fontSize={fontSize}
-        />
-      ))}
+      {others.map((buff, index) => {
+        const x = slotX(flank(index));
+        return (
+          <g key={buff.id}>
+            {buff.icon && <Icon name={buff.icon} x={x} />}
+            <Buff buff={buff} x={x} now={now} fontSize={fontSize} />
+          </g>
+        );
+      })}
     </svg>
   );
 }
