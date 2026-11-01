@@ -101,7 +101,8 @@ pub(super) fn bounds_for(
         Kind::Riven => (700.0 * text, 900.0 * scale * text),
         Kind::Ducatering => (420.0 * text, 460.0 * text),
         Kind::Notification => (380.0 * text, 100.0 * text),
-        Kind::Buffs => (440.0 * scale * text, 440.0 * scale * text),
+        // Drawn against the game's ability dots, so it follows the screen, never the text size.
+        Kind::Buffs => (440.0 * scale, 440.0 * scale),
     };
     let width = width.round();
     let height = height.min(screen.height - 2.0 * MARGIN).round();
@@ -287,6 +288,33 @@ mod tests {
         height: 1080.0,
         scale: 1.0,
     };
+
+    #[test]
+    fn buff_strip_follows_the_screen_not_the_text_size() {
+        let uhd = Screen {
+            width: 3840.0,
+            height: 2160.0,
+            ..FULL_HD
+        };
+        for text_size in [TextSize::Small, TextSize::Large] {
+            let strip = bounds_for(
+                Kind::Buffs,
+                OverlayPlacement::Centre,
+                RECOMMENDATION_COUNT_DEFAULT,
+                text_size,
+                uhd,
+            );
+            assert_eq!(
+                strip,
+                Bounds {
+                    width: 880.0,
+                    height: 880.0,
+                    x: 1480.0,
+                    y: 640.0,
+                }
+            );
+        }
+    }
 
     #[test]
     fn text_size_grows_the_window_in_place() {

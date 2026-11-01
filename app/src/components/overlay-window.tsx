@@ -137,7 +137,11 @@ export function OverlayWindow() {
           path="buffs"
           element={
             overlays.buffs && (
-              <BuffStrip buffs={overlays.buffs} opacity={overlays.opacity} />
+              <BuffStrip
+                buffs={overlays.buffs}
+                opacity={overlays.opacity}
+                textSize={overlays.text_size}
+              />
             )
           }
         />

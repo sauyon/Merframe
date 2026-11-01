@@ -1,25 +1,31 @@
 import { useEffect, useState } from "react";
-import type { BuffTimer } from "@/types";
+import type { BuffTimer, TextSize } from "@/types";
 
 // A strip of thin countdown bars just under the game's ability dots, which sit at the same
 // place below the screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4
 // keep fixed slots, left to right like the dots; other buffs flank them. Styled like the HUD:
 // off-white strokes, small seconds left under each bar, colour only as a recast hint.
 //
-// Units are 1/440 of the window, which is sized to the screen height, so 1 unit is 3 px at
-// 2160p. The dots are measured there: 10 units apart, centred 52 units below the middle.
+// The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
+// text size; that only scales the numbers. The dots are measured in game at 2160p: 15 units
+// apart, centred 77.5 units below the middle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
 const SLOTS = 4;
 /** The dots' spacing; each ability's bar sits right under its dot. */
-const PITCH = 10;
+const PITCH = 15;
 /** Where the bars run, just below the dots. */
-const BAR_Y = CENTRE + 57;
-const BAR_WIDTH = 7.5;
-const THICKNESS = 1.2;
-/** Seconds sit under their bar. */
-const LABEL_Y = BAR_Y + 5.5;
+const BAR_Y = CENTRE + 85;
+const BAR_WIDTH = 12;
+const THICKNESS = 2;
+/** Seconds at small text, scaled like the app's root size. */
+const FONT_SIZE = 9;
+const TEXT_SCALE: Record<TextSize, number> = {
+  small: 1,
+  medium: 1.125,
+  large: 1.25,
+};
 /** Extra room between the ability slots and the other buffs, in pitches. */
 const GROUP_GAP = 0.5;
 /** The bar warms once this share of the buff is left. */
@@ -61,7 +67,17 @@ function Track({ x }: { x: number }) {
   );
 }
 
-function Buff({ buff, x, now }: { buff: BuffTimer; x: number; now: number }) {
+function Buff({
+  buff,
+  x,
+  now,
+  fontSize,
+}: {
+  buff: BuffTimer;
+  x: number;
+  now: number;
+  fontSize: number;
+}) {
   const left =
     buff.ends_at === null ? null : Math.max(0, (buff.ends_at - now) / 1000);
   const share =
@@ -81,15 +97,15 @@ function Buff({ buff, x, now }: { buff: BuffTimer; x: number; now: number }) {
       />
       <text
         x={x + BAR_WIDTH / 2}
-        y={LABEL_Y}
+        y={BAR_Y + 2 + fontSize * 0.6}
         fill={colour}
         fillOpacity={0.9}
         fontWeight={600}
         textAnchor="middle"
         dominantBaseline="middle"
-        fontSize={5.5}
+        fontSize={fontSize}
         style={{
-          filter: "drop-shadow(0 0 0.6px rgb(0 0 0 / 0.9))",
+          filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))",
         }}
       >
         {left === null ? "—" : Math.ceil(left)}
@@ -113,11 +129,14 @@ function flank(index: number) {
 export function BuffStrip({
   buffs,
   opacity,
+  textSize,
 }: {
   buffs: BuffTimer[];
   opacity: number;
+  textSize: TextSize;
 }) {
   const now = useNow();
+  const fontSize = FONT_SIZE * TEXT_SCALE[textSize];
   const slots = Array.from({ length: SLOTS }, (_, index) => ({
     x: barX(index - (SLOTS - 1) / 2),
     buffs: buffs.filter((buff) => buff.slot === index + 1),
@@ -135,7 +154,9 @@ export function BuffStrip({
       {slots.map(({ x, buffs }) => (
         <g key={x}>
           <Track x={x} />
-          {buffs.length > 0 && <Buff buff={pick(buffs)} x={x} now={now} />}
+          {buffs.length > 0 && (
+            <Buff buff={pick(buffs)} x={x} now={now} fontSize={fontSize} />
+          )}
         </g>
       ))}
       {others.map((buff, index) => {
@@ -143,7 +164,7 @@ export function BuffStrip({
         return (
           <g key={buff.id}>
             <Track x={x} />
-            <Buff buff={buff} x={x} now={now} />
+            <Buff buff={buff} x={x} now={now} fontSize={fontSize} />
           </g>
         );
       })}
