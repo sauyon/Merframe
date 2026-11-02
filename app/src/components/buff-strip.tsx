@@ -61,6 +61,10 @@ const DOWN = "rgb(235 110 95)";
 /** The running buff that runs out first, when the number shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
+/** A solid edge round each number, so it reads over the game's white dot under it. */
+const OUTLINE = "rgb(0 0 0 / 0.85)";
+/** The edge's width, as a share of the number's size. */
+const OUTLINE_WIDTH = 0.2;
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -239,6 +243,10 @@ function Buff({
       y={y}
       fill={colour}
       fillOpacity={0.92}
+      stroke={OUTLINE}
+      strokeWidth={fontSize * OUTLINE_WIDTH}
+      strokeLinejoin="round"
+      paintOrder="stroke"
       fontWeight={600}
       textAnchor="middle"
       dominantBaseline="middle"
