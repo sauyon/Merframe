@@ -61,10 +61,13 @@ const DOWN = "rgb(235 110 95)";
 /** The running buff that runs out first, when the number shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
-/** A solid edge round each number, so it reads over the game's white dot under it. */
-const OUTLINE = "rgb(0 0 0 / 0.85)";
-/** The edge's width, as a share of the number's size. */
-const OUTLINE_WIDTH = 0.2;
+/** A dark disc over the game's ability dot, which each ability's number stands on in its
+ * place. Its radius is a share of the number's size. */
+const BACKING = "rgb(12 14 16 / 0.85)";
+const BACKING_RADIUS = 0.62;
+/** Digits' height above their baseline, as a share of their size: half of it drops their
+ * middle onto a centre line. */
+const DIGIT_HEIGHT = 0.72;
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -240,16 +243,12 @@ function Buff({
   return (
     <text
       x={x}
-      y={y}
+      y={y + (fontSize * DIGIT_HEIGHT) / 2}
       fill={colour}
       fillOpacity={0.92}
-      stroke={OUTLINE}
-      strokeWidth={fontSize * OUTLINE_WIDTH}
-      strokeLinejoin="round"
-      paintOrder="stroke"
       fontWeight={600}
       textAnchor="middle"
-      dominantBaseline="middle"
+      dominantBaseline="alphabetic"
       fontSize={fontSize}
       style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
     >
@@ -377,6 +376,12 @@ export function BuffStrip({
         const first = lowest(buffs, now);
         return (
           <g key={x}>
+            <circle
+              cx={x}
+              cy={DOT_Y}
+              r={fontSize * BACKING_RADIUS}
+              fill={BACKING}
+            />
             <Buff buff={shown} x={x} y={DOT_Y} now={now} fontSize={fontSize} />
             {buffs.length > 1 && (
               <Markers buffs={buffs} x={x} y={DOT_Y + fontSize / 2} now={now} />
