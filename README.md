@@ -94,12 +94,11 @@ App data holds the SQLite store, the last inventory as `inventory.json.gz`, WFCD
 
 ## Privacy
 
-The warframe.market session token (allows acting as you) is stored in plaintext in `market_token` in the app data directory.
-It is readable by the user's own processes, just as any other desktop client's session would be.
-The token does not contain your password.
+The warframe.market session token (allows acting as you) is stored in Windows Credential Manager or the desktop Secret Service on Linux (for example GNOME Keyring or KDE Wallet). Merframe does not write new plaintext token files. Existing `market_token` files and legacy JSON tokens migrate on the next successful credential-store access; plaintext copies are removed only after the secure write is verified. Logging out removes both secure and legacy copies.
 
-Merframe is not sending any of your personal data anywhere outside your PC.
-All third party calls are item-specific lookups and carry no information outside your IP (since the request is coming from your PC).
+Linux needs an unlocked Secret Service. If the credential store is unavailable, inventory and world-state features remain usable anonymously; saving a market login reports an error instead of falling back to plaintext. Other programs running as your user may still be able to access your OS credentials. The token does not contain your password.
+
+Inventory and analytics are kept locally. Signing in sends your email and password directly to warframe.market over HTTPS, and authenticated trading requests send the session token to that service. Optional Discord notifications send configured alert text to your webhook. Public item/price lookups also expose your IP address to their providers.
 
 Services Merframe talks to:
 - `api.warframe.com`: the public world state, polled every 5 to 10 minutes.

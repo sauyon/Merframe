@@ -53,6 +53,9 @@ tauri-plugin-updater = { version = "2", default-features = false, features = ["s
 tauri-plugin-window-state = "2"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 schemars = { version = "1", features = ["chrono04"] }
+keyring-core = "=1.0.1"
+windows-native-keyring-store = "=1.1.0"
+dbus-secret-service-keyring-store = { version = "=1.0.1", default-features = false, features = ["crypto-openssl", "vendored"] }
 wf-mem = { path = "crates/wf-mem" }
 wf-scan = { path = "crates/wf-scan" }
 wf-inventory = { path = "crates/wf-inventory" }

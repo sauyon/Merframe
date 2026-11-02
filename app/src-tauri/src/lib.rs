@@ -1,6 +1,7 @@
 mod analytics;
 mod auctions;
 pub mod commands;
+mod credentials;
 pub mod envelope;
 pub mod error;
 pub mod event_feed;

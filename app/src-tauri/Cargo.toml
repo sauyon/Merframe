@@ -19,6 +19,7 @@ axum = { workspace = true }
 chrono = { workspace = true }
 futures-util = { workspace = true }
 indexmap = { workspace = true }
+keyring-core = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -50,9 +51,11 @@ wf-worldstate = { workspace = true, features = ["fetch"] }
 gdk = { workspace = true }
 gtk = { workspace = true }
 notify-rust = { workspace = true }
+dbus-secret-service-keyring-store = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { workspace = true }
+windows-native-keyring-store = { workspace = true }
 
 [features]
 bindings = ["dep:ts-rs", "wf-core/bindings", "wf-data/bindings", "wf-market/bindings", "wf-worldstate/bindings"]

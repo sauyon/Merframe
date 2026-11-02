@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::Context;
@@ -18,6 +18,7 @@ pub const STORE_FILE: &str = "merframe.json";
 const TOKEN_FILE: &str = "market_token";
 const SETTINGS_KEY: &str = "settings";
 const LEGACY_TOKEN_KEY: &str = "market_token";
+static TOKEN_LOCK: Mutex<()> = Mutex::new(());
 const ACCOUNT_KEY: &str = "market_account";
 const PRESENCE_KEY: &str = "market_presence";
 
@@ -695,47 +696,43 @@ fn token_path<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<PathBuf> {
 }
 
 pub fn token<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<Option<String>> {
+    let _guard = lock(&TOKEN_LOCK);
     let path = token_path(app)?;
-    let token = unless_missing(std::fs::read_to_string(&path))
-        .with_context(|| format!("Reading {}", path.display()))?;
-    match token {
-        Some(token) => Ok(Some(token)),
-        None => moved_token(app, &path),
-    }
-}
-
-fn moved_token<R: Runtime>(app: &AppHandle<R>, path: &Path) -> anyhow::Result<Option<String>> {
-    let Some(token) = store(app)?
-        .get(LEGACY_TOKEN_KEY)
-        .and_then(|value| value.as_str().map(str::to_owned))
-    else {
-        return Ok(None);
-    };
-
-    write_token(path, &token)?;
-    put(app, LEGACY_TOKEN_KEY, None)?;
-    tracing::info!("Session token moved to its own file");
-    Ok(Some(token))
+    crate::credentials::migrate(
+        &crate::credentials::entry()?,
+        || {
+            let file = unless_missing(std::fs::read_to_string(&path))
+                .context("Reading the legacy session file")?;
+            match file {
+                Some(token) => Ok(Some(token)),
+                None => stored(app, LEGACY_TOKEN_KEY, "The legacy session is not readable"),
+            }
+        },
+        || remove_legacy_token(app, &path),
+    )
 }
 
 pub fn set_token<R: Runtime>(app: &AppHandle<R>, token: Option<&str>) -> anyhow::Result<()> {
+    let _guard = lock(&TOKEN_LOCK);
     let path = token_path(app)?;
     match token {
-        Some(token) => write_token(&path, token),
-        None => unless_missing(std::fs::remove_file(&path))
-            .map(|_| ())
-            .with_context(|| format!("Removing {}", path.display())),
+        Some(token) => {
+            crate::credentials::write(&crate::credentials::entry()?, token)?;
+            remove_legacy_token(app, &path)
+        }
+        None => {
+            // Delete both old locations too, so logging out cannot resurrect a
+            // session from a pre-migration settings file on the next launch.
+            remove_legacy_token(app, &path)?;
+            crate::credentials::delete(&crate::credentials::entry()?)
+        }
     }
 }
 
-fn write_token(path: &Path, token: &str) -> anyhow::Result<()> {
-    std::fs::write(path, token).with_context(|| format!("Writing {}", path.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
-            .with_context(|| format!("Restricting {}", path.display()))?;
+fn remove_legacy_token<R: Runtime>(app: &AppHandle<R>, path: &Path) -> anyhow::Result<()> {
+    unless_missing(std::fs::remove_file(path)).context("Removing the plaintext session file")?;
+    if store(app)?.get(LEGACY_TOKEN_KEY).is_some() {
+        put(app, LEGACY_TOKEN_KEY, None)?;
     }
     Ok(())
 }
