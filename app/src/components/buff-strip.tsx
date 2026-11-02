@@ -18,7 +18,7 @@ import type { BuffTimer, TextSize } from "@/types";
 // has switched to, its marker first and larger, the rest in the order switching goes through
 // them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
 // When the number is not the running buff that runs out first, that one's seconds sit smaller
-// under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
+// over its marker in a colour of their own, so a lapsing buff is never hidden by the cycle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -122,14 +122,28 @@ function Markers({
   x,
   y,
   now,
+  first,
+  fontSize,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
+  /** The buff whose seconds go over its marker, if any. */
+  first: BuffTimer | null;
+  fontSize: number;
 }) {
   if (!buffs.every((buff) => buff.icon)) {
-    return <Pips buffs={buffs} x={x} y={y} now={now} />;
+    return (
+      <Pips
+        buffs={buffs}
+        x={x}
+        y={y}
+        now={now}
+        first={first}
+        fontSize={fontSize}
+      />
+    );
   }
   const size = (buff: BuffTimer) =>
     buff.rank === 0 ? LEAD_MARKER_SIZE : MARKER_SIZE;
@@ -143,14 +157,24 @@ function Markers({
         const at = left;
         left += size(buff) + MARKER_GAP;
         return (
-          <Marker
-            key={buff.id}
-            name={buff.icon ?? ""}
-            x={at}
-            y={y - size(buff) / 2 + MARKER_SIZE / 2}
-            size={size(buff)}
-            tint={TINTS[colourOf(buff, now)]}
-          />
+          <g key={buff.id}>
+            <Marker
+              name={buff.icon ?? ""}
+              x={at}
+              y={y - size(buff) / 2 + MARKER_SIZE / 2}
+              size={size(buff)}
+              tint={TINTS[colourOf(buff, now)]}
+            />
+            {buff.id === first?.id && (
+              <Lowest
+                buff={buff}
+                x={at + size(buff) / 2}
+                y={y + MARKER_SIZE / 2}
+                now={now}
+                fontSize={fontSize}
+              />
+            )}
+          </g>
         );
       })}
     </g>
@@ -193,11 +217,15 @@ function Pips({
   x,
   y,
   now,
+  first,
+  fontSize,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
+  first: BuffTimer | null;
+  fontSize: number;
 }) {
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
@@ -212,6 +240,19 @@ function Pips({
           fillOpacity={0.92}
         />
       ))}
+      {buffs.map(
+        (buff, index) =>
+          buff.id === first?.id && (
+            <Lowest
+              key={buff.id}
+              buff={buff}
+              x={start + index * PIP_GAP}
+              y={y + PIP_GAP / 2}
+              now={now}
+              fontSize={fontSize}
+            />
+          ),
+      )}
     </g>
   );
 }
@@ -288,7 +329,7 @@ function lowest(buffs: BuffTimer[], now: number) {
     : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** The seconds of the buff that runs out first, smaller, under one ability's markers. */
+/** The seconds of the buff that runs out first, smaller, centred on `y` over its marker. */
 function Lowest({
   buff,
   x,
@@ -306,7 +347,7 @@ function Lowest({
   return (
     <text
       x={x}
-      y={y + fontSize / 2}
+      y={y}
       fill={LOWEST}
       fillOpacity={0.92}
       fontWeight={600}
@@ -368,14 +409,12 @@ export function BuffStrip({
           <g key={x}>
             <Buff buff={shown} x={x} now={now} fontSize={fontSize} />
             {buffs.length > 1 && (
-              <Markers buffs={buffs} x={x} y={TOP + fontSize} now={now} />
-            )}
-            {first && first.id !== shown.id && (
-              <Lowest
-                buff={first}
+              <Markers
+                buffs={buffs}
                 x={x}
-                y={TOP + fontSize + LEAD_MARKER_SIZE + MARKER_GAP}
+                y={TOP + fontSize}
                 now={now}
+                first={first?.id === shown.id ? null : first}
                 fontSize={fontSize * LOWEST_SCALE}
               />
             )}
