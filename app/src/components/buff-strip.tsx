@@ -18,7 +18,7 @@ import type { BuffTimer, TextSize } from "@/types";
 // has switched to, its marker first and larger, the rest in the order switching goes through
 // them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
 // When the number is not the running buff that runs out first, that one's seconds sit smaller
-// over its marker in a colour of their own, so a lapsing buff is never hidden by the cycle.
+// in place of its marker in a colour of their own, so a lapsing buff is never hidden by the cycle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -129,7 +129,7 @@ function Markers({
   x: number;
   y: number;
   now: number;
-  /** The buff whose seconds go over its marker, if any. */
+  /** The buff whose seconds stand in place of its marker, if any. */
   first: BuffTimer | null;
   fontSize: number;
 }) {
@@ -158,20 +158,21 @@ function Markers({
         left += size(buff) + MARKER_GAP;
         return (
           <g key={buff.id}>
-            <Marker
-              name={buff.icon ?? ""}
-              x={at}
-              y={y - size(buff) / 2 + MARKER_SIZE / 2}
-              size={size(buff)}
-              tint={TINTS[colourOf(buff, now)]}
-            />
-            {buff.id === first?.id && (
+            {buff.id === first?.id ? (
               <Lowest
                 buff={buff}
                 x={at + size(buff) / 2}
                 y={y + MARKER_SIZE / 2}
                 now={now}
                 fontSize={fontSize}
+              />
+            ) : (
+              <Marker
+                name={buff.icon ?? ""}
+                x={at}
+                y={y - size(buff) / 2 + MARKER_SIZE / 2}
+                size={size(buff)}
+                tint={TINTS[colourOf(buff, now)]}
               />
             )}
           </g>
@@ -230,16 +231,18 @@ function Pips({
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
     <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
-      {buffs.map((buff, index) => (
-        <circle
-          key={buff.id}
-          cx={start + index * PIP_GAP}
-          cy={y + PIP_GAP / 2}
-          r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
-          fill={colourOf(buff, now)}
-          fillOpacity={0.92}
-        />
-      ))}
+      {buffs.map((buff, index) =>
+        buff.id === first?.id ? null : (
+          <circle
+            key={buff.id}
+            cx={start + index * PIP_GAP}
+            cy={y + PIP_GAP / 2}
+            r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
+            fill={colourOf(buff, now)}
+            fillOpacity={0.92}
+          />
+        ),
+      )}
       {buffs.map(
         (buff, index) =>
           buff.id === first?.id && (
@@ -329,7 +332,7 @@ function lowest(buffs: BuffTimer[], now: number) {
     : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** The seconds of the buff that runs out first, smaller, centred on `y` over its marker. */
+/** The seconds of the buff that runs out first, smaller, centred on `y` in place of its marker. */
 function Lowest({
   buff,
   x,
