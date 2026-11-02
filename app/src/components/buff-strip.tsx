@@ -9,8 +9,8 @@ import type { BuffTimer, TextSize } from "@/types";
 // as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
-// text size; that only scales the numbers. The dots are measured in game at 2160p: 15 units
-// apart, centred 77.5 units below the middle.
+// text size; that only scales the numbers. The dots are measured in game at 2160p: 12 units
+// apart, centred 62 units below the middle.
 //
 // An ability keeping up several buffs at once, like Tribute, has a marker under its number
 // for each buff: the game's icon for it when it has one, else a pip. When the ability draws
@@ -24,9 +24,9 @@ const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
 const SLOTS = 4;
 /** The dots' spacing; each ability's number sits over its dot. */
-const PITCH = 15;
+const PITCH = 12;
 /** The dots' centre line. */
-const DOT_Y = CENTRE + 77.5;
+const DOT_Y = CENTRE + 62;
 /** Icons of the other buffs, centred on the dots' line, and their spacing. */
 const ICON_SIZE = 18;
 const ICON_PITCH = ICON_SIZE + 2;
@@ -65,7 +65,7 @@ const LOWEST_SCALE = 0.75;
 /** A dark disc over the game's ability dot, which each ability's number stands on in its
  * place. Its radius is a share of the number's size. */
 const BACKING = "rgb(12 14 16 / 0.85)";
-const BACKING_RADIUS = 0.62;
+const BACKING_RADIUS = 0.5;
 /** Digits' height above their baseline, as a share of their size: half of it drops their
  * middle onto a centre line. */
 const DIGIT_HEIGHT = 0.72;
