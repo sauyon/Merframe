@@ -296,6 +296,25 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn glib_string_iterator_backport_handles_both_directions() {
+        use gtk::glib::{Variant, variant::ToVariant};
+
+        // GLib is built at opt-level=2 in this workspace. This exercises the
+        // iterator out-pointer that was miscompiled before the safety backport.
+        let value = Variant::array_from_iter::<String>(
+            ["alpha", "beta", "gamma", "delta"].map(|s| s.to_variant()),
+        );
+        let mut iter = value.array_iter_str().unwrap();
+        assert_eq!(iter.next(), Some("alpha"));
+        assert_eq!(iter.next_back(), Some("delta"));
+        assert_eq!(iter.collect::<Vec<_>>(), ["beta", "gamma"]);
+        assert_eq!(value.array_iter_str().unwrap().nth(2), Some("gamma"));
+        assert_eq!(value.array_iter_str().unwrap().nth_back(2), Some("beta"));
+        assert_eq!(value.array_iter_str().unwrap().last(), Some("delta"));
+    }
+
     #[test]
     fn log_rotation() {
         let dir = std::env::temp_dir().join("merframe-log-rotation");
