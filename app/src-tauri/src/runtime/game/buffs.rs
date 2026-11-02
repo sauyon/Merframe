@@ -2,16 +2,21 @@
 //!
 //! Buffs come from more than one place, each a [`BuffSource`]: the HUD's buff tray, and the
 //! timers the HUD counts down under the ability icons, which is where abilities like Tribute
-//! keep theirs.
+//! keep theirs, and the HUDs some abilities draw for themselves.
 
-use std::collections::{HashMap, HashSet};
+mod hud_icons;
+
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Runtime};
 use tracing::debug;
 use wf_mem::MemoryReader;
-use wf_scan::{AbilityTimers, LuaState, LuaTable, StatusEffect, status_effects, status_list};
+use wf_scan::{
+    AbilityTimers, LuaState, LuaTable, StatusEffect, ability_buffs, ability_hud, ability_huds,
+    status_effects, status_list, switch_index, switched_to,
+};
 
 use super::ticks;
 use crate::overlay::{self, BuffTimer};
@@ -42,6 +47,9 @@ const HUD_SEARCH_EVERY: Duration = Duration::from_secs(10);
 const HUD_SEARCH_MAX: Duration = Duration::from_secs(30);
 /// How often the equipped warframe's abilities are looked up again from the inventory.
 const LOADOUT_EVERY: Duration = Duration::from_secs(5);
+/// An ability HUD whose timers have not moved for this long is left over from an earlier
+/// mission, or the game is paused.
+const HUD_STALE: Duration = Duration::from_secs(30);
 
 pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
     let mut tick = ticks(BUFF_TICK);
@@ -53,6 +61,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut seen: Option<Vec<usize>> = None;
     let mut abilities: Vec<String> = Vec::new();
     let mut icons: Vec<(String, String)> = Vec::new();
+    let mut hud_icons: HashMap<hud_icons::Wanted, Option<String>> = HashMap::new();
     let mut loadout_read: Option<Instant> = None;
     loop {
         tick.tick().await;
@@ -114,7 +123,8 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             seen.clone_from(&counts);
         }
         let idle = readings.is_none();
-        let readings = merge(readings.unwrap_or_default(), &abilities);
+        let mut readings = merge(readings.unwrap_or_default(), &abilities);
+        add_hud_icons(&mut readings, &state, &abilities, &icons, &mut hud_icons).await;
         if changed {
             let read: Vec<_> = readings
                 .iter()
@@ -137,6 +147,37 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     }
 }
 
+/// Gives buffs an ability's own HUD names the game's icons for them, looking up in the game's
+/// cache the ones not looked up before.
+async fn add_hud_icons(
+    readings: &mut [Reading],
+    state: &AppState,
+    abilities: &[String],
+    icons: &[(String, String)],
+    known: &mut HashMap<hud_icons::Wanted, Option<String>>,
+) {
+    let missing: Vec<hud_icons::Wanted> = readings
+        .iter()
+        .filter_map(|reading| hud_icon_key(reading, abilities, icons))
+        .filter(|key| !known.contains_key(key))
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+    if !missing.is_empty() {
+        let log = read(&state.settings).log_path();
+        let images = state.images.dir().to_owned();
+        let found = blocking("find ability HUD icons", move || {
+            hud_icons::find(log.as_deref(), &images, missing)
+        })
+        .await;
+        known.extend(found.unwrap_or_default());
+    }
+    for reading in readings {
+        reading.icon = hud_icon_key(reading, abilities, icons)
+            .and_then(|key| known.get(&key).cloned().flatten());
+    }
+}
+
 fn unix_ms() -> f64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -153,7 +194,88 @@ fn buff_sources() -> Vec<Box<dyn BuffSource>> {
     vec![
         Box::new(TraySource::default()),
         Box::new(AbilityTimerSource::default()),
+        Box::new(AbilityHudSource::default()),
     ]
+}
+
+/// HUDs ability scripts draw themselves, like Tribute's quiver of buffs above the weapon.
+/// Each names its ability, so its entries take that ability's slot. Every entry is read, ones
+/// not running too, so the slot shows all of the ability's buffs.
+#[derive(Default)]
+struct AbilityHudSource {
+    huds: Vec<LuaTable>,
+    /// Where each HUD's script keeps which entry the player has switched to.
+    switches: HashMap<LuaTable, String>,
+    /// The buffs ability scripts describe, by their place in their HUD's list.
+    buffs: Vec<BTreeMap<usize, String>>,
+    searched: Option<Instant>,
+    /// Each HUD's timers when last read, and when one of them last fell. A HUD left over from
+    /// an earlier mission keeps its last values, which never fall.
+    last: HashMap<LuaTable, (Vec<f32>, Option<Instant>)>,
+    /// The most seconds each HUD has shown on an entry: what the game sets an entry to when it
+    /// is cast, so its buffs' full length.
+    longest: HashMap<LuaTable, f32>,
+}
+
+impl BuffSource for AbilityHudSource {
+    fn read(&mut self, reader: &Arc<dyn MemoryReader>, lua: &LuaState) -> Vec<Reading> {
+        let reader = reader.as_ref();
+        if self.searched.is_none_or(|at| at.elapsed() >= RECHECK_EVERY) {
+            self.searched = Some(Instant::now());
+            self.huds = ability_huds(reader, lua);
+            self.buffs = ability_buffs(reader, lua);
+            self.switches = self
+                .huds
+                .iter()
+                .filter_map(|&table| Some((table, switch_index(reader, lua, table)?)))
+                .collect();
+            self.last.retain(|table, _| self.huds.contains(table));
+            self.longest.retain(|table, _| self.huds.contains(table));
+        }
+        let mut readings = Vec::new();
+        for (hud, &table) in self.huds.iter().enumerate() {
+            let Some(shown) = ability_hud(reader, table) else {
+                continue;
+            };
+            let (last, moved_at) = self.last.entry(table).or_default();
+            if last.len() == shown.timers.len()
+                && last.iter().zip(&shown.timers).any(|(was, now)| now < was)
+            {
+                *moved_at = Some(Instant::now());
+            }
+            last.clone_from(&shown.timers);
+            let all_down = shown.timers.iter().all(|&seconds| seconds <= 0.0);
+            let live = moved_at.is_some_and(|at| all_down || at.elapsed() < HUD_STALE);
+            let longest = self.longest.entry(table).or_default();
+            *longest = shown.timers.iter().copied().fold(*longest, f32::max);
+            if !live {
+                continue;
+            }
+            let count = shown.timers.len();
+            let selected = self
+                .switches
+                .get(&table)
+                .and_then(|name| switched_to(reader, lua, name, count));
+            let names = self
+                .buffs
+                .iter()
+                .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)));
+            readings.extend(shown.timers.iter().enumerate().map(|(index, &seconds)| {
+                Reading {
+                    id: format!("ability{}:hud{hud}.{index}", shown.ability),
+                    label: String::new(),
+                    slot: u8::try_from(shown.ability + 1).ok(),
+                    rank: selected
+                        .and_then(|selected| u8::try_from((index + count - selected) % count).ok()),
+                    buff: names.and_then(|names| names.get(&index)).cloned(),
+                    icon: None,
+                    total: Some(f64::from(*longest)),
+                    remaining: f64::from(seconds.max(0.0)),
+                }
+            }));
+        }
+        readings
+    }
 }
 
 /// The HUD's buff tray: effects from mods, arcanes and most abilities, by name.
@@ -274,6 +396,9 @@ impl BuffSource for AbilityTimerSource {
                 id: format!("ability{}:{:x}", timer.ability, timer.key),
                 label: String::new(),
                 slot: u8::try_from(timer.ability + 1).ok(),
+                rank: None,
+                buff: None,
+                icon: None,
                 total: None,
                 remaining: f64::from(timer.remaining),
             })
@@ -341,7 +466,11 @@ fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffT
                 id: buff.id.clone(),
                 label: buff.label.clone(),
                 slot,
-                icon: slot.is_none().then(|| icon(&buff.id, icons)).flatten(),
+                rank: buff.rank,
+                icon: buff
+                    .icon
+                    .clone()
+                    .or_else(|| slot.is_none().then(|| icon(&buff.id, icons)).flatten()),
                 total: buff.total,
                 ends_at: buff.remaining.map(|left| (now_ms + left * 1000.0).round()),
             }
@@ -353,6 +482,18 @@ fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffT
 /// `.../Suits/ShedAbilityName#37` gives `.../Suits/ShedAbilityName`.
 fn instance_of(id: &str) -> &str {
     id.rsplit_once('#').map_or(id, |(tag, _)| tag)
+}
+
+/// What to look up the game's icon for a buff an ability's own HUD names by: the ability's
+/// icon, and the buff's name.
+fn hud_icon_key(
+    reading: &Reading,
+    abilities: &[String],
+    icons: &[(String, String)],
+) -> Option<hud_icons::Wanted> {
+    let buff = reading.buff.clone()?;
+    let ability = abilities.get(usize::from(reading.slot?.checked_sub(1)?))?;
+    Some((icon(ability, icons)?, buff))
 }
 
 /// The last part of a buff's name: `.../Suits/FairyDustAbilityName#35` gives
@@ -391,6 +532,7 @@ fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {
             a.id == b.id
                 && a.label == b.label
                 && a.slot == b.slot
+                && a.rank == b.rank
                 && a.icon == b.icon
                 && (a.total - b.total).abs() < REFRESH_JUMP
                 && match (a.ends_at, b.ends_at) {
@@ -407,6 +549,13 @@ struct Reading {
     label: String,
     /// The ability slot, counted from 1, when the source knows it; otherwise found by name.
     slot: Option<u8>,
+    /// Its place in its ability's own HUD counting on from the one the player has switched
+    /// to, which is 0: the order the HUD cycles through them.
+    rank: Option<u8>,
+    /// The name the ability's script gives it.
+    buff: Option<String>,
+    /// The game's icon for it, by image name, when it has its own.
+    icon: Option<String>,
     /// The buff's full length when the game says; otherwise learned from what is seen.
     total: Option<f64>,
     remaining: f64,
@@ -440,6 +589,9 @@ impl Ticking {
                 id: format!("{}#{}", e.name_tag, e.id),
                 label: label(&e.name_tag),
                 slot: None,
+                rank: None,
+                buff: None,
+                icon: None,
                 total: (e.initial_data >= e.data).then_some(f64::from(e.initial_data)),
                 remaining: f64::from(e.data),
             })
@@ -479,6 +631,8 @@ struct Shown {
     id: String,
     label: String,
     slot: Option<u8>,
+    rank: Option<u8>,
+    icon: Option<String>,
     /// `None` once the buff has dropped off.
     remaining: Option<f64>,
     total: f64,
@@ -519,6 +673,8 @@ impl Tracker {
                 shown.remaining = Some(reading.remaining);
                 shown.label.clone_from(&reading.label);
                 shown.slot = reading.slot;
+                shown.rank = reading.rank;
+                shown.icon.clone_from(&reading.icon);
                 entry.gone_at = None;
             } else {
                 let entry = Entry {
@@ -526,6 +682,8 @@ impl Tracker {
                         id: reading.id.clone(),
                         label: reading.label.clone(),
                         slot: reading.slot,
+                        rank: reading.rank,
+                        icon: reading.icon.clone(),
                         remaining: Some(reading.remaining),
                         total: reading.total.unwrap_or(reading.remaining),
                     },
@@ -593,6 +751,9 @@ mod tests {
             id: id.into(),
             label: id.into(),
             slot: None,
+            rank: None,
+            buff: None,
+            icon: None,
             total: None,
             remaining,
         }
@@ -759,6 +920,8 @@ mod tests {
             id: format!("{id}#1"),
             label: String::new(),
             slot: slot(&format!("{id}#1"), &titania),
+            rank: None,
+            icon: None,
             remaining: Some(5.0),
             total: 10.0,
         };
@@ -788,6 +951,9 @@ mod tests {
             id: format!("ability1:{key:x}"),
             label: String::new(),
             slot: Some(2),
+            rank: None,
+            buff: None,
+            icon: None,
             total: None,
             remaining,
         };
@@ -813,6 +979,8 @@ mod tests {
             id: "a".into(),
             label: "A".into(),
             slot: None,
+            rank: None,
+            icon: None,
             remaining: Some(10.0),
             total: 20.0,
         }];

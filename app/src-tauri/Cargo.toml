@@ -45,6 +45,7 @@ wf-inventory = { workspace = true }
 wf-log = { workspace = true }
 wf-market = { workspace = true, features = ["fetch"] }
 wf-mem = { workspace = true }
+wf-cache = { workspace = true }
 wf-scan = { workspace = true }
 wf-worldstate = { workspace = true, features = ["fetch"] }
 

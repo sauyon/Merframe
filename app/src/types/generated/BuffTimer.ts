@@ -9,6 +9,11 @@ export type BuffTimer = { id: string, label: string,
  */
 slot: number | null, 
 /**
+ * For an ability that draws its buffs in its own widget, like Tribute, where that widget
+ * puts this one: 0 for the one it shows largest, which cycling in game changes.
+ */
+rank: number | null, 
+/**
  * The game's icon for a buff outside the ability slots, as an item image name.
  */
 icon: string | null, 

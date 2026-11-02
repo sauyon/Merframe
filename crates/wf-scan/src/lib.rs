@@ -1,3 +1,4 @@
+mod ability_hud;
 mod ability_timers;
 mod buffs;
 mod bundle;
@@ -20,6 +21,9 @@ mod upgrade;
 #[cfg(test)]
 mod fake;
 
+pub use ability_hud::{
+    AbilityHud, ability_buffs, ability_hud, ability_huds, switch_index, switched_to,
+};
 pub use ability_timers::{AbilityTimer, AbilityTimers};
 pub use buffs::{StatusEffect, TIMED, status_effects, status_list};
 pub use bundle::{RewardTile, reward_screen};
