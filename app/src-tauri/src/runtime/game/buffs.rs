@@ -349,10 +349,16 @@ fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffT
         .collect()
 }
 
+/// A buff's id without the instance number the game gives each application of it:
+/// `.../Suits/ShedAbilityName#37` gives `.../Suits/ShedAbilityName`.
+fn instance_of(id: &str) -> &str {
+    id.rsplit_once('#').map_or(id, |(tag, _)| tag)
+}
+
 /// The last part of a buff's name: `.../Suits/FairyDustAbilityName#35` gives
 /// `FairyDustAbilityName`.
 fn key(id: &str) -> &str {
-    let tag = id.rsplit_once('#').map_or(id, |(tag, _)| tag);
+    let tag = instance_of(id);
     tag.rsplit('/').next().unwrap_or(tag)
 }
 
@@ -500,23 +506,22 @@ impl Tracker {
 
     fn update(&mut self, readings: &[Reading], now: f64) {
         for reading in readings {
-            match self.entries.iter_mut().find(|e| e.shown.id == reading.id) {
-                Some(entry) => {
-                    let shown = &mut entry.shown;
-                    let refreshed = shown
-                        .remaining
-                        .is_none_or(|old| reading.remaining > old + REFRESH_JUMP);
-                    shown.total = reading.total.unwrap_or(if refreshed {
-                        reading.remaining
-                    } else {
-                        shown.total.max(reading.remaining)
-                    });
-                    shown.remaining = Some(reading.remaining);
-                    shown.label.clone_from(&reading.label);
-                    shown.slot = reading.slot;
-                    entry.gone_at = None;
-                }
-                None => self.entries.push(Entry {
+            if let Some(entry) = self.entries.iter_mut().find(|e| e.shown.id == reading.id) {
+                let shown = &mut entry.shown;
+                let refreshed = shown
+                    .remaining
+                    .is_none_or(|old| reading.remaining > old + REFRESH_JUMP);
+                shown.total = reading.total.unwrap_or(if refreshed {
+                    reading.remaining
+                } else {
+                    shown.total.max(reading.remaining)
+                });
+                shown.remaining = Some(reading.remaining);
+                shown.label.clone_from(&reading.label);
+                shown.slot = reading.slot;
+                entry.gone_at = None;
+            } else {
+                let entry = Entry {
                     shown: Shown {
                         id: reading.id.clone(),
                         label: reading.label.clone(),
@@ -525,7 +530,17 @@ impl Tracker {
                         total: reading.total.unwrap_or(reading.remaining),
                     },
                     gone_at: None,
-                }),
+                };
+                // A recast comes back under a new instance number; it takes the place of
+                // the one it replaces rather than showing beside it.
+                let replaced = self.entries.iter().position(|e| {
+                    instance_of(&e.shown.id) == instance_of(&reading.id)
+                        && !readings.iter().any(|r| r.id == e.shown.id)
+                });
+                match replaced {
+                    Some(index) => self.entries[index] = entry,
+                    None => self.entries.push(entry),
+                }
             }
         }
         for entry in &mut self.entries {
@@ -625,6 +640,20 @@ mod tests {
         assert_eq!(s[0].remaining, None);
         t.update(&[r("b", 1.0)], 4.0);
         assert_eq!(t.shown().len(), 1);
+    }
+
+    #[test]
+    fn recast_replaces_its_old_instance() {
+        let mut t = Tracker::new(3.0);
+        t.update(&[r("x#1", 5.0), r("shed#31", 2.0)], 0.0);
+        t.update(&[r("x#1", 4.0), r("shed#34", 31.0)], 1.0);
+        let ids: Vec<_> = t.shown().into_iter().map(|s| s.id).collect();
+        assert_eq!(ids, ["x#1", "shed#34"]);
+        t.update(
+            &[r("x#1", 3.0), r("shed#34", 30.0), r("shed#35", 31.0)],
+            2.0,
+        );
+        assert_eq!(t.shown().len(), 3);
     }
 
     #[test]
