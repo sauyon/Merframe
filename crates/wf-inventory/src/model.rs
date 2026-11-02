@@ -23,11 +23,22 @@ impl ArchonCrystalSlot {
     }
 }
 
+/// A Helminth ability put in place of one of the warframe's own.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct AbilityOverride {
+    pub ability: String,
+    /// Zero-based ability slot.
+    pub index: usize,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct LoadoutConfig {
     #[serde(default)]
     pub upgrades: Vec<String>,
+    #[serde(default)]
+    pub ability_override: Option<AbilityOverride>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -358,6 +369,8 @@ pub struct Inventory {
     pub challenge_progress: Vec<ChallengeProgress>,
     #[serde(default)]
     pub load_out_presets: serde_json::Value,
+    #[serde(default)]
+    pub current_load_out_ids: Vec<ObjectId>,
     #[serde(default, deserialize_with = "typed_entries")]
     pub focus_upgrades: Vec<FocusUpgrade>,
     #[serde(default, deserialize_with = "typed_entries")]
@@ -372,12 +385,66 @@ impl Inventory {
     pub fn parse(json: &str) -> Result<Self> {
         serde_json::from_str(json).map_err(InventoryError::from)
     }
+
+    /// The warframe in the active loadout, with the index of the config it uses.
+    pub fn equipped_suit(&self) -> Option<(&EquipmentItem, usize)> {
+        let oid = |value: &Value| value.get("$oid").and_then(Value::as_str).map(str::to_owned);
+        let current = self.current_load_out_ids.first()?;
+        let suit = self
+            .load_out_presets
+            .get("NORMAL")?
+            .as_array()?
+            .iter()
+            .find(|preset| preset.get("ItemId").and_then(oid).as_deref() == Some(current.as_str()))?
+            .get("s")?;
+        let id = suit.get("ItemId").and_then(oid)?;
+        let config = suit
+            .get("mod")
+            .and_then(Value::as_u64)
+            .and_then(|index| usize::try_from(index).ok())
+            .unwrap_or_default();
+        let item = self.suits.iter().find(|item| item.item_id.as_str() == id)?;
+        Some((item, config))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::EquipmentItem;
     use crate::views::tests::patched;
+
+    #[test]
+    fn equipped_suit_follows_the_current_preset() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(crate::views::tests::FIXTURE).unwrap();
+        let fields = serde_json::json!({
+            "CurrentLoadOutIds": [{"$oid": "000000000000000000000002"}],
+            "LoadOutPresets": {"NORMAL": [
+                {"ItemId": {"$oid": "000000000000000000000001"},
+                 "s": {"ItemId": {"$oid": "aaaaaaaaaaaaaaaaaaaaaaaa"}, "mod": 0}},
+                {"ItemId": {"$oid": "000000000000000000000002"},
+                 "s": {"ItemId": {"$oid": "bbbbbbbbbbbbbbbbbbbbbbbb"}, "mod": 1}}
+            ]},
+            "Suits": [
+                {"ItemType": "/Lotus/Powersuits/Saryn/SarynPrime",
+                 "ItemId": {"$oid": "aaaaaaaaaaaaaaaaaaaaaaaa"}},
+                {"ItemType": "/Lotus/Powersuits/Fairy/TitaniaPrime",
+                 "ItemId": {"$oid": "bbbbbbbbbbbbbbbbbbbbbbbb"},
+                 "Configs": [{}, {"AbilityOverride": {
+                     "Ability": "/Lotus/Powersuits/BrokenFrame/Abilities/BrokenRotAbility",
+                     "Index": 2}}]}
+            ]
+        });
+        for (key, field) in fields.as_object().unwrap() {
+            value[key] = field.clone();
+        }
+        let inventory = super::Inventory::parse(&value.to_string()).unwrap();
+        let (suit, config) = inventory.equipped_suit().unwrap();
+        assert_eq!(suit.item_type, "/Lotus/Powersuits/Fairy/TitaniaPrime");
+        assert_eq!(config, 1);
+        let helminth = suit.configs[config].ability_override.as_ref().unwrap();
+        assert_eq!(helminth.index, 2);
+    }
 
     #[test]
     fn entries_without_an_item_type_are_skipped() {
