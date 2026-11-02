@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useItemImageSrc } from "@/components/item-image";
 import type { BuffTimer, TextSize } from "@/types";
 
-// Countdown seconds just under the game's ability dots, which sit at the same place below
-// the screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed
-// slots, each number right under its dot; other buffs flank them, each under the game's icon
-// for it standing in for a dot. Styled like the HUD: off-white numbers and icons, colour only
+// Countdown seconds over the game's ability dots, which sit at the same place below the
+// screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
+// each number covering its dot; other buffs flank them, each under the game's icon for it
+// standing in for a dot. Styled like the HUD: off-white numbers and icons, colour only
 // as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
@@ -18,16 +18,16 @@ import type { BuffTimer, TextSize } from "@/types";
 // has switched to, its marker first and larger, the rest in the order switching goes through
 // them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
 // When the number is not the running buff that runs out first, that one's seconds sit smaller
-// in place of its marker in a colour of their own, so a lapsing buff is never hidden by the cycle.
+// under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
 const SLOTS = 4;
-/** The dots' spacing; each ability's number sits right under its dot. */
+/** The dots' spacing; each ability's number sits over its dot. */
 const PITCH = 15;
 /** The dots' centre line. */
 const DOT_Y = CENTRE + 77.5;
-/** Where the numbers' tops sit, just below the dots. */
+/** Where the other buffs' numbers' tops sit, just below their icons. */
 const TOP = CENTRE + 83;
 /** Icons of the other buffs, centred on the dots' line. */
 const ICON_SIZE = 14;
@@ -122,28 +122,14 @@ function Markers({
   x,
   y,
   now,
-  first,
-  fontSize,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
-  /** The buff whose seconds stand in place of its marker, if any. */
-  first: BuffTimer | null;
-  fontSize: number;
 }) {
   if (!buffs.every((buff) => buff.icon)) {
-    return (
-      <Pips
-        buffs={buffs}
-        x={x}
-        y={y}
-        now={now}
-        first={first}
-        fontSize={fontSize}
-      />
-    );
+    return <Pips buffs={buffs} x={x} y={y} now={now} />;
   }
   const size = (buff: BuffTimer) =>
     buff.rank === 0 ? LEAD_MARKER_SIZE : MARKER_SIZE;
@@ -157,25 +143,14 @@ function Markers({
         const at = left;
         left += size(buff) + MARKER_GAP;
         return (
-          <g key={buff.id}>
-            {buff.id === first?.id ? (
-              <Lowest
-                buff={buff}
-                x={at + size(buff) / 2}
-                y={y + MARKER_SIZE / 2}
-                now={now}
-                fontSize={fontSize}
-              />
-            ) : (
-              <Marker
-                name={buff.icon ?? ""}
-                x={at}
-                y={y - size(buff) / 2 + MARKER_SIZE / 2}
-                size={size(buff)}
-                tint={TINTS[colourOf(buff, now)]}
-              />
-            )}
-          </g>
+          <Marker
+            key={buff.id}
+            name={buff.icon ?? ""}
+            x={at}
+            y={y - size(buff) / 2 + MARKER_SIZE / 2}
+            size={size(buff)}
+            tint={TINTS[colourOf(buff, now)]}
+          />
         );
       })}
     </g>
@@ -218,44 +193,25 @@ function Pips({
   x,
   y,
   now,
-  first,
-  fontSize,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
-  first: BuffTimer | null;
-  fontSize: number;
 }) {
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
     <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
-      {buffs.map((buff, index) =>
-        buff.id === first?.id ? null : (
-          <circle
-            key={buff.id}
-            cx={start + index * PIP_GAP}
-            cy={y + PIP_GAP / 2}
-            r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
-            fill={colourOf(buff, now)}
-            fillOpacity={0.92}
-          />
-        ),
-      )}
-      {buffs.map(
-        (buff, index) =>
-          buff.id === first?.id && (
-            <Lowest
-              key={buff.id}
-              buff={buff}
-              x={start + index * PIP_GAP}
-              y={y + PIP_GAP / 2}
-              now={now}
-              fontSize={fontSize}
-            />
-          ),
-      )}
+      {buffs.map((buff, index) => (
+        <circle
+          key={buff.id}
+          cx={start + index * PIP_GAP}
+          cy={y + PIP_GAP / 2}
+          r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
+          fill={colourOf(buff, now)}
+          fillOpacity={0.92}
+        />
+      ))}
     </g>
   );
 }
@@ -263,11 +219,14 @@ function Pips({
 function Buff({
   buff,
   x,
+  y,
   now,
   fontSize,
 }: {
   buff: BuffTimer;
   x: number;
+  /** The number's centre line. */
+  y: number;
   now: number;
   fontSize: number;
 }) {
@@ -277,7 +236,7 @@ function Buff({
   return (
     <text
       x={x}
-      y={TOP + fontSize / 2}
+      y={y}
       fill={colour}
       fillOpacity={0.92}
       fontWeight={600}
@@ -332,7 +291,7 @@ function lowest(buffs: BuffTimer[], now: number) {
     : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** The seconds of the buff that runs out first, smaller, centred on `y` in place of its marker. */
+/** The seconds of the buff that runs out first, smaller, under one ability's markers. */
 function Lowest({
   buff,
   x,
@@ -350,7 +309,7 @@ function Lowest({
   return (
     <text
       x={x}
-      y={y}
+      y={y + fontSize / 2}
       fill={LOWEST}
       fillOpacity={0.92}
       fontWeight={600}
@@ -410,14 +369,16 @@ export function BuffStrip({
         const first = lowest(buffs, now);
         return (
           <g key={x}>
-            <Buff buff={shown} x={x} now={now} fontSize={fontSize} />
+            <Buff buff={shown} x={x} y={DOT_Y} now={now} fontSize={fontSize} />
             {buffs.length > 1 && (
-              <Markers
-                buffs={buffs}
+              <Markers buffs={buffs} x={x} y={DOT_Y + fontSize / 2} now={now} />
+            )}
+            {first && first.id !== shown.id && (
+              <Lowest
+                buff={first}
                 x={x}
-                y={TOP + fontSize}
+                y={DOT_Y + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
                 now={now}
-                first={first?.id === shown.id ? null : first}
                 fontSize={fontSize * LOWEST_SCALE}
               />
             )}
@@ -429,7 +390,13 @@ export function BuffStrip({
         return (
           <g key={buff.id}>
             {buff.icon && <Icon name={buff.icon} x={x} />}
-            <Buff buff={buff} x={x} now={now} fontSize={fontSize} />
+            <Buff
+              buff={buff}
+              x={x}
+              y={TOP + fontSize / 2}
+              now={now}
+              fontSize={fontSize}
+            />
           </g>
         );
       })}
