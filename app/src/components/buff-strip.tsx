@@ -17,6 +17,8 @@ import type { BuffTimer, TextSize } from "@/types";
 // its own widget for them, the number and markers follow it: the number is the buff the player
 // has switched to, its marker first and larger, the rest in the order switching goes through
 // them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
+// When the number is not the running buff that runs out first, that one's seconds sit smaller
+// under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -56,6 +58,9 @@ const WARN_SECONDS = 10;
 const INK = "rgb(235 238 240)";
 const WARN = "rgb(240 190 110)";
 const DOWN = "rgb(235 110 95)";
+/** The running buff that runs out first, when the number shows another. */
+const LOWEST = "rgb(130 190 245)";
+const LOWEST_SCALE = 0.75;
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -274,6 +279,47 @@ function pick(buffs: BuffTimer[]) {
   return buffs.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
+/** Of several buffs from one ability, the running one that ends first. */
+function lowest(buffs: BuffTimer[], now: number) {
+  const running = buffs.filter((buff) => (remaining(buff, now) ?? 0) > 0);
+  const end = (buff: BuffTimer) => buff.ends_at ?? Number.POSITIVE_INFINITY;
+  return running.length === 0
+    ? null
+    : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
+}
+
+/** The seconds of the buff that runs out first, smaller, under one ability's markers. */
+function Lowest({
+  buff,
+  x,
+  y,
+  now,
+  fontSize,
+}: {
+  buff: BuffTimer;
+  x: number;
+  y: number;
+  now: number;
+  fontSize: number;
+}) {
+  const left = remaining(buff, now) ?? 0;
+  return (
+    <text
+      x={x}
+      y={y + fontSize / 2}
+      fill={LOWEST}
+      fillOpacity={0.92}
+      fontWeight={600}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={fontSize}
+      style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
+    >
+      {Math.ceil(left)}
+    </text>
+  );
+}
+
 /** One ability's buffs in the order its widget cycles through them, when it has one. */
 function ordered(buffs: BuffTimer[]) {
   const rank = (buff: BuffTimer) => buff.rank ?? Number.POSITIVE_INFINITY;
@@ -312,17 +358,30 @@ export function BuffStrip({
       style={{ opacity: opacity / 100 }}
     >
       <Tints />
-      {slots.map(
-        ({ x, buffs }) =>
-          buffs.length > 0 && (
-            <g key={x}>
-              <Buff buff={pick(buffs)} x={x} now={now} fontSize={fontSize} />
-              {buffs.length > 1 && (
-                <Markers buffs={buffs} x={x} y={TOP + fontSize} now={now} />
-              )}
-            </g>
-          ),
-      )}
+      {slots.map(({ x, buffs }) => {
+        if (buffs.length === 0) {
+          return null;
+        }
+        const shown = pick(buffs);
+        const first = lowest(buffs, now);
+        return (
+          <g key={x}>
+            <Buff buff={shown} x={x} now={now} fontSize={fontSize} />
+            {buffs.length > 1 && (
+              <Markers buffs={buffs} x={x} y={TOP + fontSize} now={now} />
+            )}
+            {first && first.id !== shown.id && (
+              <Lowest
+                buff={first}
+                x={x}
+                y={TOP + fontSize + LEAD_MARKER_SIZE + MARKER_GAP}
+                now={now}
+                fontSize={fontSize * LOWEST_SCALE}
+              />
+            )}
+          </g>
+        );
+      })}
       {others.map((buff, index) => {
         const x = slotX(flank(index));
         return (
