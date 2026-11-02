@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "lint": "biome check --write .",
     "test": "vitest run",
+    "deps:check": "node scripts/check-dependencies.mjs",
+    "native:prepare": "node scripts/prepare-native-tools.mjs",
     "types": "node scripts/types.mjs",
     "types:check": "pnpm types && git diff --exit-code src/types/generated",
     "tauri": "tauri"
