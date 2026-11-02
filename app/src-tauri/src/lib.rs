@@ -21,7 +21,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use tauri::plugin::TauriPlugin;
-use tauri::{Manager, Runtime, Url};
+use tauri::{AppHandle, Manager, Runtime, Url};
 use tracing::{error, warn};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
@@ -188,11 +188,26 @@ fn commands<R: Runtime>() -> impl Fn(tauri::ipc::Invoke<R>) -> bool {
     ]
 }
 
+/// Brings the main window up when the app is launched again while running. The overlays are
+/// left alone: they never take focus from the game.
+fn show_main<R: Runtime>(app: &AppHandle<R>) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let _ = window.unminimize();
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 pub fn run() {
     let context = tauri::generate_context!();
     #[cfg(target_os = "linux")]
     let startup = overlay::adopt_xwayland();
     let builder = tauri::Builder::default()
+        // First, so a second launch exits before anything else starts.
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            show_main(app);
+        }))
         .plugin(navigation_guard())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
