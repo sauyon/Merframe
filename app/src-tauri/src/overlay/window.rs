@@ -143,6 +143,11 @@ pub(super) fn park<R: Runtime>(app: &AppHandle<R>, kind: Kind) {
     let Some(window) = app.get_webview_window(kind.label()) else {
         return;
     };
+    #[cfg(windows)]
+    if let Err(error) = no_activate::hide(&window) {
+        warn!(label = kind.label(), %error, "Overlay hide failed");
+    }
+    #[cfg(not(windows))]
     if let Err(error) = window.hide() {
         warn!(label = kind.label(), %error, "Overlay hide failed");
     }
@@ -162,16 +167,98 @@ pub(super) fn reveal<R: Runtime>(app: &AppHandle<R>, kind: Kind) {
         debug!(label = kind.label(), "No overlay window to show");
         return;
     };
+    #[cfg(windows)]
+    if let Err(error) = no_activate::show_on_top(&window) {
+        warn!(label = kind.label(), %error, "Overlay show failed");
+    }
+    #[cfg(not(windows))]
     if let Err(error) = window.show() {
         warn!(label = kind.label(), %error, "Overlay show failed");
         return;
     }
+    #[cfg(not(windows))]
     if let Err(error) = window.set_always_on_top(true) {
         warn!(
             label = kind.label(),
             %error,
             "Overlay always on top failed",
         );
+    }
+}
+
+/// Showing and hiding overlays on Windows without ever activating them.
+///
+/// tao's `show()` is `ShowWindow(SW_SHOW)`, which activates the window and takes focus from
+/// the game: it only shows without activating while a window is being created, and
+/// `focusable(false)` doesn't stop it. So overlays are shown and hidden here instead, and tao
+/// is left believing they stay hidden. tao re-applies `SW_HIDE` to a window it thinks hidden
+/// whenever one of its flags changes, so overlays must not change flags once open; at worst
+/// that hides one until it is next shown, never focuses it.
+#[cfg(windows)]
+mod no_activate {
+    use std::ffi::c_void;
+
+    use tauri::{Runtime, WebviewWindow};
+
+    const SW_HIDE: i32 = 0;
+    const SW_SHOWNOACTIVATE: i32 = 4;
+    const HWND_TOPMOST: isize = -1;
+    const SWP_NOSIZE: u32 = 0x0001;
+    const SWP_NOMOVE: u32 = 0x0002;
+    const SWP_NOACTIVATE: u32 = 0x0010;
+
+    #[link(name = "user32")]
+    unsafe extern "system" {
+        fn ShowWindow(window: *mut c_void, command: i32) -> i32;
+        fn SetWindowPos(
+            window: *mut c_void,
+            after: *mut c_void,
+            x: i32,
+            y: i32,
+            width: i32,
+            height: i32,
+            flags: u32,
+        ) -> i32;
+    }
+
+    /// Runs `apply` on the window's handle on the UI thread, which owns it.
+    fn with_handle<R: Runtime>(
+        window: &WebviewWindow<R>,
+        apply: impl FnOnce(*mut c_void) + Send + 'static,
+    ) -> tauri::Result<()> {
+        // Handles are plain numbers that stay valid while the window lives; only the pointer
+        // type keeps them from crossing threads.
+        let handle = window.hwnd()?.0 as isize;
+        window.run_on_main_thread(move || apply(handle as *mut c_void))
+    }
+
+    pub(super) fn show_on_top<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<()> {
+        with_handle(window, |handle| {
+            // SAFETY: `handle` is this overlay's live window handle; neither call dereferences
+            // memory of ours, and both only ask the window manager to show and raise it
+            // without activation.
+            unsafe {
+                ShowWindow(handle, SW_SHOWNOACTIVATE);
+                SetWindowPos(
+                    handle,
+                    HWND_TOPMOST as *mut c_void,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+                );
+            }
+        })
+    }
+
+    pub(super) fn hide<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<()> {
+        with_handle(window, |handle| {
+            // SAFETY: as in `show_on_top`; hiding never activates anything.
+            unsafe {
+                ShowWindow(handle, SW_HIDE);
+            }
+        })
     }
 }
 
@@ -212,6 +299,8 @@ pub(super) fn open<R: Runtime>(app: &AppHandle<R>, kind: Kind, bounds: Bounds, s
     .always_on_top(true)
     .skip_taskbar(true)
     .focusable(false)
+    // Also keeps the webview from moving focus into itself when it is created.
+    .focused(false)
     .resizable(cfg!(target_os = "linux"))
     .shadow(false)
     .visible(false)

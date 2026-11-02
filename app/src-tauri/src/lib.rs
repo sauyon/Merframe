@@ -203,6 +203,13 @@ pub fn run() {
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_denylist(&overlay::KINDS.map(overlay::Kind::label))
+                // Restoring visibility shows the window and then focuses it, which on Windows
+                // forces it to the foreground with a synthetic Alt press, out from under the
+                // game. The window shows itself as configured instead.
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        - tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
                 .build(),
         )
         .invoke_handler(commands())
