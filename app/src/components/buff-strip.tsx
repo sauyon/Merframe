@@ -27,10 +27,11 @@ const SLOTS = 4;
 const PITCH = 15;
 /** The dots' centre line. */
 const DOT_Y = CENTRE + 77.5;
-/** Where the other buffs' numbers' tops sit, just below their icons. */
-const TOP = CENTRE + 83;
-/** Icons of the other buffs, centred on the dots' line. */
-const ICON_SIZE = 14;
+/** Icons of the other buffs, centred on the dots' line, and their spacing. */
+const ICON_SIZE = 18;
+const ICON_PITCH = ICON_SIZE + 2;
+/** Where the other buffs' numbers' tops sit, tucked just under their icons. */
+const TOP = DOT_Y + ICON_SIZE / 2 - 1.5;
 /** Seconds at small text, scaled like the app's root size. */
 const FONT_SIZE = 11;
 const TEXT_SCALE: Record<TextSize, number> = {
@@ -338,8 +339,10 @@ function ordered(buffs: BuffTimer[]) {
 
 /** Where the `index`th other buff goes: alternately right then left of the ability slots. */
 function flank(index: number) {
-  const out = SLOTS / 2 + 0.5 + GROUP_GAP + Math.floor(index / 2);
-  return index % 2 === 0 ? out : -out;
+  const out =
+    (SLOTS / 2 + GROUP_GAP) * PITCH +
+    (0.5 + Math.floor(index / 2)) * ICON_PITCH;
+  return CENTRE + (index % 2 === 0 ? out : -out);
 }
 
 export function BuffStrip({
@@ -399,7 +402,7 @@ export function BuffStrip({
         );
       })}
       {others.map((buff, index) => {
-        const x = slotX(flank(index));
+        const x = flank(index);
         return (
           <g key={buff.id}>
             {buff.icon && <Icon name={buff.icon} x={x} />}
