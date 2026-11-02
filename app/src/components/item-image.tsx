@@ -73,6 +73,27 @@ export async function prefetchImages(names: (string | null | undefined)[]) {
   }
 }
 
+/** The loaded source for an item image, or `null` while loading or when it fails. */
+export function useItemImageSrc(imageName: string | null) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!imageName) {
+      setSrc(null);
+      return;
+    }
+    let active = true;
+    load(imageName).then((state) => {
+      if (active) {
+        setSrc("src" in state ? state.src : null);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [imageName]);
+  return src;
+}
+
 interface ItemImageProps {
   imageName?: string | null;
   size?: number;

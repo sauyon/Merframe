@@ -22,6 +22,7 @@ export type * from "./BaroGroup";
 export type * from "./BaroOffer";
 export type * from "./BaroStatus";
 export type * from "./Best";
+export type * from "./BuffTimer";
 export type * from "./CategoryStatement";
 export type * from "./CategoryTotals";
 export type * from "./ChallengeKind";

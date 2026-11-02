@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { Route, Routes } from "react-router";
+import { BuffStrip } from "@/components/buff-strip";
 import {
   NotificationFade,
   NotificationOverlay,
@@ -129,6 +130,18 @@ export function OverlayWindow() {
                   compact
                 />
               </OverlayFrame>
+            )
+          }
+        />
+        <Route
+          path="buffs"
+          element={
+            overlays.buffs && (
+              <BuffStrip
+                buffs={overlays.buffs}
+                opacity={overlays.opacity}
+                textSize={overlays.text_size}
+              />
             )
           }
         />

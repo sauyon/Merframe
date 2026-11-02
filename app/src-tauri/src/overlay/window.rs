@@ -101,6 +101,8 @@ pub(super) fn bounds_for(
         Kind::Riven => (700.0 * text, 900.0 * scale * text),
         Kind::Ducatering => (420.0 * text, 460.0 * text),
         Kind::Notification => (380.0 * text, 100.0 * text),
+        // Drawn against the game's ability dots, so it follows the screen, never the text size.
+        Kind::Buffs => (440.0 * scale, 440.0 * scale),
     };
     let width = width.round();
     let height = height.min(screen.height - 2.0 * MARGIN).round();
@@ -116,7 +118,11 @@ pub(super) fn bounds_for(
         OverlayPlacement::BottomRight => (right, bottom),
         OverlayPlacement::Centre => match kind {
             Kind::RelicReward => (middle - 15.0, (630.0 * scale).round()),
-            Kind::RelicRecommendation | Kind::Riven | Kind::Ducatering | Kind::Notification => {
+            Kind::RelicRecommendation
+            | Kind::Riven
+            | Kind::Ducatering
+            | Kind::Notification
+            | Kind::Buffs => {
                 (middle, (screen.height / 2.0 - height / 2.0).round())
             }
         },
@@ -167,6 +173,7 @@ pub(super) fn reveal<R: Runtime>(app: &AppHandle<R>, kind: Kind) {
         debug!(label = kind.label(), "No overlay window to show");
         return;
     };
+    debug!(label = kind.label(), "Overlay shown");
     #[cfg(windows)]
     if let Err(error) = no_activate::show_on_top(&window) {
         warn!(label = kind.label(), %error, "Overlay show failed");
@@ -371,6 +378,33 @@ mod tests {
         height: 1080.0,
         scale: 1.0,
     };
+
+    #[test]
+    fn buff_strip_follows_the_screen_not_the_text_size() {
+        let uhd = Screen {
+            width: 3840.0,
+            height: 2160.0,
+            ..FULL_HD
+        };
+        for text_size in [TextSize::Small, TextSize::Large] {
+            let strip = bounds_for(
+                Kind::Buffs,
+                OverlayPlacement::Centre,
+                RECOMMENDATION_COUNT_DEFAULT,
+                text_size,
+                uhd,
+            );
+            assert_eq!(
+                strip,
+                Bounds {
+                    width: 880.0,
+                    height: 880.0,
+                    x: 1480.0,
+                    y: 640.0,
+                }
+            );
+        }
+    }
 
     #[test]
     fn text_size_grows_the_window_in_place() {

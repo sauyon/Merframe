@@ -12,6 +12,7 @@ const IDLE: OverlayState = {
   riven: null,
   ducatering: null,
   notification: null,
+  buffs: null,
   preview: null,
 };
 

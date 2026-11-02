@@ -8,6 +8,7 @@ use wf_core::{Core, CoreEvent};
 use super::{blocking, dispatch};
 use crate::state::{AppState, lock};
 
+mod buffs;
 mod inventory;
 mod kiosk;
 mod log;
@@ -16,6 +17,7 @@ mod rewards;
 mod trade;
 
 pub use inventory::acquire;
+pub(super) use buffs::buffs_task;
 pub(super) use inventory::inventory_task;
 pub(super) use kiosk::{ducatering_task, kiosk_task};
 pub(super) use log::log_task;
