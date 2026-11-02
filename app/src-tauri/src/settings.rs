@@ -1253,7 +1253,7 @@ mod tests {
 
     #[test]
     fn stylesheet_sets_the_same_root_sizes() {
-        let css = include_str!("../../src/globals.css");
+        let css = include_str!("../../src/globals.css").replace("\r\n", "\n");
         for (size, name) in [
             (TextSize::Small, "small"),
             (TextSize::Medium, "medium"),
