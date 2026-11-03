@@ -280,10 +280,15 @@ impl BuffSource for AbilityHudSource {
                 .switches
                 .get(&table)
                 .and_then(|name| switched_to(reader, lua, name, count));
-            let names = self
+            // Only a widget whose entries an ability script describes as buffs: others with
+            // the same shape, like Ivara's quiver of arrows, are not buffs.
+            let Some(names) = self
                 .buffs
                 .iter()
-                .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)));
+                .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)))
+            else {
+                continue;
+            };
             readings.extend(shown.timers.iter().enumerate().map(|(index, &seconds)| {
                 Reading {
                     id: format!("ability{}:hud{hud}.{index}", shown.ability),
@@ -291,7 +296,7 @@ impl BuffSource for AbilityHudSource {
                     slot: u8::try_from(shown.ability + 1).ok(),
                     rank: selected
                         .and_then(|selected| u8::try_from((index + count - selected) % count).ok()),
-                    buff: names.and_then(|names| names.get(&index)).cloned(),
+                    buff: names.get(&index).cloned(),
                     icon: None,
                     total: Some(f64::from(*longest)),
                     remaining: f64::from(seconds.max(0.0)),
