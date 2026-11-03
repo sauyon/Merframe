@@ -62,8 +62,10 @@ const DOWN = "rgb(235 110 95)";
 /** The running buff that runs out first, when the number shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
-/** A dark disc hiding the game's ability dot, which each ability's number stands on in its
- * place: solid whatever the strip's opacity, as wide as the dots' spacing allows. */
+/** A disc hiding the game's ability dot, which each ability's number stands on in its place:
+ * solid whatever the strip's opacity, as wide as the dots' spacing allows. Dark while the buff
+ * has time; once it is nearly out or gone the disc takes the warning colour and the number
+ * goes dark on it. */
 const BACKING = "rgb(12 14 16)";
 const BACKING_RADIUS = PITCH / 2 - 0.5;
 /** A digit's width as a share of its size: an ability's number shrinks to fit its disc. */
@@ -226,6 +228,12 @@ function Pips({
   );
 }
 
+/** The disc's colour under an ability's number: dark, or the number's warning colour. */
+function discOf(buff: BuffTimer, now: number) {
+  const state = colourOf(buff, now);
+  return state === INK ? BACKING : state;
+}
+
 function Buff({
   buff,
   x,
@@ -233,6 +241,7 @@ function Buff({
   now,
   fontSize,
   width,
+  onDisc,
 }: {
   buff: BuffTimer;
   x: number;
@@ -242,9 +251,12 @@ function Buff({
   fontSize: number;
   /** The most room the number may take across, if limited. */
   width?: number;
+  /** Stands on a disc of its own colour, so the number is drawn dark on it. */
+  onDisc?: boolean;
 }) {
   const left = remaining(buff, now);
-  const colour = colourOf(buff, now);
+  const state = colourOf(buff, now);
+  const colour = onDisc && state !== INK ? BACKING : state;
   const text = left === null || left <= 0 ? "—" : String(Math.ceil(left));
   const size =
     width === undefined
@@ -385,7 +397,7 @@ export function BuffStrip({
               cx={x}
               cy={DOT_Y}
               r={BACKING_RADIUS}
-              fill={BACKING}
+              fill={discOf(pick(buffs), now)}
             />
           ),
       )}
@@ -405,6 +417,7 @@ export function BuffStrip({
                 now={now}
                 fontSize={fontSize}
                 width={BACKING_RADIUS * 2 - 1}
+                onDisc
               />
               {buffs.length > 1 && (
                 <Markers
