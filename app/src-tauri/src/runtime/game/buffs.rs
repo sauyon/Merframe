@@ -15,8 +15,8 @@ use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
     AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect, ability_dots,
-    ability_hud, ability_huds, in_gameplay, menu_open, status_effects, status_list, switch_index,
-    switched_to,
+    ability_hud, ability_huds, hud_hidden, in_gameplay, menu_open, status_effects, status_list,
+    switch_index, switched_to,
 };
 
 use super::ticks;
@@ -523,8 +523,9 @@ fn layout_of(dots: DotsLayout) -> BuffLayout {
     }
 }
 
-/// Reads every source, or none out of a mission or with the Esc menu up: once a mission ends,
-/// the HUD's last timers linger in memory, frozen, and the menu covers the HUD.
+/// Reads every source, or none out of a mission, with the Esc menu up or while the game hides
+/// its HUD: once a mission ends, the HUD's last timers linger in memory, frozen, and the menu
+/// and the end-of-mission screen cover the HUD.
 fn read_sources(
     attached: &Attached,
     sources: &mut [Box<dyn BuffSource>],
@@ -532,7 +533,8 @@ fn read_sources(
 ) -> Vec<Vec<Reading>> {
     let reader = attached.reader.as_ref();
     let playing = in_gameplay(reader, &attached.lua, &mut screens.chat) != Some(false)
-        && menu_open(reader, &attached.lua, &mut screens.squad) != Some(true);
+        && menu_open(reader, &attached.lua, &mut screens.squad) != Some(true)
+        && hud_hidden(reader, &attached.lua) != Some(true);
     sources
         .iter_mut()
         .map(|source| {

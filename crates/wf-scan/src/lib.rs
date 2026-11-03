@@ -32,7 +32,7 @@ pub use bundle::{RewardTile, reward_screen};
 pub use dialog::DialogRiven;
 pub use equip::{RelicPick, confirmed_relic, relic_pick, relic_picker_open};
 pub use error::{Result, ScanError};
-pub use gameplay::{in_gameplay, menu_open};
+pub use gameplay::{hud_hidden, in_gameplay, menu_open};
 pub use http::HttpClients;
 pub use hud_layout::{DotsLayout, HudTables, ability_dots};
 pub use inventory::InventoryBuffer;
