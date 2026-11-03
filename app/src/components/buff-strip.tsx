@@ -9,10 +9,11 @@ import type { BuffLayout, BuffStyle, BuffTimer, TextSize } from "@/types";
 // as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
-// text size; that only scales the numbers. The strip is drawn as at the HUD scale the dots
-// were measured at, 1.25 at 2160p: 12 units apart, centred 63.25 units below the middle. It
-// then moves to where the HUD placed the dots' clip and scales with the HUD, both read from
-// the game, so it follows the HUD scale and borders.
+// text size; that only scales the numbers. The strip is drawn as the dots were measured at
+// HUD scale 1 at 2160p: 12 units apart, centred 63.25 units below the middle. It then moves
+// to where the HUD placed the dots' clip and scales with the HUD, both read from the game, so
+// it follows the HUD scale and borders. The HUD scales about the screen's middle, so the
+// dots' distance from it grows with the scale as well as their size.
 //
 // An ability keeping up several buffs at once, like Tribute, has a marker under its number
 // for each buff: the game's icon for it when it has one, else a pip. When the ability draws
@@ -30,9 +31,9 @@ const PITCH = 12;
 /** The dots' centre line. */
 const DOT_Y = CENTRE + 63.25;
 /** The dots' spacing in the HUD's stage units at HUD scale 1. */
-const STAGE_PITCH = 8;
+const STAGE_PITCH = 10;
 /** How far the dots' centre sits below their clip's origin, likewise. */
-const STAGE_DROP = 0.57;
+const STAGE_DROP = 0.7;
 /** Strip units are px at this screen height. */
 const UNIT_HEIGHT = 1080;
 /** Icons of the other buffs, centred on the dots' line, and their spacing. */
@@ -99,13 +100,10 @@ function hudTransform(layout: BuffLayout | null) {
   if (!layout) {
     return "";
   }
-  const unit = UNIT_HEIGHT / layout.stage_height;
-  const scale = (unit * layout.hud_scale * STAGE_PITCH) / PITCH;
+  const unit = (UNIT_HEIGHT / layout.stage_height) * layout.hud_scale;
+  const scale = (unit * STAGE_PITCH) / PITCH;
   const x = CENTRE + (layout.x - layout.stage_width / 2) * unit;
-  const y =
-    CENTRE +
-    (layout.y - layout.stage_height / 2) * unit +
-    STAGE_DROP * unit * layout.hud_scale;
+  const y = CENTRE + (layout.y - layout.stage_height / 2 + STAGE_DROP) * unit;
   return `translate(${x} ${y}) scale(${scale}) translate(${-CENTRE} ${-DOT_Y})`;
 }
 
