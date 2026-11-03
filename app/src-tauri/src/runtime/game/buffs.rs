@@ -14,9 +14,9 @@ use tauri::{AppHandle, Runtime};
 use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
-    AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect, ability_buffs,
-    ability_dots, ability_hud, ability_huds, in_gameplay, menu_open, status_effects, status_list,
-    switch_index, switched_to,
+    AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect, ability_dots,
+    ability_hud, ability_huds, in_gameplay, menu_open, status_effects, status_list, switch_index,
+    switched_to,
 };
 
 use super::ticks;
@@ -227,11 +227,10 @@ fn buff_sources() -> Vec<Box<dyn BuffSource>> {
 /// not running too, so the slot shows all of the ability's buffs.
 #[derive(Default)]
 struct AbilityHudSource {
-    huds: Vec<LuaTable>,
+    /// Each HUD with the buffs its script describes, by their place in its list.
+    huds: Vec<(LuaTable, BTreeMap<usize, String>)>,
     /// Where each HUD's script keeps which entry the player has switched to.
     switches: HashMap<LuaTable, String>,
-    /// The buffs ability scripts describe, by their place in their HUD's list.
-    buffs: Vec<BTreeMap<usize, String>>,
     searched: Option<Instant>,
     /// Each HUD's timers when last read, and when one of them last fell. A HUD left over from
     /// an earlier mission keeps its last values, which never fall.
@@ -247,17 +246,18 @@ impl BuffSource for AbilityHudSource {
         if self.searched.is_none_or(|at| at.elapsed() >= RECHECK_EVERY) {
             self.searched = Some(Instant::now());
             self.huds = ability_huds(reader, lua);
-            self.buffs = ability_buffs(reader, lua);
             self.switches = self
                 .huds
                 .iter()
-                .filter_map(|&table| Some((table, switch_index(reader, lua, table)?)))
+                .filter_map(|&(table, _)| Some((table, switch_index(reader, lua, table)?)))
                 .collect();
-            self.last.retain(|table, _| self.huds.contains(table));
-            self.longest.retain(|table, _| self.huds.contains(table));
+            let kept = |table: &LuaTable| self.huds.iter().any(|(hud, _)| hud == table);
+            self.last.retain(|table, _| kept(table));
+            self.longest.retain(|table, _| kept(table));
         }
         let mut readings = Vec::new();
-        for (hud, &table) in self.huds.iter().enumerate() {
+        for (hud, (table, names)) in self.huds.iter().enumerate() {
+            let table = *table;
             let Some(shown) = ability_hud(reader, table) else {
                 continue;
             };
@@ -280,15 +280,6 @@ impl BuffSource for AbilityHudSource {
                 .switches
                 .get(&table)
                 .and_then(|name| switched_to(reader, lua, name, count));
-            // Only a widget whose entries an ability script describes as buffs: others with
-            // the same shape, like Ivara's quiver of arrows, are not buffs.
-            let Some(names) = self
-                .buffs
-                .iter()
-                .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)))
-            else {
-                continue;
-            };
             readings.extend(shown.timers.iter().enumerate().map(|(index, &seconds)| {
                 Reading {
                     id: format!("ability{}:hud{hud}.{index}", shown.ability),

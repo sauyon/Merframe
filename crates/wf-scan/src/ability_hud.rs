@@ -3,8 +3,11 @@
 //! belongs to and keeps a list of entries each with the seconds it has left; that shape is
 //! all this looks for, not any one ability.
 //!
-//! The ability scripts describe their buffs too: a table per buff with a `uid`, its place in
-//! the widget's list, and the HUD buff type it shows as, keyed by the buff's name.
+//! The ability script drawing the widget describes its buffs too: a table per buff with a
+//! `uid`, its place in the widget's list, and the HUD buff type it shows as, keyed by the
+//! buff's name. Only widgets so described are buffs: Ivara's quiver has the same shape, but
+//! its arrows are not, and a squadmate's script describing its own buffs draws no widget of
+//! the player's.
 //!
 //! The script drives its widget through functions it shares with every script, named for the
 //! ability (`FAIRY_SetActiveSoul`), and keeps which entry the player has switched to in a
@@ -32,12 +35,32 @@ pub struct AbilityHud {
     pub timers: Vec<f32>,
 }
 
-/// The scripts drawing ability HUDs, as their tables.
-pub fn ability_huds<R: MemoryReader + ?Sized>(reader: &R, lua: &LuaState) -> Vec<LuaTable> {
+/// The ability HUDs whose scripts describe their entries as buffs, as their tables, each with
+/// the name of the buff at each place in its list.
+pub fn ability_huds<R: MemoryReader + ?Sized>(
+    reader: &R,
+    lua: &LuaState,
+) -> Vec<(LuaTable, BTreeMap<usize, String>)> {
     lua.scripts(reader)
         .into_iter()
-        .flat_map(|script| script.locals(reader))
-        .filter(|table| ability_hud(reader, *table).is_some())
+        .flat_map(|script| {
+            let locals = script.locals(reader);
+            let described: Vec<BTreeMap<usize, String>> = locals
+                .iter()
+                .map(|&table| buffs(reader, table))
+                .filter(|buffs| !buffs.is_empty())
+                .collect();
+            locals
+                .into_iter()
+                .filter_map(|table| {
+                    let count = ability_hud(reader, table)?.timers.len();
+                    let names = described
+                        .iter()
+                        .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)))?;
+                    Some((table, names.clone()))
+                })
+                .collect::<Vec<_>>()
+        })
         .collect()
 }
 
@@ -113,26 +136,9 @@ fn timers<R: MemoryReader + ?Sized>(reader: &R, list: LuaTable) -> Vec<f32> {
     }
 }
 
-/// The buffs each loaded ability script describes, as the name of each by its place in its
-/// widget's list. A script can describe more buffs than its widget lists, like ones only
-/// for other game modes.
-pub fn ability_buffs<R: MemoryReader + ?Sized>(
-    reader: &R,
-    lua: &LuaState,
-) -> Vec<BTreeMap<usize, String>> {
-    let mut found: Vec<BTreeMap<usize, String>> = lua
-        .scripts(reader)
-        .into_iter()
-        .flat_map(|script| script.locals(reader))
-        .map(|table| buffs(reader, table))
-        .filter(|buffs| !buffs.is_empty())
-        .collect();
-    found.sort();
-    found.dedup();
-    found
-}
-
-/// `table`'s buffs, if every entry describes one.
+/// `table`'s buffs, as the name of each by its place in its widget's list, if every entry
+/// describes one. A script can describe more buffs than its widget lists, like ones only for
+/// other game modes.
 fn buffs<R: MemoryReader + ?Sized>(reader: &R, table: LuaTable) -> BTreeMap<usize, String> {
     let entries = table.entries(reader);
     let count = entries.len();

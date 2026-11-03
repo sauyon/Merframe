@@ -24,7 +24,7 @@ mod upgrade;
 mod fake;
 
 pub use ability_hud::{
-    AbilityHud, ability_buffs, ability_hud, ability_huds, switch_index, switched_to,
+    AbilityHud, ability_hud, ability_huds, switch_index, switched_to,
 };
 pub use ability_timers::{AbilityTimer, AbilityTimers};
 pub use buffs::{StatusEffect, TIMED, status_effects, status_list};
