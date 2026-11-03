@@ -100,11 +100,13 @@ pub struct CurrencyOffer {
     pub price: i64,
     pub also_costs: Vec<OfferCost>,
     pub credits: Option<i64>,
+    pub affordable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct CurrencyVendor {
+    pub id: String,
     pub vendor: String,
     pub location: Option<String>,
     pub wiki_url: Option<String>,
@@ -202,7 +204,25 @@ pub(crate) fn tab(
     }
 }
 
-const HELD_TYPES: &[&str] = &["Resource", "Gem", "Cut Gem", "Alloy", "Pet Resource"];
+// Misc also files captura, ship segments and weapon parts, so only these types
+// count as resources there.
+const HELD_TYPES: &[&str] = &[
+    "Resource",
+    "Gem",
+    "Cut Gem",
+    "Alloy",
+    "Pet Resource",
+    "Misc",
+    "Fish Part",
+    "Fish Bait",
+    "Eidolon Shard",
+    "Focus Lens",
+    "Medallion",
+    "Currency",
+    "Ayatan Sculpture",
+    "Ayatan Star",
+    "Conservation Tag",
+];
 
 fn holdings<'a>(inventory: &'a Inventory, catalog: &Catalog, stock: &Stock) -> Vec<HeldResource> {
     let mut names: BTreeSet<&'a str> = inventory
@@ -232,13 +252,16 @@ fn holdings<'a>(inventory: &'a Inventory, catalog: &Catalog, stock: &Stock) -> V
                 owned: stock.count(unique_name),
                 vendors: currency_vendors(unique_name)
                     .map(|vendor| CurrencyVendor {
+                        id: vendor.id.clone(),
                         vendor: vendor.name.clone(),
                         location: vendor.location.clone(),
                         wiki_url: vendor.wiki.clone(),
                         offers: vendor
                             .offers
                             .iter()
-                            .filter_map(|offer| currency_offer(catalog, offer, unique_name))
+                            .filter_map(|offer| {
+                                currency_offer(inventory, catalog, stock, offer, unique_name)
+                            })
                             .collect(),
                     })
                     .collect(),
@@ -249,8 +272,21 @@ fn holdings<'a>(inventory: &'a Inventory, catalog: &Catalog, stock: &Stock) -> V
     rows
 }
 
-fn currency_offer(catalog: &Catalog, offer: &VendorOffer, currency: &str) -> Option<CurrencyOffer> {
+fn currency_offer(
+    inventory: &Inventory,
+    catalog: &Catalog,
+    stock: &Stock,
+    offer: &VendorOffer,
+    currency: &str,
+) -> Option<CurrencyOffer> {
     let price = offer.price(currency)?;
+    let affordable = offer
+        .prices
+        .iter()
+        .all(|(item_type, count)| stock.count(item_type) >= *count)
+        && offer
+            .credits
+            .is_none_or(|credits| inventory.regular_credits >= credits);
     Some(CurrencyOffer {
         unique_name: offer.item.clone(),
         name: offer.name.clone(),
@@ -273,6 +309,7 @@ fn currency_offer(catalog: &Catalog, offer: &VendorOffer, currency: &str) -> Opt
             })
             .collect(),
         credits: offer.credits,
+        affordable,
     })
 }
 
@@ -559,8 +596,13 @@ mod tests {
             ResourceScope::All,
         );
         assert_eq!(
-            (&with_skins.resources, with_skins.items, with_skins.credits),
-            (&tab.resources, tab.items, tab.credits),
+            (
+                &with_skins.resources,
+                &with_skins.shards,
+                with_skins.items,
+                with_skins.credits
+            ),
+            (&tab.resources, &tab.shards, tab.items, tab.credits),
             "skins add held resources to the catalog but no demand"
         );
     }

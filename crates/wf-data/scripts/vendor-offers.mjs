@@ -1,6 +1,8 @@
 // Regenerates data/vendor_offers.json from warframe-public-export-plus.
-// Run from the repository root: node crates/wf-data/scripts/vendor-offers.mjs
-import { writeFileSync } from "node:fs";
+// Run from the repository root: node crates/wf-data/scripts/vendor-offers.mjs [sha]
+// Without a sha it rebuilds from the commit the current file was made from;
+// pass "HEAD" to take the latest export.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const REPO = "calamity-inc/warframe-public-export-plus";
 const OUT = new URL("../data/vendor_offers.json", import.meta.url);
@@ -19,7 +21,6 @@ const NAMED = [
   "ExportGear",
   "ExportKeys",
   "ExportRailjackWeapons",
-  "ExportRelics",
   "ExportResources",
   "ExportSentinels",
   "ExportTextIcons",
@@ -28,6 +29,8 @@ const NAMED = [
   "ExportWarframes",
   "ExportWeapons",
 ];
+// Placeholder stock with nothing real to buy.
+const SKIPPED = new Set(["/Lotus/Types/Game/VendorManifests/Events/RadioLegionDummyManifest"]);
 
 async function json(url) {
   const response = await fetch(url);
@@ -37,13 +40,24 @@ async function json(url) {
   return response.json();
 }
 
-const { sha } = await json(`https://api.github.com/repos/${REPO}/commits/HEAD`);
+function pinned() {
+  if (!existsSync(OUT)) {
+    return "HEAD";
+  }
+  const { source } = JSON.parse(readFileSync(OUT, "utf8"));
+  return source.match(/blob\/([0-9a-f]+)\//)?.[1] ?? "HEAD";
+}
+
+const { sha } = await json(
+  `https://api.github.com/repos/${REPO}/commits/${process.argv[2] ?? pinned()}`,
+);
 const file = (name) =>
   json(`https://raw.githubusercontent.com/${REPO}/${sha}/${name}.json`);
 
-const [vendors, recipes, dict, ...named] = await Promise.all([
+const [vendors, recipes, relics, dict, ...named] = await Promise.all([
   file("ExportVendors"),
   file("ExportRecipes"),
+  file("ExportRelics"),
   file("dict.en"),
   ...NAMED.map(file),
 ]);
@@ -71,6 +85,10 @@ function nameOf(uniqueName) {
   if (key) {
     return tidy(dict[key] ?? key);
   }
+  const relic = relics[uniqueName];
+  if (relic?.era && relic.category) {
+    return `${relic.era} ${relic.category} Relic`;
+  }
   const recipe = recipes[uniqueName];
   if (recipe) {
     return `${nameOf(recipe.resultType) ?? fallbackName(recipe.resultType)} Blueprint`;
@@ -80,13 +98,19 @@ function nameOf(uniqueName) {
 
 const out = {};
 for (const manifest of Object.keys(vendors).sort()) {
+  if (SKIPPED.has(manifest)) {
+    continue;
+  }
   const offers = [];
   const seen = new Set();
   for (const item of vendors[manifest].items) {
     if (!item.itemPrices?.length) {
       continue;
     }
-    const uniqueName = item.storeItem.replace("/StoreItems/", "/");
+    // Bundles keep their store path; everything else drops the StoreItems level.
+    const uniqueName = nameOf(item.storeItem)
+      ? item.storeItem
+      : item.storeItem.replace("/StoreItems/", "/");
     const offer = {
       item: uniqueName,
       name: nameOf(uniqueName) ?? fallbackName(uniqueName),

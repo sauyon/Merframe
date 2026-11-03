@@ -25,17 +25,8 @@ function HeldCardInner({
   selected: boolean;
   onSelect: (uniqueName: string) => void;
 }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={() => onSelect(row.unique_name)}
-      className={cn(
-        "bg-card flex h-full w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-colors",
-        selected ? "border-primary bg-secondary/50" : "hover:border-primary/50",
-        row.owned === 0 && "opacity-60",
-      )}
-    >
+  const body = (
+    <>
       <ItemImage imageName={row.image_name} size={48} alt={row.name} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="line-clamp-2">{row.name}</span>
@@ -51,6 +42,26 @@ function HeldCardInner({
           )}
         </div>
       </div>
+    </>
+  );
+  const card =
+    "bg-card flex h-full w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors";
+  // Only something a vendor takes has a Spend At panel to open.
+  if (row.vendors.length === 0) {
+    return <div className={card}>{body}</div>;
+  }
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={() => onSelect(row.unique_name)}
+      className={cn(
+        card,
+        "cursor-pointer",
+        selected ? "border-primary bg-secondary/50" : "hover:border-primary/50",
+      )}
+    >
+      {body}
     </button>
   );
 }
@@ -71,7 +82,7 @@ function offerKey(offer: CurrencyOffer): string {
   ].join(":");
 }
 
-function OfferRow({ offer, owned }: { offer: CurrencyOffer; owned: number }) {
+function OfferRow({ offer }: { offer: CurrencyOffer }) {
   const extras = [
     ...offer.also_costs.map((cost) => `${num(cost.count)} ${cost.name}`),
     ...(offer.credits ? [`${num(offer.credits)} credits`] : []),
@@ -98,22 +109,17 @@ function OfferRow({ offer, owned }: { offer: CurrencyOffer; owned: number }) {
       <span
         className={cn(
           "shrink-0 tabular-nums",
-          offer.price <= owned ? "text-primary" : "text-muted-foreground",
+          offer.affordable ? "text-primary" : "text-muted-foreground",
         )}
       >
         {num(offer.price)}
+        {offer.affordable && <span className="sr-only"> (affordable)</span>}
       </span>
     </li>
   );
 }
 
-function VendorBlock({
-  vendor,
-  owned,
-}: {
-  vendor: CurrencyVendor;
-  owned: number;
-}) {
+function VendorBlock({ vendor }: { vendor: CurrencyVendor }) {
   return (
     <li className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
@@ -132,9 +138,9 @@ function VendorBlock({
           Stock rotates. Check the vendor in game.
         </p>
       ) : (
-        <ul className="flex max-h-96 flex-col overflow-y-auto">
+        <ul className="flex flex-col">
           {vendor.offers.map((offer) => (
-            <OfferRow key={offerKey(offer)} offer={offer} owned={owned} />
+            <OfferRow key={offerKey(offer)} offer={offer} />
           ))}
         </ul>
       )}
@@ -149,9 +155,9 @@ function SpendAt({ row }: { row: HeldResource }) {
       description={`${counted(row.vendors.length, "vendor takes", "vendors take")} ${row.name}`}
       className="self-start @3xl:sticky @3xl:top-4"
     >
-      <ul className="flex flex-col gap-4">
+      <ul className="flex max-h-128 flex-col gap-4 overflow-y-auto">
         {row.vendors.map((vendor) => (
-          <VendorBlock key={vendor.vendor} vendor={vendor} owned={row.owned} />
+          <VendorBlock key={vendor.id} vendor={vendor} />
         ))}
       </ul>
     </Section>
@@ -178,11 +184,12 @@ export function Holdings({
     [holdings, view],
   );
   const { pageItems, pagination } = usePaged(rows, `${view}:${query}`);
-  const selectedRow =
-    pageItems.find((row) => row.unique_name === selected) ??
+  const spending =
+    pageItems.find(
+      (row) => row.unique_name === selected && row.vendors.length > 0,
+    ) ??
     pageItems.find((row) => row.vendors.length > 0) ??
     null;
-  const spending = selectedRow?.vendors.length ? selectedRow : null;
 
   useEffect(() => {
     prefetchImages(pageItems.map((row) => row.image_name));
@@ -195,7 +202,11 @@ export function Holdings({
         className={spending ? "@3xl:col-span-2" : "@3xl:col-span-3"}
         action={
           <div className="flex items-center gap-3">
-            <ResultCount shown={rows.length} total={total} noun="resources" />
+            <ResultCount
+              shown={rows.length}
+              total={total}
+              noun={view === "held" ? "resources" : "currencies"}
+            />
             <SearchInput
               value={query}
               onValueChange={setQuery}
@@ -220,7 +231,7 @@ export function Holdings({
                 <HeldCard
                   key={row.unique_name}
                   row={row}
-                  selected={row === selectedRow}
+                  selected={row === spending}
                   onSelect={setSelected}
                 />
               ))}

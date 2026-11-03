@@ -64,6 +64,7 @@ function holding(name: string, owned: number, currency: boolean): HeldResource {
     vendors: currency
       ? [
           {
+            id: "Vendor",
             vendor: "Vendor",
             location: "Relay",
             wiki_url: null,

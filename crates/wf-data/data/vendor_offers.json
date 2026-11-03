@@ -109,11 +109,11 @@
    {"item":"/Lotus/Types/Items/MiscItems/DuviriGuidingHandPuzzleUpgrade","name":"Enigma Sense","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriPuzzleItem",5],["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",10]]}
   ],
   "/Lotus/Types/Game/VendorManifests/Duviri/DrifterWeaponsVendorManifest": [
-   {"item":"/Lotus/Types/Packages/DrifterWeaponBundles/DaxDuviriKatanaPlayerWeaponBundle","name":"Dax Duviri Katana Player Weapon Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
-   {"item":"/Lotus/Types/Packages/DrifterWeaponBundles/DaxDuviriTwoHandedKatanaPlayerWeaponBundle","name":"Dax Duviri Two Handed Katana Player Weapon Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
-   {"item":"/Lotus/Types/Packages/DrifterWeaponBundles/DaxDuviriPolearmSpearPlayerWeaponBundle","name":"Dax Duviri Polearm Spear Player Weapon Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
-   {"item":"/Lotus/Types/Packages/DrifterWeaponBundles/DaxDuviriHammerPlayerWeaponBundle","name":"Dax Duviri Hammer Player Weapon Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",60]]},
-   {"item":"/Lotus/Types/Packages/DrifterWeaponBundles/DaxDuviriMaceShieldPlayerWeaponBundle","name":"Dax Duviri Mace Shield Player Weapon Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",60]]}
+   {"item":"/Lotus/Types/StoreItems/Packages/DrifterWeaponBundles/DaxDuviriKatanaPlayerWeaponBundle","name":"Syam","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/DrifterWeaponBundles/DaxDuviriTwoHandedKatanaPlayerWeaponBundle","name":"Azothane","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/DrifterWeaponBundles/DaxDuviriPolearmSpearPlayerWeaponBundle","name":"Edun","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",50]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/DrifterWeaponBundles/DaxDuviriHammerPlayerWeaponBundle","name":"Sampotes","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",60]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/DrifterWeaponBundles/DaxDuviriMaceShieldPlayerWeaponBundle","name":"Argo & Vel","quantity":1,"prices":[["/Lotus/Types/Gameplay/Duviri/Resource/DuviriDragonDropItem",60]]}
   ],
   "/Lotus/Types/Game/VendorManifests/EntratiLabs/EntratiLabsArcaneShopManifest": [
    {"item":"/Lotus/Types/BoosterPacks/EntratiLabsArcanePackAlbrechtsLaboratories","name":"Cavia Arcane Collection","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/DistillPoints",200]],"credits":50000},
@@ -366,8 +366,8 @@
    {"item":"/Lotus/Types/StoreItems/AvatarImages/AvatarImageLettieValentine","name":"Star Days Lettie Glyph","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenB",5]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/AvatarImageQuincyValentine","name":"Star Days Quincy Glyph","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenB",5]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/AvatarImageEleanorValentine","name":"Star Days Eleanor Glyph","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenA",5]]},
-   {"item":"/Lotus/Types/Packages/KavatColorPackDuviri","name":"Kavat Color Pack Duviri","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",12]]},
-   {"item":"/Lotus/Types/Packages/KubrowColorPackDuviriWolf","name":"Kubrow Color Pack Duviri Wolf","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",12]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/KavatColorPackDuviri","name":"Kexat Kavat Gene-Masking Kit","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",12]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/KubrowColorPackDuviriWolf","name":"Fabled Gene-Masking Kit","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",12]]},
    {"item":"/Lotus/Upgrades/Skins/Armor/CrpHighArmor/WinterSolsticeArcaArmourA","name":"Arca Solstice Shoulder Guards","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",4]]},
    {"item":"/Lotus/Upgrades/Skins/Armor/CrpHighArmor/WinterSolsticeArcaArmourC","name":"Arca Solstice Chest Guard","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",4]]},
    {"item":"/Lotus/Upgrades/Skins/Armor/CrpHighArmor/WinterSolsticeArcaArmourL","name":"Arca Solstice Knee Guards","quantity":1,"prices":[["/Lotus/Types/Items/Solaris/DebtTokenC",4]]},
@@ -504,9 +504,6 @@
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Utility/GolemArcaneRadialEnergyOnEnergyPickup","name":"Arcane Energize","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/MechSurvivalEventCreds",800]]},
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Defensive/HealthRegenOnDamage","name":"Arcane Grace","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/MechSurvivalEventCreds",800]]},
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Defensive/InstantShieldOnDamage","name":"Arcane Barrier","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/MechSurvivalEventCreds",800]]}
-  ],
-  "/Lotus/Types/Game/VendorManifests/Events/RadioLegionDummyManifest": [
-   {"item":"/Lotus/Types/Items/DummyPurchasingItem","name":"Dummy Purchasing Item","quantity":1,"prices":[["/Lotus/Types/PickUps/Nightwave/CephalonFissureTimePointItem",1]]}
   ],
   "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission10VendorManifest": [
    {"item":"/Lotus/Types/Recipes/WarframeRecipes/TrapperChassisBlueprint","name":"Vauban Chassis Blueprint","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionTenCreds",25]]},
@@ -1338,7 +1335,7 @@
    {"item":"/Lotus/Types/Items/ShipDecos/WolfBobbleHead","name":"Noggle Statue - The Wolf","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",40]]},
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerGammaItemA","name":"Gamma","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/FireIceCompanionGlyph","name":"Contrathermal Companion Glyph","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",30]]},
-   {"item":"/Lotus/Types/Packages/NoraGlyphsBundleA","name":"Nora Glyphs Bundle A","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",45]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/NoraGlyphsBundleA","name":"Nora Night Glyph Pack","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",45]]},
    {"item":"/Lotus/Upgrades/Mods/Pistol/Event/Nightwave/NightwaveCatabolystAugmentMod","name":"Critical Mutation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Rifle/Event/Nightwave/NightwaveSporothrixAugmentMod","name":"Volatile Variant","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Skins/Armor/Wolf/TennoWolfAArmor","name":"Saturn Six Shoulder Plates","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionThirteenCreds",75]]},
@@ -1567,7 +1564,7 @@
    {"item":"/Lotus/Types/Items/ShipDecos/EmberVermillionBobbleHead","name":"Noggle Statue - Ember Vermillion","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",40]]},
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerGammaItemA","name":"Gamma","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/FireIceCompanionGlyph","name":"Contrathermal Companion Glyph","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",30]]},
-   {"item":"/Lotus/Types/Packages/NoraGlyphsBundleA","name":"Nora Glyphs Bundle A","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",45]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/NoraGlyphsBundleA","name":"Nora Night Glyph Pack","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",45]]},
    {"item":"/Lotus/Upgrades/Mods/Pistol/Event/Nightwave/NightwaveCatabolystAugmentMod","name":"Critical Mutation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Rifle/Event/Nightwave/NightwaveSporothrixAugmentMod","name":"Volatile Variant","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Nightwave/SobekNightwaveMod","name":"Clip Delegation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFourteenCreds",20]]},
@@ -1821,7 +1818,7 @@
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerGammaItemA","name":"Gamma","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerTransmissionItemA","name":"Transmission","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/FireIceCompanionGlyph","name":"Contrathermal Companion Glyph","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",30]]},
-   {"item":"/Lotus/Types/Packages/NoraGlyphsBundleA","name":"Nora Glyphs Bundle A","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",45]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/NoraGlyphsBundleA","name":"Nora Night Glyph Pack","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",45]]},
    {"item":"/Lotus/Upgrades/Mods/Pistol/Event/Nightwave/NightwaveCatabolystAugmentMod","name":"Critical Mutation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Rifle/Event/Nightwave/NightwaveSporothrixAugmentMod","name":"Volatile Variant","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Nightwave/SobekNightwaveMod","name":"Clip Delegation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionFifteenCreds",20]]},
@@ -2075,7 +2072,7 @@
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerGammaItemA","name":"Gamma","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerTransmissionItemA","name":"Transmission","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",100]]},
    {"item":"/Lotus/Types/StoreItems/AvatarImages/FireIceCompanionGlyph","name":"Contrathermal Companion Glyph","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",30]]},
-   {"item":"/Lotus/Types/Packages/NoraGlyphsBundleA","name":"Nora Glyphs Bundle A","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",45]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/NoraGlyphsBundleA","name":"Nora Night Glyph Pack","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",45]]},
    {"item":"/Lotus/Upgrades/Mods/Pistol/Event/Nightwave/NightwaveCatabolystAugmentMod","name":"Critical Mutation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Rifle/Event/Nightwave/NightwaveSporothrixAugmentMod","name":"Volatile Variant","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",20]]},
    {"item":"/Lotus/Upgrades/Mods/Nightwave/SobekNightwaveMod","name":"Clip Delegation","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/NoraIntermissionSixteenCreds",20]]},
@@ -3364,7 +3361,7 @@
    {"item":"/Lotus/Types/Items/SyndicateDogTags/UniversalSyndicateDogTag","name":"Universal Medallion","quantity":1,"prices":[["/Lotus/Types/Gameplay/Shadowgrapher/Resources/ShadowgrapherEventResource",5]]},
    {"item":"/Lotus/Upgrades/Skins/Crowns/LaurelHaloCrown","name":"Krios Signa","quantity":1,"prices":[["/Lotus/Types/Gameplay/Shadowgrapher/Resources/ShadowgrapherEventResource",15]]},
    {"item":"/Lotus/Types/Items/DangerRoom/DangerRoomTileArena","name":"The Ballroom Simulacrum","quantity":1,"prices":[["/Lotus/Types/Gameplay/Shadowgrapher/Resources/ShadowgrapherEventResource",15]]},
-   {"item":"/Lotus/Types/Packages/SyndicateVosforPack","name":"Syndicate Vosfor Pack","quantity":1,"prices":[["/Lotus/Types/Gameplay/Shadowgrapher/Resources/ShadowgrapherEventResource",20]]}
+   {"item":"/Lotus/Types/StoreItems/Packages/SyndicateVosforPack","name":"Vosfor Cache","quantity":1,"prices":[["/Lotus/Types/Gameplay/Shadowgrapher/Resources/ShadowgrapherEventResource",20]]}
   ],
   "/Lotus/Types/Game/VendorManifests/Events/WaterFightVendorManifest": [
    {"item":"/Lotus/Types/StoreItems/SuitCustomizations/ColourPickerBeach","name":"Beach","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/WaterFightBucks",50]]},
@@ -3583,10 +3580,10 @@
    {"item":"/Lotus/Types/BoosterPacks/RivenModPack","name":"Riven","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
    {"item":"/Lotus/Types/Items/MiscItems/Kuva","name":"Kuva","quantity":35000,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
    {"item":"/Lotus/Types/StoreItems/CreditBundles/150000Credits","name":"150,000 Credits","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",5]]},
-   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalABronze","name":"T5 Void Projection Immortal ABronze","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
-   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalBBronze","name":"T5 Void Projection Immortal BBronze","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
-   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalCBronze","name":"T5 Void Projection Immortal CBronze","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
-   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalDBronze","name":"T5 Void Projection Immortal DBronze","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
+   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalABronze","name":"Requiem I Relic","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
+   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalBBronze","name":"Requiem II Relic","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
+   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalCBronze","name":"Requiem III Relic","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
+   {"item":"/Lotus/Types/Game/Projections/T5VoidProjectionImmortalDBronze","name":"Requiem IV Relic","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
    {"item":"/Lotus/Upgrades/Mods/FusionBundles/CircuitSilverSteelPathFusionBundle","name":"Endo","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
    {"item":"/Lotus/Types/Restoratives/Consumable/NemesisBait","name":"Requiem Ultimatum","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
    {"item":"/Lotus/Types/Items/MiscItems/RivenIdentifier","name":"Veiled Riven Cipher","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/RivenFragment",10]]},
@@ -4012,7 +4009,7 @@
   ],
   "/Lotus/Types/Game/VendorManifests/Tau/Prequel/TriadPityVendorManifest": [
    {"item":"/Lotus/Types/BoosterPacks/TauArcanePackDescendia","name":"Descendia Arcane Collection","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceCommonItem",200]]},
-   {"item":"/Lotus/Types/Packages/TheOldPeace/TauRankMedalBundle","name":"Tau Rank Medal Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceRareItem",150]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/TheOldPeace/TauRankMedalBundle","name":"Insign Bundle","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceRareItem",150]]},
    {"item":"/Lotus/Types/Recipes/WarframeRecipes/UrielBlueprint","name":"Uriel Blueprint","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceRareItem",75]]},
    {"item":"/Lotus/Types/Recipes/WarframeRecipes/UrielChassisBlueprint","name":"Uriel Chassis Blueprint","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceRareItem",25]]},
    {"item":"/Lotus/Types/Recipes/WarframeRecipes/UrielHelmetBlueprint","name":"Uriel Neuroptics Blueprint","quantity":1,"prices":[["/Lotus/Types/Gameplay/Tau/Resources/CoHResourceRareItem",25]]},
@@ -4066,7 +4063,7 @@
    {"item":"/Lotus/Types/BoosterPacks/1999StickersPackEchoesArchimedea","name":"Peely Pak","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",10]]},
    {"item":"/Lotus/Types/BoosterPacks/1999StickersPackEchoesArchimedeaFree","name":"Open a Peely Pak","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999FreeStickersPack",1]]},
    {"item":"/Lotus/Types/BoosterPacks/1999StickersPackEchoesArchimedeaFixed","name":"Open a Peely Pak","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999FixedStickersPack",1]]},
-   {"item":"/Lotus/Types/Packages/SyndicateVosforPack","name":"Syndicate Vosfor Pack","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",6]]},
+   {"item":"/Lotus/Types/StoreItems/Packages/SyndicateVosforPack","name":"Vosfor Cache","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",6]]},
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Defensive/InvulnerabilityOnDeathOnMercyKill","name":"Arcane Escapist","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",5]]},
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Offensive/AbilityHeatProcsGiveCritChance","name":"Arcane Hot Shot","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",5]]},
    {"item":"/Lotus/Upgrades/CosmeticEnhancers/Utility/AbilityRadiationProcsCreateUniversalOrbsOnKill","name":"Arcane Universal Fallout","quantity":1,"prices":[["/Lotus/Types/Items/MiscItems/1999ConquestBucks",5]]},

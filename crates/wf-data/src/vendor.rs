@@ -12,7 +12,6 @@ pub struct VendorOffer {
     pub name: String,
     pub quantity: i64,
     pub prices: Vec<(String, i64)>,
-    #[serde(default)]
     pub credits: Option<i64>,
 }
 
@@ -27,6 +26,8 @@ impl VendorOffer {
 
 #[derive(Debug)]
 pub struct Vendor {
+    /// The vendor manifest, or the currency for a rotating vendor.
+    pub id: String,
     pub name: String,
     pub location: Option<String>,
     pub wiki: Option<String>,
@@ -74,6 +75,7 @@ static VENDORS: LazyLock<Vendors> = LazyLock::new(|| {
         }
         vendors.push(match labels.manifests.remove(&manifest) {
             Some(label) => Vendor {
+                id: manifest,
                 name: label.name,
                 location: Some(label.location),
                 wiki: Some(label.wiki),
@@ -81,6 +83,7 @@ static VENDORS: LazyLock<Vendors> = LazyLock::new(|| {
             },
             None => Vendor {
                 name: fallback_name(&manifest),
+                id: manifest,
                 location: None,
                 wiki: None,
                 offers,
@@ -88,8 +91,12 @@ static VENDORS: LazyLock<Vendors> = LazyLock::new(|| {
         });
     }
     for (currency, label) in labels.rotating {
-        by_currency.entry(currency).or_default().push(vendors.len());
+        by_currency
+            .entry(currency.clone())
+            .or_default()
+            .push(vendors.len());
         vendors.push(Vendor {
+            id: currency,
             name: label.name,
             location: Some(label.location),
             wiki: Some(label.wiki),
