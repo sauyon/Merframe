@@ -1,0 +1,248 @@
+{
+  "source": "https://wiki.warframe.com (vendor pages linked per entry)",
+  "fetched": "2026-11-03",
+  "manifests": {
+    "/Lotus/Types/Game/VendorManifests/Deimos/ConservationRewardsManifest": {
+      "name": "Son",
+      "location": "Necralisk, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Son"
+    },
+    "/Lotus/Types/Game/VendorManifests/Deimos/EntratiFragmentVendorProductsManifest": {
+      "name": "Grandmother",
+      "location": "Necralisk, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Grandmother"
+    },
+    "/Lotus/Types/Game/VendorManifests/Deimos/OtakLastWishManifest": {
+      "name": "Otak",
+      "location": "Necralisk, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Otak"
+    },
+    "/Lotus/Types/Game/VendorManifests/Duviri/AcrithisEnigmaGyrumShopManifest": {
+      "name": "Acrithis (Enigma Archives)",
+      "location": "Dormizone, Duviri",
+      "wiki": "https://wiki.warframe.com/w/Enigma_Gyrum"
+    },
+    "/Lotus/Types/Game/VendorManifests/Duviri/AcrithisKullervoShopManifest": {
+      "name": "Acrithis (Kullervo's Archive)",
+      "location": "Dormizone, Duviri",
+      "wiki": "https://wiki.warframe.com/w/Kullervo%27s_Bane"
+    },
+    "/Lotus/Types/Game/VendorManifests/Duviri/AcrithisVendorManifest": {
+      "name": "Acrithis",
+      "location": "Dormizone, Duviri",
+      "wiki": "https://wiki.warframe.com/w/Acrithis"
+    },
+    "/Lotus/Types/Game/VendorManifests/Duviri/DrifterWeaponsVendorManifest": {
+      "name": "Teshin's Cave armory",
+      "location": "Teshin's Cave, Duviri",
+      "wiki": "https://wiki.warframe.com/w/Teshin%27s_Cave"
+    },
+    "/Lotus/Types/Game/VendorManifests/EntratiLabs/EntratiLabsArcaneShopManifest": {
+      "name": "Loid (Arcane Collections)",
+      "location": "Sanctum Anatomica, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Vosfor"
+    },
+    "/Lotus/Types/Game/VendorManifests/EntratiLabs/EntratiLabsDisruptionVendorManifest": {
+      "name": "Loid",
+      "location": "Sanctum Anatomica, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Vessel_Capillaries"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/DeimosHalloweenVendorManifest": {
+      "name": "Daughter (Nights of Naberus)",
+      "location": "Necralisk, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Daughter"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/JadeShadowsEventClanManifest": {
+      "name": "Ordis (Belly of the Beast, clan)",
+      "location": "Larunda Relay, Mercury",
+      "wiki": "https://wiki.warframe.com/w/Volatile_Motes"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/JadeShadowsEventVendorManifest": {
+      "name": "Ordis (Belly of the Beast)",
+      "location": "Larunda Relay, Mercury",
+      "wiki": "https://wiki.warframe.com/w/Volatile_Motes"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission10VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission11VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission12VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission13VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission14VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission15VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission16VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission3VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission4VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission5VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission6VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission7VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission8VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/RadioLegionIntermission9VendorManifest": {
+      "name": "Nightwave Cred Offerings",
+      "location": "Nightwave menu",
+      "wiki": "https://wiki.warframe.com/w/Nightwave"
+    },
+    "/Lotus/Types/Game/VendorManifests/Events/ShadowgrapherEventVendorManifest": {
+      "name": "Aspirant Zorba (event)",
+      "location": "Any Relay",
+      "wiki": "https://wiki.warframe.com/w/Nightmare_Tatters"
+    },
+    "/Lotus/Types/Game/VendorManifests/GameModes/AscensionVendorManifest": {
+      "name": "Ordis",
+      "location": "Drifter's Camp, Earth",
+      "wiki": "https://wiki.warframe.com/w/Vestigial_Motes"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/AspirantZorbaVendorManifest": {
+      "name": "Aspirant Zorba",
+      "location": "Any Relay",
+      "wiki": "https://wiki.warframe.com/w/Atramentum"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/EliteAlertVendorManifest": {
+      "name": "Arbiters of Hexis",
+      "location": "Any Relay",
+      "wiki": "https://wiki.warframe.com/w/Vitus_Essence"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/HunhowVendorManifest": {
+      "name": "Hunhow",
+      "location": "Pontis Tower, Uranus Proxima",
+      "wiki": "https://wiki.warframe.com/w/Emerald_Talent"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/IronwakeDondaVendorManifest": {
+      "name": "Palladino",
+      "location": "Iron Wake, Earth",
+      "wiki": "https://wiki.warframe.com/w/Riven_Sliver"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/PerrinSequenceWeaponVendorManifest": {
+      "name": "Ergo Glast",
+      "location": "Any Relay",
+      "wiki": "https://wiki.warframe.com/w/Corrupted_Holokey"
+    },
+    "/Lotus/Types/Game/VendorManifests/Hubs/TeshinHardModeVendorManifest": {
+      "name": "Teshin (Steel Path Honors)",
+      "location": "Any Relay",
+      "wiki": "https://wiki.warframe.com/w/Steel_Essence"
+    },
+    "/Lotus/Types/Game/VendorManifests/Kahl/ChipperVendorManifest": {
+      "name": "Chipper",
+      "location": "Drifter's Camp, Earth",
+      "wiki": "https://wiki.warframe.com/w/Chipper"
+    },
+    "/Lotus/Types/Game/VendorManifests/Ostron/ConservationRewardsManifest": {
+      "name": "Master Teasonai",
+      "location": "Cetus, Earth",
+      "wiki": "https://wiki.warframe.com/w/Master_Teasonai"
+    },
+    "/Lotus/Types/Game/VendorManifests/Ostron/MaskSalesmanManifest": {
+      "name": "Nakak",
+      "location": "Cetus, Earth",
+      "wiki": "https://wiki.warframe.com/w/Nakak"
+    },
+    "/Lotus/Types/Game/VendorManifests/Solaris/ConservationRewardsManifest": {
+      "name": "The Business",
+      "location": "Fortuna, Venus",
+      "wiki": "https://wiki.warframe.com/w/The_Business"
+    },
+    "/Lotus/Types/Game/VendorManifests/Solaris/NightcapCosmeticVendorManifest": {
+      "name": "Nightcap (cosmetics)",
+      "location": "Fortuna, Venus",
+      "wiki": "https://wiki.warframe.com/w/Nightcap"
+    },
+    "/Lotus/Types/Game/VendorManifests/Solaris/NightcapVendorManifest": {
+      "name": "Nightcap",
+      "location": "Fortuna, Venus",
+      "wiki": "https://wiki.warframe.com/w/Fergolyte"
+    },
+    "/Lotus/Types/Game/VendorManifests/Tau/Prequel/RoatheHonoriaVendorManifest": {
+      "name": "Roathe (Honoria)",
+      "location": "La Cathédrale, Sanctum Anatomica, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Roathe"
+    },
+    "/Lotus/Types/Game/VendorManifests/Tau/Prequel/TriadEventVendorManifest": {
+      "name": "Roathe (Blood of Perita)",
+      "location": "La Cathédrale, Sanctum Anatomica, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Marks_of_Valiance"
+    },
+    "/Lotus/Types/Game/VendorManifests/Tau/Prequel/TriadPityVendorManifest": {
+      "name": "Roathe",
+      "location": "La Cathédrale, Sanctum Anatomica, Deimos",
+      "wiki": "https://wiki.warframe.com/w/Maphica"
+    },
+    "/Lotus/Types/Game/VendorManifests/TheHex/InfestedLichWeaponVendorManifest": {
+      "name": "Eleanor",
+      "location": "Höllvania Central Mall",
+      "wiki": "https://wiki.warframe.com/w/Live_Heartcell"
+    },
+    "/Lotus/Types/Game/VendorManifests/Zariman/ArchimedeanVendorManifest": {
+      "name": "Archimedean Yonta",
+      "location": "Chrysalith, Zariman Ten Zero",
+      "wiki": "https://wiki.warframe.com/w/Archimedean_Yonta"
+    },
+    "/Lotus/Types/Game/VendorManifests/Zariman/ArchimedeanVoidEclipseManifest": {
+      "name": "Archimedean Yonta (Void Eclipse)",
+      "location": "Chrysalith, Zariman Ten Zero",
+      "wiki": "https://wiki.warframe.com/w/Lua_Thrax_Plasm"
+    }
+  },
+  "rotating": {
+    "/Lotus/Types/Items/MiscItems/PrimeBucks": {
+      "name": "Baro Ki'Teer",
+      "location": "Visiting Relay (rotates)",
+      "wiki": "https://wiki.warframe.com/w/Baro_Ki%27Teer"
+    },
+    "/Lotus/Types/Items/MiscItems/SchismKey": {
+      "name": "Varzia (Prime Resurgence)",
+      "location": "Maroo's Bazaar, Mars",
+      "wiki": "https://wiki.warframe.com/w/Varzia"
+    }
+  }
+}

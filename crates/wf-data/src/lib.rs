@@ -6,6 +6,7 @@ mod item;
 mod misc_item;
 mod relic;
 mod riven;
+mod vendor;
 
 #[cfg(feature = "fetch")]
 mod cache;
@@ -23,6 +24,7 @@ pub use riven::{
     MAX_RANK, RivenData, RivenStat, RivenType, TraitMultipliers, UpgradeEntry, UpgradeValue,
     rank_multiplier, roll_multiplier, roll_share, trait_multipliers,
 };
+pub use vendor::{Vendor, VendorOffer, currency_vendors, vendor_currencies};
 
 #[cfg(feature = "fetch")]
 pub use cache::load_or_fetch;

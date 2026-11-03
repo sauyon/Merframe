@@ -1,7 +1,8 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use wf_data::{VendorOffer, currency_vendors, vendor_currencies};
 use wf_inventory::{ArchonCrystalSlot, Inventory};
 
 use crate::catalog::{Catalog, Stock};
@@ -83,8 +84,48 @@ pub struct ShardRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct OfferCost {
+    pub unique_name: String,
+    pub name: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct CurrencyOffer {
+    pub unique_name: String,
+    pub name: String,
+    pub image_name: Option<String>,
+    pub quantity: i64,
+    pub price: i64,
+    pub also_costs: Vec<OfferCost>,
+    pub credits: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct CurrencyVendor {
+    pub vendor: String,
+    pub location: Option<String>,
+    pub wiki_url: Option<String>,
+    pub offers: Vec<CurrencyOffer>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct HeldResource {
+    pub unique_name: String,
+    pub name: String,
+    pub image_name: Option<String>,
+    pub owned: i64,
+    pub vendors: Vec<CurrencyVendor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct ResourcesTab {
     pub resources: Vec<ResourceRow>,
+    pub holdings: Vec<HeldResource>,
     pub shards: Vec<ShardRow>,
     pub items: usize,
     pub credits: i64,
@@ -154,10 +195,85 @@ pub(crate) fn tab(
     resources.sort_by(|left, right| left.name.cmp(&right.name));
     ResourcesTab {
         resources,
+        holdings: holdings(inventory, view.catalog, stock),
         shards: shards(inventory, view.catalog, view.items, stock),
         items: counted,
         credits,
     }
+}
+
+const HELD_TYPES: &[&str] = &["Resource", "Gem", "Cut Gem", "Alloy", "Pet Resource"];
+
+fn holdings<'a>(inventory: &'a Inventory, catalog: &Catalog, stock: &Stock) -> Vec<HeldResource> {
+    let mut names: BTreeSet<&'a str> = inventory
+        .misc_items
+        .iter()
+        .filter(|item| item.item_count > 0)
+        .map(|item| item.item_type.as_str())
+        .filter(|unique_name| {
+            catalog.item(unique_name).is_some_and(|item| {
+                item.category == "Resources" || HELD_TYPES.contains(&item.item_type.as_str())
+            })
+        })
+        .collect();
+    names.extend(
+        vendor_currencies()
+            .filter(|currency| stock.count(currency) > 0)
+            .map(|currency| -> &'a str { currency }),
+    );
+    let mut rows: Vec<HeldResource> = names
+        .into_iter()
+        .filter_map(|unique_name| {
+            let item = catalog.item(unique_name)?;
+            Some(HeldResource {
+                unique_name: unique_name.to_owned(),
+                name: item.name.clone(),
+                image_name: item.image_name.clone(),
+                owned: stock.count(unique_name),
+                vendors: currency_vendors(unique_name)
+                    .map(|vendor| CurrencyVendor {
+                        vendor: vendor.name.clone(),
+                        location: vendor.location.clone(),
+                        wiki_url: vendor.wiki.clone(),
+                        offers: vendor
+                            .offers
+                            .iter()
+                            .filter_map(|offer| currency_offer(catalog, offer, unique_name))
+                            .collect(),
+                    })
+                    .collect(),
+            })
+        })
+        .collect();
+    rows.sort_by(|left, right| left.name.cmp(&right.name));
+    rows
+}
+
+fn currency_offer(catalog: &Catalog, offer: &VendorOffer, currency: &str) -> Option<CurrencyOffer> {
+    let price = offer.price(currency)?;
+    Some(CurrencyOffer {
+        unique_name: offer.item.clone(),
+        name: offer.name.clone(),
+        image_name: catalog
+            .item(&offer.item)
+            .and_then(|item| item.image_name.clone()),
+        quantity: offer.quantity,
+        price,
+        also_costs: offer
+            .prices
+            .iter()
+            .filter(|(item_type, _)| item_type != currency)
+            .map(|(item_type, count)| OfferCost {
+                unique_name: item_type.clone(),
+                name: catalog.item(item_type).map_or_else(
+                    || item_type.rsplit('/').next().unwrap_or(item_type).to_owned(),
+                    |item| item.name.clone(),
+                ),
+                count: *count,
+            })
+            .collect(),
+        credits: offer.credits,
+    })
 }
 
 const SHARD_COLOURS: [(&str, &str); 6] = [
@@ -373,6 +489,33 @@ mod tests {
     }
 
     #[test]
+    fn holdings_ignore_demand() {
+        let tab = resources(
+            &Fixture::new(fixtures::catalog(), fixtures::inventory()),
+            ResourceSource::Held,
+            ResourceScope::Mastery,
+        );
+        let cell = tab
+            .holdings
+            .iter()
+            .find(|held| held.unique_name == OROKIN_CELL)
+            .expect("held resource");
+        assert_eq!(cell.name, "Orokin Cell");
+        assert_eq!(cell.owned, 3319);
+        assert!(
+            cell.vendors
+                .iter()
+                .flat_map(|vendor| &vendor.offers)
+                .all(|offer| offer.price > 0
+                    && offer
+                        .also_costs
+                        .iter()
+                        .all(|cost| cost.unique_name != OROKIN_CELL)),
+            "offers are priced in the held resource, other costs listed apart"
+        );
+    }
+
+    #[test]
     fn braton_prime_requirements() {
         let tab = resources(
             &Fixture::new(fixtures::catalog(), holding(BRATON_PRIME_BLUEPRINT, 3)),
@@ -415,7 +558,11 @@ mod tests {
             ResourceSource::Held,
             ResourceScope::All,
         );
-        assert_eq!(with_skins, tab);
+        assert_eq!(
+            (&with_skins.resources, with_skins.items, with_skins.credits),
+            (&tab.resources, tab.items, tab.credits),
+            "skins add held resources to the catalog but no demand"
+        );
     }
 
     #[test]

@@ -62,8 +62,8 @@ pub use relic_planner::{
     RelicMarket, RelicPlan, RelicSource, RewardBreakdown, RewardOwnership, RewardScreen,
 };
 pub use resources::{
-    ResourceQuery, ResourceRow, ResourceScope, ResourceSource, ResourceUse, ResourcesTab,
-    ShardHolder, ShardRow,
+    CurrencyOffer, CurrencyVendor, HeldResource, OfferCost, ResourceQuery, ResourceRow,
+    ResourceScope, ResourceSource, ResourceUse, ResourcesTab, ShardHolder, ShardRow,
 };
 pub use rivens::{
     AlternativeMatch, AttributeGrade, GoodRollView, KeptRoll, ListingChoices, PendingRoll,

@@ -15,19 +15,27 @@ import {
 } from "@/components/page";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useFilters } from "@/hooks/use-filters";
 import { usePaged } from "@/hooks/use-paged";
+import { useTabParam } from "@/hooks/use-tab-param";
 import { api } from "@/lib/bridge";
 import { type YesNo, yesNoOptions } from "@/lib/filters";
 import { num } from "@/lib/format";
 import { CATEGORIES } from "@/lib/foundry-filters";
-import { type ShowFilter, visibleResources } from "@/lib/resource-filters";
+import {
+  type HoldingsView,
+  type ShowFilter,
+  visibleHoldings,
+  visibleResources,
+} from "@/lib/resource-filters";
 import { cn } from "@/lib/utils";
 import { FoundryTreeDialog } from "@/pages/foundry/tree-dialog";
 import { usePreferencesStore } from "@/stores/preferences-store";
 import type { ResourceScope, ResourceSource } from "@/types";
 import { ArchonShards } from "./archon-shards";
+import { Holdings } from "./holdings";
 import { NeededBy } from "./needed-by";
 import { ResourceCard } from "./resource-card";
 
@@ -73,7 +81,10 @@ const NO_DEMAND: Record<ResourceSource, Record<ResourceScope, string>> = {
   },
 };
 
+type ResourcesTabKey = "needed" | HoldingsView;
+
 export function ResourcesPage() {
+  const [tab, setTab] = useTabParam<ResourcesTabKey>("needed");
   const { source, scope, setResourceSource, setResourceScope } =
     usePreferencesStore(
       useShallow((state) => ({
@@ -147,6 +158,15 @@ export function ResourcesPage() {
   }, [pageRows, selectedRow, data?.shards]);
 
   const short = data?.resources.filter((row) => row.deficit > 0).length ?? 0;
+  const holdings = data?.holdings ?? [];
+  const heldCount = useMemo(
+    () => visibleHoldings(holdings, "held", "").length,
+    [holdings],
+  );
+  const currencyCount = useMemo(
+    () => visibleHoldings(holdings, "currencies", "").length,
+    [holdings],
+  );
 
   return (
     <Page
@@ -157,122 +177,141 @@ export function ResourcesPage() {
     >
       {data && data.shards.length > 0 && <ArchonShards shards={data.shards} />}
 
-      <div className="grid gap-4 @sm:grid-cols-3">
-        <Stat label="Short resources" value={num(short)} />
-        <Stat label="Items to build" value={num(data?.items)} />
-        <Stat
-          label="Credits needed"
-          value={
-            <Amount currency="credits" size={20}>
-              {num(data?.credits)}
-            </Amount>
-          }
-        />
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="needed">Needed ({num(short)} short)</TabsTrigger>
+          <TabsTrigger value="held">All Held ({num(heldCount)})</TabsTrigger>
+          <TabsTrigger value="currencies">
+            Vendor Currencies ({num(currencyCount)})
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4 @3xl:grid-cols-3">
-        <Section
-          title="Stockpile"
-          className={selectedRow ? "@3xl:col-span-2" : "@3xl:col-span-3"}
-          action={
-            <div className="flex items-center gap-3">
-              {loading && (
-                <LoaderCircle
-                  role="status"
-                  aria-label="Loading"
-                  className="text-muted-foreground size-4 animate-spin"
-                />
-              )}
-              <ResultCount
-                shown={resources.length}
-                total={data?.resources.length}
-                noun="resources"
-              />
-              <SearchInput
-                value={query}
-                onValueChange={setQuery}
-                placeholder="Search"
-              />
-            </div>
-          }
-        >
-          <div className="flex flex-col gap-3">
-            <FilterGrid className="border-0 p-0">
-              <FilterSingleSelect
-                label="Items"
-                value={source}
-                options={SOURCES}
-                onChange={setResourceSource}
-              />
-              <FilterSingleSelect
-                label="Demand from"
-                value={scope}
-                options={SCOPES}
-                onChange={setResourceScope}
-              />
-              <FilterSingleSelect
-                label="Show"
-                value={show}
-                options={SHOWN}
-                onChange={setShow}
-              />
-            </FilterGrid>
+        <TabsContent value="held">
+          <Holdings holdings={holdings} view="held" loading={loading} />
+        </TabsContent>
+        <TabsContent value="currencies">
+          <Holdings holdings={holdings} view="currencies" loading={loading} />
+        </TabsContent>
 
-            <FilterGrid
-              className="border-t pt-3"
-              activeFilters={filters.active}
-              onClear={filters.clear}
-            >
-              <FilterSelect
-                label="Category"
-                value={kind}
-                options={KINDS}
-                onChange={(value) => filters.set("kind", value)}
-              />
-              <FilterSelect
-                label="Type"
-                value={prime}
-                options={PRIME}
-                onChange={(value) => filters.set("prime", value)}
-              />
-              <FilterSelect
-                label="Owned"
-                value={owned}
-                options={OWNED}
-                onChange={(value) => filters.set("owned", value)}
-              />
-            </FilterGrid>
-
-            {resources.length === 0 ? (
-              <EmptyPanel>
-                {data?.resources.length === 0 && filters.active === 0
-                  ? NO_DEMAND[source][scope]
-                  : "Nothing matches these filters."}
-              </EmptyPanel>
-            ) : (
-              <CardGrid
-                className={cn(
-                  "transition-opacity @5xl:grid-cols-2 @7xl:grid-cols-3",
-                  loading && "opacity-60",
-                )}
-              >
-                {pageRows.map((row) => (
-                  <ResourceCard
-                    key={row.unique_name}
-                    row={row}
-                    selected={row === selectedRow}
-                    onSelect={setSelected}
-                  />
-                ))}
-              </CardGrid>
-            )}
-
-            <Pagination {...pagination} />
+        <TabsContent value="needed" className="flex flex-col gap-4">
+          <div className="grid gap-4 @sm:grid-cols-3">
+            <Stat label="Short resources" value={num(short)} />
+            <Stat label="Items to build" value={num(data?.items)} />
+            <Stat
+              label="Credits needed"
+              value={
+                <Amount currency="credits" size={20}>
+                  {num(data?.credits)}
+                </Amount>
+              }
+            />
           </div>
-        </Section>
 
-        {selectedRow && <NeededBy row={selectedRow} onOpen={setOpened} />}
-      </div>
+          <div className="grid gap-4 @3xl:grid-cols-3">
+            <Section
+              title="Stockpile"
+              className={selectedRow ? "@3xl:col-span-2" : "@3xl:col-span-3"}
+              action={
+                <div className="flex items-center gap-3">
+                  {loading && (
+                    <LoaderCircle
+                      role="status"
+                      aria-label="Loading"
+                      className="text-muted-foreground size-4 animate-spin"
+                    />
+                  )}
+                  <ResultCount
+                    shown={resources.length}
+                    total={data?.resources.length}
+                    noun="resources"
+                  />
+                  <SearchInput
+                    value={query}
+                    onValueChange={setQuery}
+                    placeholder="Search"
+                  />
+                </div>
+              }
+            >
+              <div className="flex flex-col gap-3">
+                <FilterGrid className="border-0 p-0">
+                  <FilterSingleSelect
+                    label="Items"
+                    value={source}
+                    options={SOURCES}
+                    onChange={setResourceSource}
+                  />
+                  <FilterSingleSelect
+                    label="Demand from"
+                    value={scope}
+                    options={SCOPES}
+                    onChange={setResourceScope}
+                  />
+                  <FilterSingleSelect
+                    label="Show"
+                    value={show}
+                    options={SHOWN}
+                    onChange={setShow}
+                  />
+                </FilterGrid>
+
+                <FilterGrid
+                  className="border-t pt-3"
+                  activeFilters={filters.active}
+                  onClear={filters.clear}
+                >
+                  <FilterSelect
+                    label="Category"
+                    value={kind}
+                    options={KINDS}
+                    onChange={(value) => filters.set("kind", value)}
+                  />
+                  <FilterSelect
+                    label="Type"
+                    value={prime}
+                    options={PRIME}
+                    onChange={(value) => filters.set("prime", value)}
+                  />
+                  <FilterSelect
+                    label="Owned"
+                    value={owned}
+                    options={OWNED}
+                    onChange={(value) => filters.set("owned", value)}
+                  />
+                </FilterGrid>
+
+                {resources.length === 0 ? (
+                  <EmptyPanel>
+                    {data?.resources.length === 0 && filters.active === 0
+                      ? NO_DEMAND[source][scope]
+                      : "Nothing matches these filters."}
+                  </EmptyPanel>
+                ) : (
+                  <CardGrid
+                    className={cn(
+                      "transition-opacity @5xl:grid-cols-2 @7xl:grid-cols-3",
+                      loading && "opacity-60",
+                    )}
+                  >
+                    {pageRows.map((row) => (
+                      <ResourceCard
+                        key={row.unique_name}
+                        row={row}
+                        selected={row === selectedRow}
+                        onSelect={setSelected}
+                      />
+                    ))}
+                  </CardGrid>
+                )}
+
+                <Pagination {...pagination} />
+              </div>
+            </Section>
+
+            {selectedRow && <NeededBy row={selectedRow} onOpen={setOpened} />}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <FoundryTreeDialog item={openedItem} onClose={handleCloseTree} />
     </Page>

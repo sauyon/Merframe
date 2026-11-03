@@ -1,4 +1,4 @@
-import type { ResourceRow } from "@/types";
+import type { HeldResource, ResourceRow } from "@/types";
 
 export type ShowFilter = "all" | "short";
 
@@ -19,4 +19,22 @@ export function visibleResources(
         ? left.name.localeCompare(right.name)
         : right.deficit - left.deficit,
     );
+}
+
+export type HoldingsView = "held" | "currencies";
+
+export function visibleHoldings(
+  holdings: HeldResource[],
+  view: HoldingsView,
+  search: string,
+): HeldResource[] {
+  const needle = search.trim().toLowerCase();
+  return holdings
+    .filter(
+      (row) =>
+        row.owned > 0 &&
+        (view === "held" || row.vendors.length > 0) &&
+        row.name.toLowerCase().includes(needle),
+    )
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
