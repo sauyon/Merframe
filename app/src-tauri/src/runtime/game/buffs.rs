@@ -15,7 +15,7 @@ use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
     AbilityTimers, LuaState, LuaTable, StatusEffect, ability_buffs, ability_hud, ability_huds,
-    status_effects, status_list, switch_index, switched_to,
+    in_gameplay, status_effects, status_list, switch_index, switched_to,
 };
 
 use super::ticks;
@@ -55,6 +55,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut tick = ticks(BUFF_TICK);
     let mut game: Option<Attached> = None;
     let mut sources = buff_sources();
+    let mut chat: Option<LuaTable> = None;
     let mut tracker = Tracker::new(LINGER);
     let mut sent: Vec<BuffTimer> = Vec::new();
     let started = Instant::now();
@@ -89,19 +90,18 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             let owned = Arc::clone(&state);
             let cached = game.take();
             let mut moved = std::mem::take(&mut sources);
+            let mut found = chat.take();
             let attempt = blocking("read buffs", move || {
                 let attached = reattach(&owned, cached)?;
-                let readings: Vec<Vec<Reading>> = moved
-                    .iter_mut()
-                    .map(|source| source.read(&attached.reader, &attached.lua))
-                    .collect();
-                anyhow::Ok((attached, moved, readings))
+                let readings = read_sources(&attached, &mut moved, &mut found);
+                anyhow::Ok((attached, moved, found, readings))
             })
             .await;
             match attempt {
-                Some(Ok((attached, read, readings))) => {
+                Some(Ok((attached, read, found, readings))) => {
                     game = Some(attached);
                     sources = read;
+                    chat = found;
                     Some(readings)
                 }
                 Some(Err(error)) => {
@@ -482,6 +482,26 @@ fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffT
 /// `.../Suits/ShedAbilityName#37` gives `.../Suits/ShedAbilityName`.
 fn instance_of(id: &str) -> &str {
     id.rsplit_once('#').map_or(id, |(tag, _)| tag)
+}
+
+/// Reads every source, or none out of a mission: once one ends, the HUD's last timers linger
+/// in memory, frozen. `chat` caches where the script saying so was last found.
+fn read_sources(
+    attached: &Attached,
+    sources: &mut [Box<dyn BuffSource>],
+    chat: &mut Option<LuaTable>,
+) -> Vec<Vec<Reading>> {
+    let playing = in_gameplay(attached.reader.as_ref(), &attached.lua, chat) != Some(false);
+    sources
+        .iter_mut()
+        .map(|source| {
+            if playing {
+                source.read(&attached.reader, &attached.lua)
+            } else {
+                Vec::new()
+            }
+        })
+        .collect()
 }
 
 /// What to look up the game's icon for a buff an ability's own HUD names by: the ability's
