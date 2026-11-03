@@ -32,6 +32,11 @@ pub async fn overlay_state(state: Shared<'_>) -> CommandResult<overlay::OverlayS
 }
 
 #[tauri::command]
+pub async fn seen_buffs(state: Shared<'_>) -> CommandResult<Vec<overlay::SeenBuff>> {
+    Ok(ready(&state).await?.overlays.seen_buffs())
+}
+
+#[tauri::command]
 pub async fn overlay_page_ready<R: Runtime>(
     window: tauri::WebviewWindow<R>,
     state: Shared<'_>,

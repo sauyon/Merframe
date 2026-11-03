@@ -141,6 +141,7 @@ export function OverlayWindow() {
                 buffs={overlays.buffs}
                 opacity={overlays.opacity}
                 textSize={overlays.text_size}
+                style={overlays.buffs_style}
               />
             )
           }

@@ -367,6 +367,46 @@ pub struct OverlaySettings {
     pub overlay_account_balance: bool,
     #[serde(flatten)]
     pub ducatering: DucateringSettings,
+    #[serde(flatten)]
+    pub buffs: BuffSettings,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+#[serde(default)]
+#[allow(clippy::struct_excessive_bools, reason = "one switch per kind of buff")]
+pub struct BuffSettings {
+    /// Buffs from the equipped warframe's abilities, on the ability dots.
+    pub buffs_abilities: bool,
+    /// The player's other buffs, from arcanes, mods and the like, beside the dots.
+    pub buffs_own: bool,
+    /// Buffs squadmates' abilities put on the player, beside the dots.
+    pub buffs_squad: bool,
+    /// Buffs never shown, by name.
+    pub buffs_hidden: Vec<String>,
+    /// Seconds left at which an ability's buff turns amber.
+    pub buffs_warn_seconds: u8,
+    /// Ability numbers sit on discs covering the game's dots, or else just under them.
+    pub buffs_cover_dots: bool,
+    /// The strip's size, in percent.
+    pub buffs_scale: u8,
+    /// How far below the game's dots the strip sits, in pixels at 1080p.
+    pub buffs_offset: i8,
+}
+
+impl Default for BuffSettings {
+    fn default() -> Self {
+        Self {
+            buffs_abilities: true,
+            buffs_own: true,
+            buffs_squad: true,
+            buffs_hidden: Vec::new(),
+            buffs_warn_seconds: 10,
+            buffs_cover_dots: true,
+            buffs_scale: 100,
+            buffs_offset: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -504,6 +544,7 @@ impl Default for OverlaySettings {
             overlay_only_while_game_active: true,
             overlay_account_balance: true,
             ducatering: DucateringSettings::default(),
+            buffs: BuffSettings::default(),
         }
     }
 }

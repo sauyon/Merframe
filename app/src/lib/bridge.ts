@@ -38,6 +38,7 @@ import type {
   ResourcesTab,
   RivenComparables,
   RivensTab,
+  SeenBuff,
   Settings,
   StatsTab,
   StoredTrade,
@@ -213,6 +214,7 @@ export const api = {
   openDataFolder: () => call<void>("open_data_folder"),
   openGameLogFolder: () => call<void>("open_game_log_folder"),
   itemImage: (imageName: string) => call<string>("item_image", { imageName }),
+  seenBuffs: () => call<SeenBuff[]>("seen_buffs"),
   prefetchImages: (names: string[]) =>
     call<ImagePath[]>("prefetch_images", { names }),
 };

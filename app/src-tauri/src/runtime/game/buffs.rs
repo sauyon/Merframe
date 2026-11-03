@@ -19,9 +19,10 @@ use wf_scan::{
 };
 
 use super::ticks;
-use crate::overlay::{self, BuffTimer};
+use crate::overlay::{self, BuffKind, BuffTimer, Overlays, SeenBuff};
 use crate::runtime::attach::{Attached, reattach};
 use crate::runtime::blocking;
+use crate::settings::BuffSettings;
 use crate::state::{AppState, lock, read};
 
 const BUFF_TICK: Duration = Duration::from_millis(100);
@@ -134,6 +135,11 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         }
         tracker.update(&readings, now);
         let timers = timers(&tracker.shown(), unix_ms(), &icons);
+        let timers = shown_by(
+            timers,
+            &read(&state.settings).overlays.buffs,
+            &state.overlays,
+        );
         if !same(&timers, &sent) {
             overlay::on_buffs(&app, &state, timers.clone());
             sent = timers;
@@ -523,6 +529,52 @@ fn hud_icon_key(
     let buff = reading.buff.clone()?;
     let ability = abilities.get(usize::from(reading.slot?.checked_sub(1)?))?;
     Some((icon(ability, icons)?, buff))
+}
+
+/// Where a buff comes from: an equipped ability's slot, else a warframe's ability, which is a
+/// squadmate's, else the player's own arcanes, mods and the like.
+fn kind_of(timer: &BuffTimer) -> BuffKind {
+    if timer.slot.is_some() {
+        BuffKind::Ability
+    } else if timer.id.contains("/Suits/") {
+        BuffKind::Squad
+    } else {
+        BuffKind::Own
+    }
+}
+
+/// The buffs the settings show. Every buff outside the ability slots is noted as seen, shown or
+/// not, so the settings can offer hiding or showing it by name.
+fn shown_by(
+    timers: Vec<BuffTimer>,
+    settings: &BuffSettings,
+    overlays: &Overlays,
+) -> Vec<BuffTimer> {
+    overlays.saw_buffs(
+        timers
+            .iter()
+            .filter(|timer| timer.slot.is_none())
+            .map(|timer| SeenBuff {
+                name: key(&timer.id).to_owned(),
+                kind: kind_of(timer),
+                icon: timer.icon.clone(),
+            }),
+    );
+    timers
+        .into_iter()
+        .filter(|timer| {
+            let wanted = match kind_of(timer) {
+                BuffKind::Ability => settings.buffs_abilities,
+                BuffKind::Own => settings.buffs_own,
+                BuffKind::Squad => settings.buffs_squad,
+            };
+            wanted
+                && !settings
+                    .buffs_hidden
+                    .iter()
+                    .any(|name| name == key(&timer.id))
+        })
+        .collect()
 }
 
 /// The last part of a buff's name: `.../Suits/FairyDustAbilityName#35` gives

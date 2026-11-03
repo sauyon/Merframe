@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useItemImageSrc } from "@/components/item-image";
-import type { BuffTimer, TextSize } from "@/types";
+import type { BuffStyle, BuffTimer, TextSize } from "@/types";
 
 // Countdown seconds over the game's ability dots, which sit at the same place below the
 // screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
@@ -50,12 +50,10 @@ const LEAD_MARKER_SIZE = 7;
 const MARKER_GAP = 1;
 /** Extra room between the ability slots and the other buffs, in pitches. */
 const GROUP_GAP = 0.5;
-/** The number warms once this share of the buff is left, */
+/** The number warms once this share of the buff is left, or, for an ability's buffs, once the
+ * settings' seconds are: long enough to recast. A buff's full length is only known from seeing
+ * it applied, so the seconds also cover ones first seen part way through. */
 const WARN_SHARE = 0.25;
-/** or, for an ability's buffs, once this many seconds are: long enough to recast. A buff's full
- * length is only known from seeing it applied, so this also covers ones first seen part way
- * through. Other buffs, like arcane procs, can be shorter than this. */
-const WARN_SECONDS = 10;
 const INK = "rgb(235 238 240)";
 const WARN = "rgb(240 190 110)";
 const DOWN = "rgb(235 110 95)";
@@ -101,13 +99,13 @@ function remaining(buff: BuffTimer, now: number) {
 }
 
 /** The number's colour: off-white, warmer when nearly out, red once gone. */
-function colourOf(buff: BuffTimer, now: number) {
+function colourOf(buff: BuffTimer, now: number, warn: number) {
   const left = remaining(buff, now);
   if (left === null || left <= 0) {
     return DOWN;
   }
   const share = Math.min(1, left / Math.max(buff.total, 0.001));
-  const late = buff.slot !== null && left <= WARN_SECONDS;
+  const late = buff.slot !== null && left <= warn;
   return share < WARN_SHARE || late ? WARN : INK;
 }
 
@@ -134,14 +132,16 @@ function Markers({
   x,
   y,
   now,
+  warn,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
+  warn: number;
 }) {
   if (!buffs.every((buff) => buff.icon)) {
-    return <Pips buffs={buffs} x={x} y={y} now={now} />;
+    return <Pips buffs={buffs} x={x} y={y} now={now} warn={warn} />;
   }
   const size = (buff: BuffTimer) =>
     buff.rank === 0 ? LEAD_MARKER_SIZE : MARKER_SIZE;
@@ -161,7 +161,7 @@ function Markers({
             x={at}
             y={y - size(buff) / 2 + MARKER_SIZE / 2}
             size={size(buff)}
-            tint={TINTS[colourOf(buff, now)]}
+            tint={TINTS[colourOf(buff, now, warn)]}
           />
         );
       })}
@@ -205,11 +205,13 @@ function Pips({
   x,
   y,
   now,
+  warn,
 }: {
   buffs: BuffTimer[];
   x: number;
   y: number;
   now: number;
+  warn: number;
 }) {
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
@@ -220,7 +222,7 @@ function Pips({
           cx={start + index * PIP_GAP}
           cy={y + PIP_GAP / 2}
           r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
-          fill={colourOf(buff, now)}
+          fill={colourOf(buff, now, warn)}
           fillOpacity={0.92}
         />
       ))}
@@ -229,8 +231,8 @@ function Pips({
 }
 
 /** The disc's colour under an ability's number: dark, or the number's warning colour. */
-function discOf(buff: BuffTimer, now: number) {
-  const state = colourOf(buff, now);
+function discOf(buff: BuffTimer, now: number, warn: number) {
+  const state = colourOf(buff, now, warn);
   return state === INK ? BACKING : state;
 }
 
@@ -239,6 +241,7 @@ function Buff({
   x,
   y,
   now,
+  warn,
   fontSize,
   width,
   onDisc,
@@ -248,6 +251,7 @@ function Buff({
   /** The number's centre line. */
   y: number;
   now: number;
+  warn: number;
   fontSize: number;
   /** The most room the number may take across, if limited. */
   width?: number;
@@ -255,7 +259,7 @@ function Buff({
   onDisc?: boolean;
 }) {
   const left = remaining(buff, now);
-  const state = colourOf(buff, now);
+  const state = colourOf(buff, now, warn);
   const colour = onDisc && state !== INK ? BACKING : state;
   const text = left === null || left <= 0 ? "—" : String(Math.ceil(left));
   const size =
@@ -371,13 +375,20 @@ export function BuffStrip({
   buffs,
   opacity,
   textSize,
+  style,
 }: {
   buffs: BuffTimer[];
   opacity: number;
   textSize: TextSize;
+  style: BuffStyle;
 }) {
   const now = useNow();
-  const fontSize = FONT_SIZE * TEXT_SCALE[textSize];
+  const warn = style.warn_seconds;
+  const scale = style.scale / 100;
+  const fontSize = FONT_SIZE * TEXT_SCALE[textSize] * scale;
+  const covers = style.cover_dots;
+  /** An ability's number: on its dot, or just under it. */
+  const numberY = covers ? DOT_Y : DOT_Y + BACKING_RADIUS + fontSize / 2;
   const slots = Array.from({ length: SLOTS }, (_, index) => ({
     x: slotX(index - (SLOTS - 1) / 2),
     buffs: ordered(buffs.filter((buff) => buff.slot === index + 1)),
@@ -389,71 +400,81 @@ export function BuffStrip({
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
       <Tints />
-      {slots.map(
-        ({ x, buffs }) =>
-          buffs.length > 0 && (
-            <circle
-              key={x}
-              cx={x}
-              cy={DOT_Y}
-              r={BACKING_RADIUS}
-              fill={discOf(pick(buffs), now)}
-            />
-          ),
-      )}
-      <g opacity={opacity / 100}>
-        {slots.map(({ x, buffs }) => {
-          if (buffs.length === 0) {
-            return null;
-          }
-          const shown = pick(buffs);
-          const first = lowest(buffs, now);
-          return (
-            <g key={x}>
-              <Buff
-                buff={shown}
-                x={x}
-                y={DOT_Y}
-                now={now}
-                fontSize={fontSize}
-                width={BACKING_RADIUS * 2 - 1}
-                onDisc
+      <g transform={`translate(0 ${style.offset})`}>
+        {slots.map(
+          ({ x, buffs }) =>
+            covers &&
+            buffs.length > 0 && (
+              <circle
+                key={x}
+                cx={x}
+                cy={DOT_Y}
+                r={BACKING_RADIUS}
+                fill={discOf(pick(buffs), now, warn)}
               />
-              {buffs.length > 1 && (
-                <Markers
-                  buffs={buffs}
+            ),
+        )}
+        <g opacity={opacity / 100}>
+          {slots.map(({ x, buffs }) => {
+            if (buffs.length === 0) {
+              return null;
+            }
+            const shown = pick(buffs);
+            const first = lowest(buffs, now);
+            return (
+              <g key={x}>
+                <Buff
+                  buff={shown}
                   x={x}
-                  y={DOT_Y + fontSize / 2}
+                  y={numberY}
                   now={now}
+                  warn={warn}
+                  fontSize={fontSize}
+                  width={BACKING_RADIUS * 2 - 1}
+                  onDisc={covers}
                 />
-              )}
-              {first && first.id !== shown.id && (
-                <Lowest
-                  buff={first}
-                  x={x}
-                  y={DOT_Y + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
-                  now={now}
-                  fontSize={fontSize * LOWEST_SCALE}
-                />
-              )}
-            </g>
-          );
-        })}
-        {others.map((buff, index) => {
-          const x = flank(index);
-          return (
-            <g key={buff.id}>
-              {buff.icon && <Icon name={buff.icon} x={x} />}
-              <Buff
-                buff={buff}
-                x={x}
-                y={TOP + fontSize / 2}
-                now={now}
-                fontSize={fontSize}
-              />
-            </g>
-          );
-        })}
+                {buffs.length > 1 && (
+                  <Markers
+                    buffs={buffs}
+                    x={x}
+                    y={numberY + fontSize / 2}
+                    now={now}
+                    warn={warn}
+                  />
+                )}
+                {first && first.id !== shown.id && (
+                  <Lowest
+                    buff={first}
+                    x={x}
+                    y={numberY + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
+                    now={now}
+                    fontSize={fontSize * LOWEST_SCALE}
+                  />
+                )}
+              </g>
+            );
+          })}
+          <g
+            transform={`translate(${CENTRE} ${DOT_Y}) scale(${scale}) translate(${-CENTRE} ${-DOT_Y})`}
+          >
+            {others.map((buff, index) => {
+              const x = flank(index);
+              return (
+                <g key={buff.id}>
+                  {buff.icon && <Icon name={buff.icon} x={x} />}
+                  <Buff
+                    buff={buff}
+                    x={x}
+                    y={TOP + fontSize / scale / 2}
+                    now={now}
+                    warn={warn}
+                    fontSize={fontSize / scale}
+                  />
+                </g>
+              );
+            })}
+          </g>
+        </g>
       </g>
     </svg>
   );

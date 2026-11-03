@@ -13,6 +13,7 @@ const IDLE: OverlayState = {
   ducatering: null,
   notification: null,
   buffs: null,
+  buffs_style: { warn_seconds: 10, cover_dots: true, scale: 100, offset: 0 },
   preview: null,
 };
 

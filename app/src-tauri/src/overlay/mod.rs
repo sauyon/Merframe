@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -169,6 +169,59 @@ pub struct NotificationTrigger {
     pub body: String,
 }
 
+/// How the buff strip draws, from the buff settings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct BuffStyle {
+    /// Seconds left at which an ability's buff turns amber.
+    pub warn_seconds: u8,
+    /// Ability numbers sit on discs covering the game's dots, or else just under them.
+    pub cover_dots: bool,
+    /// The strip's size, in percent.
+    pub scale: u8,
+    /// How far below the game's dots the strip sits, in pixels at 1080p.
+    pub offset: i8,
+}
+
+impl BuffStyle {
+    fn from(settings: &crate::settings::BuffSettings) -> Self {
+        Self {
+            warn_seconds: settings.buffs_warn_seconds.min(60),
+            cover_dots: settings.buffs_cover_dots,
+            scale: settings.buffs_scale.clamp(50, 200),
+            offset: settings.buffs_offset.clamp(-60, 60),
+        }
+    }
+}
+
+impl Default for BuffStyle {
+    fn default() -> Self {
+        Self::from(&crate::settings::BuffSettings::default())
+    }
+}
+
+/// Where a buff comes from, which decides whether the buff settings show it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+#[serde(rename_all = "snake_case")]
+pub enum BuffKind {
+    /// One of the equipped warframe's abilities.
+    Ability,
+    /// The player's own arcanes, mods and the like.
+    Own,
+    /// A squadmate's ability.
+    Squad,
+}
+
+/// A buff seen on the strip, for the settings to offer hiding it by name.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct SeenBuff {
+    pub name: String,
+    pub kind: BuffKind,
+    pub icon: Option<String>,
+}
+
 /// One buff on the countdown strip under the ability dots.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
@@ -202,6 +255,7 @@ pub struct OverlayState {
     pub ducatering: Option<DucateringProgress>,
     pub notification: Option<NotificationTrigger>,
     pub buffs: Option<Vec<BuffTimer>>,
+    pub buffs_style: BuffStyle,
     pub preview: Option<Kind>,
 }
 
@@ -219,6 +273,7 @@ impl Default for OverlayState {
             ducatering: None,
             notification: None,
             buffs: None,
+            buffs_style: BuffStyle::default(),
             preview: None,
         }
     }
@@ -269,6 +324,7 @@ pub struct Overlays {
     notification_queue: Mutex<VecDeque<NotificationTrigger>>,
     windows: Mutex<HashMap<&'static str, WindowLife>>,
     game_monitor: Mutex<Option<MonitorRect>>,
+    buffs_seen: Mutex<BTreeMap<String, SeenBuff>>,
 }
 
 const IDLE_LIFETIME: Duration = Duration::from_secs(300);
@@ -282,6 +338,19 @@ struct WindowLife {
 impl Overlays {
     pub fn snapshot(&self) -> OverlayState {
         lock(&self.state).clone()
+    }
+
+    /// Notes buffs seen on the strip, so the settings can offer hiding them.
+    pub fn saw_buffs(&self, seen: impl IntoIterator<Item = SeenBuff>) {
+        let mut known = lock(&self.buffs_seen);
+        for buff in seen {
+            known.entry(buff.name.clone()).or_insert(buff);
+        }
+    }
+
+    /// Every buff seen on the strip since the app started, by name.
+    pub fn seen_buffs(&self) -> Vec<SeenBuff> {
+        lock(&self.buffs_seen).values().cloned().collect()
     }
 }
 
@@ -495,6 +564,7 @@ pub fn apply_from<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>) {
         slots.text_size = settings.text_size;
         slots.motion = settings.motion;
         slots.ducatering_clipboard = settings.overlays.ducatering.ducatering_clipboard;
+        slots.buffs_style = BuffStyle::from(&settings.overlays.buffs);
         drop(slots);
         (
             KINDS.map(|kind| {

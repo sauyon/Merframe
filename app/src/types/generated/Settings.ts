@@ -12,4 +12,36 @@ import type { TextSize } from "./TextSize";
 import type { ToastPosition } from "./ToastPosition";
 import type { TraderStatus } from "./TraderStatus";
 
-export type Settings = { alerts: AlertSettings, world_state_interval_minutes: number, copy_relic_rewards: boolean, check_for_updates: boolean, force_log_file: boolean, log_file_path: string | null, text_size: TextSize, motion: Motion, windows_notifications_enabled: boolean, sound_notifications_enabled: boolean, notification_only_background: boolean, discord_webhook: string | null, discord_message_template: string, discord_mirror_enabled: boolean, discord_mirrored_alerts: Array<DiscordMirroredAlert>, market_poll_minutes: number, market_auto_close: boolean, take_rank_into_account: boolean, market_price_check: boolean, market_price_tolerance: number, market_trader_status: TraderStatus, market_trader_locale: string | null, set_part_click: OrderType, market_offline_after_last_trade: boolean, market_hide_after_last_trade: boolean, market_hide_auctions_after_last_trade: boolean, include_founders_items: boolean | null, hide_founders_items: boolean | null, include_forma_ranks: boolean, stats_tab_enabled: boolean, overlays_enabled: boolean, overlay_recommendation_refinement: RecommendationRefinement, overlay_opacity: number, overlay_recommendation_count: number, overlay_mode: OverlayMode, overlay_only_while_game_active: boolean, overlay_account_balance: boolean, overlay_relic_reward: boolean, overlay_relic_recommendation: boolean, overlay_riven: boolean, overlay_buffs: boolean, overlay_relic_reward_placement: OverlayPlacement, overlay_relic_recommendation_placement: OverlayPlacement, overlay_riven_placement: OverlayPlacement, overlay_ducatering: boolean, overlay_ducatering_placement: OverlayPlacement, ducatering_clipboard: boolean, ducatering_most_ducats_first: boolean, ducatering_max_plat: number, ducatering_hidden: Array<DucateringHidden>, ducatering_hidden_set_plat: number, toasts_enabled: boolean, toast_position: ToastPosition, toasts_in_game: boolean, toasts_in_game_position: ToastPosition, toasts_in_game_muted: Array<InGameToast>, event_feed_enabled: boolean, event_feed_port: number, };
+export type Settings = { alerts: AlertSettings, world_state_interval_minutes: number, copy_relic_rewards: boolean, check_for_updates: boolean, force_log_file: boolean, log_file_path: string | null, text_size: TextSize, motion: Motion, windows_notifications_enabled: boolean, sound_notifications_enabled: boolean, notification_only_background: boolean, discord_webhook: string | null, discord_message_template: string, discord_mirror_enabled: boolean, discord_mirrored_alerts: Array<DiscordMirroredAlert>, market_poll_minutes: number, market_auto_close: boolean, take_rank_into_account: boolean, market_price_check: boolean, market_price_tolerance: number, market_trader_status: TraderStatus, market_trader_locale: string | null, set_part_click: OrderType, market_offline_after_last_trade: boolean, market_hide_after_last_trade: boolean, market_hide_auctions_after_last_trade: boolean, include_founders_items: boolean | null, hide_founders_items: boolean | null, include_forma_ranks: boolean, stats_tab_enabled: boolean, overlays_enabled: boolean, overlay_recommendation_refinement: RecommendationRefinement, overlay_opacity: number, overlay_recommendation_count: number, overlay_mode: OverlayMode, overlay_only_while_game_active: boolean, overlay_account_balance: boolean, overlay_relic_reward: boolean, overlay_relic_recommendation: boolean, overlay_riven: boolean, overlay_buffs: boolean, overlay_relic_reward_placement: OverlayPlacement, overlay_relic_recommendation_placement: OverlayPlacement, overlay_riven_placement: OverlayPlacement, overlay_ducatering: boolean, overlay_ducatering_placement: OverlayPlacement, ducatering_clipboard: boolean, ducatering_most_ducats_first: boolean, ducatering_max_plat: number, ducatering_hidden: Array<DucateringHidden>, ducatering_hidden_set_plat: number, 
+/**
+ * Buffs from the equipped warframe's abilities, on the ability dots.
+ */
+buffs_abilities: boolean, 
+/**
+ * The player's other buffs, from arcanes, mods and the like, beside the dots.
+ */
+buffs_own: boolean, 
+/**
+ * Buffs squadmates' abilities put on the player, beside the dots.
+ */
+buffs_squad: boolean, 
+/**
+ * Buffs never shown, by name.
+ */
+buffs_hidden: Array<string>, 
+/**
+ * Seconds left at which an ability's buff turns amber.
+ */
+buffs_warn_seconds: number, 
+/**
+ * Ability numbers sit on discs covering the game's dots, or else just under them.
+ */
+buffs_cover_dots: boolean, 
+/**
+ * The strip's size, in percent.
+ */
+buffs_scale: number, 
+/**
+ * How far below the game's dots the strip sits, in pixels at 1080p.
+ */
+buffs_offset: number, toasts_enabled: boolean, toast_position: ToastPosition, toasts_in_game: boolean, toasts_in_game_position: ToastPosition, toasts_in_game_muted: Array<InGameToast>, event_feed_enabled: boolean, event_feed_port: number, };

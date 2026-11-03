@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { BuffFilters } from "@/components/buff-filters";
 import { DucateringFilters } from "@/components/ducatering-filters";
 import { SelectField } from "@/components/option-select";
 import {
@@ -191,6 +192,7 @@ export function OverlaysPage() {
   const recommendation = master && settings.overlay_relic_recommendation;
   const riven = master && settings.overlay_riven;
   const ducatering = master && settings.overlay_ducatering;
+  const buffs = master && settings.overlay_buffs;
 
   const actions = (
     kind: OverlayKind,
@@ -457,15 +459,89 @@ export function OverlaysPage() {
             enabled={settings.overlay_buffs}
             disabled={!master}
             onEnabled={(enabled) => saveSettings({ overlay_buffs: enabled })}
-          />
+          >
+            <SwitchField
+              id="buffs-abilities"
+              label="Ability buffs"
+              checked={settings.buffs_abilities}
+              disabled={!buffs}
+              onChange={(checked) => saveSettings({ buffs_abilities: checked })}
+            />
+            <SwitchField
+              id="buffs-own"
+              label="Arcane and mod buffs"
+              checked={settings.buffs_own}
+              disabled={!buffs}
+              onChange={(checked) => saveSettings({ buffs_own: checked })}
+            />
+            <SwitchField
+              id="buffs-squad"
+              label="Squad buffs"
+              checked={settings.buffs_squad}
+              disabled={!buffs}
+              onChange={(checked) => saveSettings({ buffs_squad: checked })}
+            />
+            <SwitchField
+              id="buffs-cover"
+              label="Cover the game's ability dots"
+              checked={settings.buffs_cover_dots}
+              disabled={!buffs}
+              onChange={(checked) =>
+                saveSettings({ buffs_cover_dots: checked })
+              }
+            />
+            <CommittedSlider
+              id="buffs-warn"
+              label="Warn at"
+              value={settings.buffs_warn_seconds}
+              min={0}
+              max={60}
+              step={1}
+              unit="s"
+              disabled={!buffs}
+              className="w-32"
+              readoutClassName="w-8"
+              onCommit={(value) => saveSettings({ buffs_warn_seconds: value })}
+            />
+            <CommittedSlider
+              id="buffs-scale"
+              label="Size"
+              value={settings.buffs_scale}
+              min={50}
+              max={200}
+              step={5}
+              unit="%"
+              disabled={!buffs}
+              className="w-32"
+              readoutClassName="w-10"
+              onCommit={(value) => saveSettings({ buffs_scale: value })}
+            />
+            <CommittedSlider
+              id="buffs-offset"
+              label="Height"
+              value={-settings.buffs_offset}
+              min={-60}
+              max={60}
+              step={1}
+              disabled={!buffs}
+              className="w-32"
+              readoutClassName="w-8"
+              onCommit={(value) => saveSettings({ buffs_offset: -value })}
+            />
+          </CardControls>
         }
         description={
-          master && settings.overlay_buffs
-            ? "Countdown bars under the ability dots below the reticle, one fixed slot per ability, read from the game."
+          buffs
+            ? "Ability timers on the ability dots below the reticle, other buffs beside them, read from the game. Warn at turns an ability's number amber with that many seconds left; Height moves the strip up or down."
             : OFF
         }
       >
-        {null}
+        {buffs && (
+          <BuffFilters
+            hidden={settings.buffs_hidden}
+            onChange={(hidden) => saveSettings({ buffs_hidden: hidden })}
+          />
+        )}
       </Section>
     </Page>
   );

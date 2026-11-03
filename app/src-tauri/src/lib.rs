@@ -185,6 +185,7 @@ fn commands<R: Runtime>() -> impl Fn(tauri::ipc::Invoke<R>) -> bool {
         commands::app::open_data_folder,
         commands::app::open_game_log_folder,
         commands::app::item_image,
+        commands::app::seen_buffs,
         commands::app::prefetch_images,
     ]
 }

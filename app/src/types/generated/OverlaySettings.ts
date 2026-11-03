@@ -4,4 +4,36 @@ import type { OverlayMode } from "./OverlayMode";
 import type { OverlayPlacement } from "./OverlayPlacement";
 import type { RecommendationRefinement } from "./RecommendationRefinement";
 
-export type OverlaySettings = { overlays_enabled: boolean, overlay_recommendation_refinement: RecommendationRefinement, overlay_opacity: number, overlay_recommendation_count: number, overlay_mode: OverlayMode, overlay_only_while_game_active: boolean, overlay_account_balance: boolean, overlay_relic_reward: boolean, overlay_relic_recommendation: boolean, overlay_riven: boolean, overlay_buffs: boolean, overlay_relic_reward_placement: OverlayPlacement, overlay_relic_recommendation_placement: OverlayPlacement, overlay_riven_placement: OverlayPlacement, overlay_ducatering: boolean, overlay_ducatering_placement: OverlayPlacement, ducatering_clipboard: boolean, ducatering_most_ducats_first: boolean, ducatering_max_plat: number, ducatering_hidden: Array<DucateringHidden>, ducatering_hidden_set_plat: number, };
+export type OverlaySettings = { overlays_enabled: boolean, overlay_recommendation_refinement: RecommendationRefinement, overlay_opacity: number, overlay_recommendation_count: number, overlay_mode: OverlayMode, overlay_only_while_game_active: boolean, overlay_account_balance: boolean, overlay_relic_reward: boolean, overlay_relic_recommendation: boolean, overlay_riven: boolean, overlay_buffs: boolean, overlay_relic_reward_placement: OverlayPlacement, overlay_relic_recommendation_placement: OverlayPlacement, overlay_riven_placement: OverlayPlacement, overlay_ducatering: boolean, overlay_ducatering_placement: OverlayPlacement, ducatering_clipboard: boolean, ducatering_most_ducats_first: boolean, ducatering_max_plat: number, ducatering_hidden: Array<DucateringHidden>, ducatering_hidden_set_plat: number, 
+/**
+ * Buffs from the equipped warframe's abilities, on the ability dots.
+ */
+buffs_abilities: boolean, 
+/**
+ * The player's other buffs, from arcanes, mods and the like, beside the dots.
+ */
+buffs_own: boolean, 
+/**
+ * Buffs squadmates' abilities put on the player, beside the dots.
+ */
+buffs_squad: boolean, 
+/**
+ * Buffs never shown, by name.
+ */
+buffs_hidden: Array<string>, 
+/**
+ * Seconds left at which an ability's buff turns amber.
+ */
+buffs_warn_seconds: number, 
+/**
+ * Ability numbers sit on discs covering the game's dots, or else just under them.
+ */
+buffs_cover_dots: boolean, 
+/**
+ * The strip's size, in percent.
+ */
+buffs_scale: number, 
+/**
+ * How far below the game's dots the strip sits, in pixels at 1080p.
+ */
+buffs_offset: number, };
