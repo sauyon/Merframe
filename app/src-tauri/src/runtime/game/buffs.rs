@@ -239,10 +239,6 @@ struct AbilityHudSource {
     /// The most seconds each HUD has shown on an entry: what the game sets an entry to when it
     /// is cast, so its buffs' full length.
     longest: HashMap<LuaTable, f32>,
-    /// Which of each HUD's entries have ever run. The widget keeps an entry at 0 once it runs
-    /// out, which the strip shows as gone, but some entries, like Ivara's arrows besides Cloak
-    /// Arrow, never run at all.
-    ran: HashMap<LuaTable, Vec<bool>>,
 }
 
 impl BuffSource for AbilityHudSource {
@@ -259,7 +255,6 @@ impl BuffSource for AbilityHudSource {
                 .collect();
             self.last.retain(|table, _| self.huds.contains(table));
             self.longest.retain(|table, _| self.huds.contains(table));
-            self.ran.retain(|table, _| self.huds.contains(table));
         }
         let mut readings = Vec::new();
         for (hud, &table) in self.huds.iter().enumerate() {
@@ -289,18 +284,15 @@ impl BuffSource for AbilityHudSource {
                 .buffs
                 .iter()
                 .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)));
-            let ran = self.ran.entry(table).or_default();
-            ran.resize(shown.timers.len(), false);
-            for (ran, &seconds) in ran.iter_mut().zip(&shown.timers) {
-                *ran |= seconds > 0.0;
-            }
-            let ran = &*ran;
-            let used = shown
+            // Only running entries: the widget keeps every entry at 0 once it runs out, and
+            // some, like Ivara's arrows besides Cloak Arrow, never run at all. Dropped entries
+            // leave the strip after its usual linger.
+            let running = shown
                 .timers
                 .iter()
                 .enumerate()
-                .filter(|&(index, _)| ran[index]);
-            readings.extend(used.map(|(index, &seconds)| {
+                .filter(|&(_, &seconds)| seconds > 0.0);
+            readings.extend(running.map(|(index, &seconds)| {
                 Reading {
                     id: format!("ability{}:hud{hud}.{index}", shown.ability),
                     label: String::new(),
@@ -310,7 +302,7 @@ impl BuffSource for AbilityHudSource {
                     buff: names.and_then(|names| names.get(&index)).cloned(),
                     icon: None,
                     total: Some(f64::from(*longest)),
-                    remaining: f64::from(seconds.max(0.0)),
+                    remaining: f64::from(seconds),
                 }
             }));
         }
