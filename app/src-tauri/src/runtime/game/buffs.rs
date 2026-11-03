@@ -312,8 +312,9 @@ impl BuffSource for TraySource {
     }
 }
 
-/// The timers the HUD runs under each ability icon, one per buff the ability keeps up. These
-/// carry no names, only which ability they belong to, so they take that ability's slot.
+/// The timers the HUD runs under each ability icon, one per cast still running, like each of
+/// Protea's grenades. These carry no names, only which ability they belong to, so they take
+/// that ability's slot, as one buff following the cast that runs out first.
 #[derive(Default)]
 struct AbilityTimerSource {
     timers: Option<AbilityTimers>,
@@ -423,8 +424,30 @@ impl BuffSource for AbilityTimerSource {
                 remaining: f64::from(timer.remaining),
             })
             .collect();
-        self.falling.keep(readings)
+        first_ending(self.falling.keep(readings))
     }
+}
+
+/// One reading per ability: the cast that runs out first, under an id of the ability's alone so
+/// it stays one buff as casts run out and new ones start.
+fn first_ending(readings: Vec<Reading>) -> Vec<Reading> {
+    let mut by_ability: BTreeMap<String, Reading> = BTreeMap::new();
+    for reading in readings {
+        let ability = reading.id.split(':').next().unwrap_or_default().to_owned();
+        let sooner = by_ability
+            .get(&ability)
+            .is_none_or(|kept| reading.remaining < kept.remaining);
+        if sooner {
+            by_ability.insert(
+                ability.clone(),
+                Reading {
+                    id: ability,
+                    ..reading
+                },
+            );
+        }
+    }
+    by_ability.into_values().collect()
 }
 
 /// All sources' readings with their slots filled in. A slot the HUD runs ability timers for
@@ -830,6 +853,18 @@ impl Tracker {
 #[allow(clippy::float_cmp, reason = "values are copied, never computed")]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ability_casts_show_as_the_first_ending() {
+        let read = first_ending(vec![
+            r("ability0:7", 18.2),
+            r("ability0:8", 12.5),
+            r("ability0:9", 16.0),
+            r("ability2:1", 4.0),
+        ]);
+        let read: Vec<_> = read.iter().map(|r| (r.id.as_str(), r.remaining)).collect();
+        assert_eq!(read, [("ability0", 12.5), ("ability2", 4.0)]);
+    }
 
     #[test]
     fn ability_counters_are_not_timers() {
