@@ -6,6 +6,7 @@ pub mod envelope;
 pub mod error;
 pub mod event_feed;
 mod focus;
+mod hotkey;
 pub mod images;
 pub mod market;
 mod market_session;
@@ -188,8 +189,8 @@ fn commands<R: Runtime>() -> impl Fn(tauri::ipc::Invoke<R>) -> bool {
     ]
 }
 
-/// Brings the main window up when the app is launched again while running. The overlays are
-/// left alone: they never take focus from the game.
+/// Brings the main window up when the app is launched again while running, or on its hotkey.
+/// The overlays are left alone: they never take focus from the game.
 fn show_main<R: Runtime>(app: &AppHandle<R>) {
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -248,6 +249,7 @@ pub fn run() {
             app.manage(AppStateCell::new());
             app.manage(EventFeed::default());
             tauri::async_runtime::spawn(publish_state(app.handle().clone()));
+            hotkey::listen(app.handle(), show_main);
             Ok(())
         });
 
