@@ -10,7 +10,7 @@ import type { BuffTimer, TextSize } from "@/types";
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The dots are measured in game at 2160p: 12 units
-// apart, centred 62 units below the middle.
+// apart, centred 63.25 units below the middle.
 //
 // An ability keeping up several buffs at once, like Tribute, has a marker under its number
 // for each buff: the game's icon for it when it has one, else a pip. When the ability draws
@@ -26,7 +26,7 @@ const SLOTS = 4;
 /** The dots' spacing; each ability's number sits over its dot. */
 const PITCH = 12;
 /** The dots' centre line. */
-const DOT_Y = CENTRE + 62;
+const DOT_Y = CENTRE + 63.25;
 /** Icons of the other buffs, centred on the dots' line, and their spacing. */
 const ICON_SIZE = 18;
 const ICON_PITCH = ICON_SIZE + 2;
@@ -62,10 +62,12 @@ const DOWN = "rgb(235 110 95)";
 /** The running buff that runs out first, when the number shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
-/** A dark disc over the game's ability dot, which each ability's number stands on in its
- * place. Its radius is a share of the number's size. */
-const BACKING = "rgb(12 14 16 / 0.85)";
-const BACKING_RADIUS = 0.5;
+/** A dark disc hiding the game's ability dot, which each ability's number stands on in its
+ * place: solid whatever the strip's opacity, as wide as the dots' spacing allows. */
+const BACKING = "rgb(12 14 16)";
+const BACKING_RADIUS = PITCH / 2 - 0.5;
+/** A digit's width as a share of its size: an ability's number shrinks to fit its disc. */
+const DIGIT_WIDTH = 0.56;
 /** Digits' height above their baseline, as a share of their size: half of it drops their
  * middle onto a centre line. */
 const DIGIT_HEIGHT = 0.72;
@@ -230,6 +232,7 @@ function Buff({
   y,
   now,
   fontSize,
+  width,
 }: {
   buff: BuffTimer;
   x: number;
@@ -237,23 +240,30 @@ function Buff({
   y: number;
   now: number;
   fontSize: number;
+  /** The most room the number may take across, if limited. */
+  width?: number;
 }) {
   const left = remaining(buff, now);
   const colour = colourOf(buff, now);
+  const text = left === null || left <= 0 ? "—" : String(Math.ceil(left));
+  const size =
+    width === undefined
+      ? fontSize
+      : Math.min(fontSize, width / (text.length * DIGIT_WIDTH));
 
   return (
     <text
       x={x}
-      y={y + (fontSize * DIGIT_HEIGHT) / 2}
+      y={y + (size * DIGIT_HEIGHT) / 2}
       fill={colour}
       fillOpacity={0.92}
       fontWeight={600}
       textAnchor="middle"
       dominantBaseline="alphabetic"
-      fontSize={fontSize}
+      fontSize={size}
       style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
     >
-      {left === null || left <= 0 ? "—" : Math.ceil(left)}
+      {text}
     </text>
   );
 }
@@ -365,57 +375,73 @@ export function BuffStrip({
   );
 
   return (
-    <svg
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
-      className="size-full"
-      style={{ opacity: opacity / 100 }}
-    >
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
       <Tints />
-      {slots.map(({ x, buffs }) => {
-        if (buffs.length === 0) {
-          return null;
-        }
-        const shown = pick(buffs);
-        const first = lowest(buffs, now);
-        return (
-          <g key={x}>
+      {slots.map(
+        ({ x, buffs }) =>
+          buffs.length > 0 && (
             <circle
+              key={x}
               cx={x}
               cy={DOT_Y}
-              r={fontSize * BACKING_RADIUS}
+              r={BACKING_RADIUS}
               fill={BACKING}
             />
-            <Buff buff={shown} x={x} y={DOT_Y} now={now} fontSize={fontSize} />
-            {buffs.length > 1 && (
-              <Markers buffs={buffs} x={x} y={DOT_Y + fontSize / 2} now={now} />
-            )}
-            {first && first.id !== shown.id && (
-              <Lowest
-                buff={first}
+          ),
+      )}
+      <g opacity={opacity / 100}>
+        {slots.map(({ x, buffs }) => {
+          if (buffs.length === 0) {
+            return null;
+          }
+          const shown = pick(buffs);
+          const first = lowest(buffs, now);
+          return (
+            <g key={x}>
+              <Buff
+                buff={shown}
                 x={x}
-                y={DOT_Y + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
+                y={DOT_Y}
                 now={now}
-                fontSize={fontSize * LOWEST_SCALE}
+                fontSize={fontSize}
+                width={BACKING_RADIUS * 2 - 1}
               />
-            )}
-          </g>
-        );
-      })}
-      {others.map((buff, index) => {
-        const x = flank(index);
-        return (
-          <g key={buff.id}>
-            {buff.icon && <Icon name={buff.icon} x={x} />}
-            <Buff
-              buff={buff}
-              x={x}
-              y={TOP + fontSize / 2}
-              now={now}
-              fontSize={fontSize}
-            />
-          </g>
-        );
-      })}
+              {buffs.length > 1 && (
+                <Markers
+                  buffs={buffs}
+                  x={x}
+                  y={DOT_Y + fontSize / 2}
+                  now={now}
+                />
+              )}
+              {first && first.id !== shown.id && (
+                <Lowest
+                  buff={first}
+                  x={x}
+                  y={DOT_Y + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
+                  now={now}
+                  fontSize={fontSize * LOWEST_SCALE}
+                />
+              )}
+            </g>
+          );
+        })}
+        {others.map((buff, index) => {
+          const x = flank(index);
+          return (
+            <g key={buff.id}>
+              {buff.icon && <Icon name={buff.icon} x={x} />}
+              <Buff
+                buff={buff}
+                x={x}
+                y={TOP + fontSize / 2}
+                now={now}
+                fontSize={fontSize}
+              />
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }
