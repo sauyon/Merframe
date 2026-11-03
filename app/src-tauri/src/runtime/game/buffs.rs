@@ -14,12 +14,13 @@ use tauri::{AppHandle, Runtime};
 use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
-    AbilityTimers, LuaState, LuaTable, StatusEffect, ability_buffs, ability_hud, ability_huds,
-    in_gameplay, menu_open, status_effects, status_list, switch_index, switched_to,
+    AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect, ability_buffs,
+    ability_dots, ability_hud, ability_huds, in_gameplay, menu_open, status_effects, status_list,
+    switch_index, switched_to,
 };
 
 use super::ticks;
-use crate::overlay::{self, BuffKind, BuffTimer, Overlays, SeenBuff};
+use crate::overlay::{self, BuffKind, BuffLayout, BuffTimer, Overlays, SeenBuff};
 use crate::runtime::attach::{Attached, reattach};
 use crate::runtime::blocking;
 use crate::settings::BuffSettings;
@@ -59,6 +60,8 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut screens = Screens::default();
     let mut tracker = Tracker::new(LINGER);
     let mut sent: Vec<BuffTimer> = Vec::new();
+    let mut layout: Option<BuffLayout> = None;
+    let mut sent_layout: Option<BuffLayout> = None;
     let started = Instant::now();
     let mut seen: Option<Vec<usize>> = None;
     let mut abilities: Vec<String> = Vec::new();
@@ -69,21 +72,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         tick.tick().await;
         if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
             loadout_read = Some(Instant::now());
-            let owned = Arc::clone(&state);
-            let looked_up = blocking("read the equipped abilities", move || {
-                let core = lock(&owned.core);
-                (core.equipped_abilities(), core.buff_icons())
-            })
-            .await;
-            let (equipped, known) = looked_up.unwrap_or_default();
-            let equipped = equipped.unwrap_or_default();
-            if !known.is_empty() {
-                icons = known;
-            }
-            if equipped != abilities {
-                debug!(?equipped, "Buff strip slots");
-                abilities = equipped;
-            }
+            read_loadout(&state, &mut abilities, &mut icons).await;
         }
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
@@ -95,12 +84,16 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             let attempt = blocking("read buffs", move || {
                 let attached = reattach(&owned, cached)?;
                 let readings = read_sources(&attached, &mut moved, &mut found);
-                anyhow::Ok((attached, moved, found, readings))
+                let dots = ability_dots(attached.reader.as_ref(), &attached.lua, &mut found.hud);
+                anyhow::Ok((attached, moved, found, readings, dots))
             })
             .await;
             match attempt {
-                Some(Ok((attached, read, found, readings))) => {
+                Some(Ok((attached, read, found, readings, dots))) => {
                     game = Some(attached);
+                    if let Some(dots) = dots {
+                        layout = Some(layout_of(dots));
+                    }
                     sources = read;
                     screens = found;
                     Some(readings)
@@ -140,9 +133,10 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             &read(&state.settings).overlays.buffs,
             &state.overlays,
         );
-        if !same(&timers, &sent) {
-            overlay::on_buffs(&app, &state, timers.clone());
+        if !same(&timers, &sent) || layout != sent_layout {
+            overlay::on_buffs(&app, &state, timers.clone(), layout);
             sent = timers;
+            sent_layout = layout;
         }
 
         if idle {
@@ -150,6 +144,30 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             sources = buff_sources();
             tokio::time::sleep(IDLE_TICK).await;
         }
+    }
+}
+
+/// Looks up the equipped warframe's abilities, which give the ability slots, and the game's
+/// icons for buffs, keeping what was known when either can't be read.
+async fn read_loadout(
+    state: &Arc<AppState>,
+    abilities: &mut Vec<String>,
+    icons: &mut Vec<(String, String)>,
+) {
+    let owned = Arc::clone(state);
+    let looked_up = blocking("read the equipped abilities", move || {
+        let core = lock(&owned.core);
+        (core.equipped_abilities(), core.buff_icons())
+    })
+    .await;
+    let (equipped, known) = looked_up.unwrap_or_default();
+    let equipped = equipped.unwrap_or_default();
+    if !known.is_empty() {
+        *icons = known;
+    }
+    if equipped != *abilities {
+        debug!(?equipped, "Buff strip slots");
+        *abilities = equipped;
     }
 }
 
@@ -495,6 +513,18 @@ fn instance_of(id: &str) -> &str {
 struct Screens {
     chat: Option<LuaTable>,
     squad: Option<LuaTable>,
+    /// The HUD, for where it draws the ability dots.
+    hud: HudTables,
+}
+
+fn layout_of(dots: DotsLayout) -> BuffLayout {
+    BuffLayout {
+        stage_width: dots.stage_width,
+        stage_height: dots.stage_height,
+        x: dots.x,
+        y: dots.y,
+        hud_scale: dots.hud_scale,
+    }
 }
 
 /// Reads every source, or none out of a mission or with the Esc menu up: once a mission ends,

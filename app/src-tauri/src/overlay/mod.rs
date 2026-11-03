@@ -241,6 +241,20 @@ pub struct BuffTimer {
     pub ends_at: Option<f64>,
 }
 
+/// Where the game's HUD draws the ability dots and how large, read from the HUD, so the strip
+/// follows the HUD scale and borders. Stage units, of the stage the HUD is laid out on.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct BuffLayout {
+    pub stage_width: f32,
+    pub stage_height: f32,
+    /// The dots' clip, as the HUD placed it.
+    pub x: f32,
+    pub y: f32,
+    /// 1 at the default HUD size.
+    pub hud_scale: f32,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct OverlayState {
@@ -256,6 +270,8 @@ pub struct OverlayState {
     pub notification: Option<NotificationTrigger>,
     pub buffs: Option<Vec<BuffTimer>>,
     pub buffs_style: BuffStyle,
+    /// `None` until the HUD's layout has been read.
+    pub buffs_layout: Option<BuffLayout>,
     pub preview: Option<Kind>,
 }
 
@@ -274,6 +290,7 @@ impl Default for OverlayState {
             notification: None,
             buffs: None,
             buffs_style: BuffStyle::default(),
+            buffs_layout: None,
             preview: None,
         }
     }
@@ -538,11 +555,21 @@ pub fn on_ducatering<R: Runtime>(
     }
 }
 
-pub fn on_buffs<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, buffs: Vec<BuffTimer>) {
+pub fn on_buffs<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &Arc<AppState>,
+    buffs: Vec<BuffTimer>,
+    layout: Option<BuffLayout>,
+) {
     if buffs.is_empty() {
         hide(app, state, Kind::Buffs);
     } else {
-        show(app, state, Kind::Buffs, |slots| slots.buffs = Some(buffs));
+        show(app, state, Kind::Buffs, |slots| {
+            slots.buffs = Some(buffs);
+            if layout.is_some() {
+                slots.buffs_layout = layout;
+            }
+        });
     }
 }
 

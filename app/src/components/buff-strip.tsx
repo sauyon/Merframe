@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useItemImageSrc } from "@/components/item-image";
-import type { BuffStyle, BuffTimer, TextSize } from "@/types";
+import type { BuffLayout, BuffStyle, BuffTimer, TextSize } from "@/types";
 
 // Countdown seconds over the game's ability dots, which sit at the same place below the
 // screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
@@ -9,8 +9,10 @@ import type { BuffStyle, BuffTimer, TextSize } from "@/types";
 // as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
-// text size; that only scales the numbers. The dots are measured in game at 2160p: 12 units
-// apart, centred 63.25 units below the middle.
+// text size; that only scales the numbers. The strip is drawn as at the HUD scale the dots
+// were measured at, 1.25 at 2160p: 12 units apart, centred 63.25 units below the middle. It
+// then moves to where the HUD placed the dots' clip and scales with the HUD, both read from
+// the game, so it follows the HUD scale and borders.
 //
 // An ability keeping up several buffs at once, like Tribute, has a marker under its number
 // for each buff: the game's icon for it when it has one, else a pip. When the ability draws
@@ -27,6 +29,12 @@ const SLOTS = 4;
 const PITCH = 12;
 /** The dots' centre line. */
 const DOT_Y = CENTRE + 63.25;
+/** The dots' spacing in the HUD's stage units at HUD scale 1. */
+const STAGE_PITCH = 8;
+/** How far the dots' centre sits below their clip's origin, likewise. */
+const STAGE_DROP = 0.57;
+/** Strip units are px at this screen height. */
+const UNIT_HEIGHT = 1080;
 /** Icons of the other buffs, centred on the dots' line, and their spacing. */
 const ICON_SIZE = 18;
 const ICON_PITCH = ICON_SIZE + 2;
@@ -84,6 +92,21 @@ function useNow() {
     return () => cancelAnimationFrame(frame);
   }, []);
   return now;
+}
+
+/** Moves the strip, drawn around the measured dots, onto the dots as the HUD placed them. */
+function hudTransform(layout: BuffLayout | null) {
+  if (!layout) {
+    return "";
+  }
+  const unit = UNIT_HEIGHT / layout.stage_height;
+  const scale = (unit * layout.hud_scale * STAGE_PITCH) / PITCH;
+  const x = CENTRE + (layout.x - layout.stage_width / 2) * unit;
+  const y =
+    CENTRE +
+    (layout.y - layout.stage_height / 2) * unit +
+    STAGE_DROP * unit * layout.hud_scale;
+  return `translate(${x} ${y}) scale(${scale}) translate(${-CENTRE} ${-DOT_Y})`;
 }
 
 /** The middle of the slot at `position`, counted in pitches from the strip's middle. */
@@ -376,11 +399,13 @@ export function BuffStrip({
   opacity,
   textSize,
   style,
+  layout,
 }: {
   buffs: BuffTimer[];
   opacity: number;
   textSize: TextSize;
   style: BuffStyle;
+  layout: BuffLayout | null;
 }) {
   const now = useNow();
   const warn = style.warn_seconds;
@@ -400,7 +425,7 @@ export function BuffStrip({
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
       <Tints />
-      <g transform={`translate(0 ${style.offset})`}>
+      <g transform={`translate(0 ${style.offset}) ${hudTransform(layout)}`}>
         {slots.map(
           ({ x, buffs }) =>
             covers &&

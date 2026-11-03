@@ -23,6 +23,7 @@ export type * from "./BaroOffer";
 export type * from "./BaroStatus";
 export type * from "./Best";
 export type * from "./BuffKind";
+export type * from "./BuffLayout";
 export type * from "./BuffSettings";
 export type * from "./BuffStyle";
 export type * from "./BuffTimer";
