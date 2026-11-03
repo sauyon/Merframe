@@ -15,7 +15,7 @@ use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
     AbilityTimers, LuaState, LuaTable, StatusEffect, ability_buffs, ability_hud, ability_huds,
-    in_gameplay, status_effects, status_list, switch_index, switched_to,
+    in_gameplay, menu_open, status_effects, status_list, switch_index, switched_to,
 };
 
 use super::ticks;
@@ -55,7 +55,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut tick = ticks(BUFF_TICK);
     let mut game: Option<Attached> = None;
     let mut sources = buff_sources();
-    let mut chat: Option<LuaTable> = None;
+    let mut screens = Screens::default();
     let mut tracker = Tracker::new(LINGER);
     let mut sent: Vec<BuffTimer> = Vec::new();
     let started = Instant::now();
@@ -90,7 +90,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             let owned = Arc::clone(&state);
             let cached = game.take();
             let mut moved = std::mem::take(&mut sources);
-            let mut found = chat.take();
+            let mut found = std::mem::take(&mut screens);
             let attempt = blocking("read buffs", move || {
                 let attached = reattach(&owned, cached)?;
                 let readings = read_sources(&attached, &mut moved, &mut found);
@@ -101,7 +101,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
                 Some(Ok((attached, read, found, readings))) => {
                     game = Some(attached);
                     sources = read;
-                    chat = found;
+                    screens = found;
                     Some(readings)
                 }
                 Some(Err(error)) => {
@@ -484,14 +484,23 @@ fn instance_of(id: &str) -> &str {
     id.rsplit_once('#').map_or(id, |(tag, _)| tag)
 }
 
-/// Reads every source, or none out of a mission: once one ends, the HUD's last timers linger
-/// in memory, frozen. `chat` caches where the script saying so was last found.
+/// Where the scripts saying which screen is up were last found.
+#[derive(Default)]
+struct Screens {
+    chat: Option<LuaTable>,
+    squad: Option<LuaTable>,
+}
+
+/// Reads every source, or none out of a mission or with the Esc menu up: once a mission ends,
+/// the HUD's last timers linger in memory, frozen, and the menu covers the HUD.
 fn read_sources(
     attached: &Attached,
     sources: &mut [Box<dyn BuffSource>],
-    chat: &mut Option<LuaTable>,
+    screens: &mut Screens,
 ) -> Vec<Vec<Reading>> {
-    let playing = in_gameplay(attached.reader.as_ref(), &attached.lua, chat) != Some(false);
+    let reader = attached.reader.as_ref();
+    let playing = in_gameplay(reader, &attached.lua, &mut screens.chat) != Some(false)
+        && menu_open(reader, &attached.lua, &mut screens.squad) != Some(true);
     sources
         .iter_mut()
         .map(|source| {
