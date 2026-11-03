@@ -284,7 +284,15 @@ impl BuffSource for AbilityHudSource {
                 .buffs
                 .iter()
                 .find(|buffs| (0..count).all(|index| buffs.contains_key(&index)));
-            readings.extend(shown.timers.iter().enumerate().map(|(index, &seconds)| {
+            // Only running entries: the widget keeps every entry at 0 once it runs out, and
+            // some, like Ivara's arrows besides Cloak Arrow, never run at all. Dropped entries
+            // leave the strip after its usual linger.
+            let running = shown
+                .timers
+                .iter()
+                .enumerate()
+                .filter(|&(_, &seconds)| seconds > 0.0);
+            readings.extend(running.map(|(index, &seconds)| {
                 Reading {
                     id: format!("ability{}:hud{hud}.{index}", shown.ability),
                     label: String::new(),
@@ -294,7 +302,7 @@ impl BuffSource for AbilityHudSource {
                     buff: names.and_then(|names| names.get(&index)).cloned(),
                     icon: None,
                     total: Some(f64::from(*longest)),
-                    remaining: f64::from(seconds.max(0.0)),
+                    remaining: f64::from(seconds),
                 }
             }));
         }
