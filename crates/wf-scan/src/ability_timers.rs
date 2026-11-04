@@ -5,12 +5,14 @@
 //! abilities, a list of `{key, seconds}` and takes the frame time off each one every frame
 //! until it runs out. Nothing here is a fixed address or offset: the HUD is found through the
 //! Lua userdata of its class, and where it keeps the abilities and their lists is read out of
-//! `AddAbilityTimer`'s own code, then checked against the live object.
+//! `AddAbilityTimer`'s own code, then checked against the live object. The abilities it keeps
+//! are handles to the suit's ability objects, whose types name them.
 
 use wf_mem::{MemoryReader, read_u32_le, read_u64_le};
 
 use crate::Result;
 use crate::swig::{Image, counted_arrays, indexed_arrays};
+use crate::type_names::TypeNames;
 
 const HUD_CLASS: &str = "LotusHudRedux";
 const ADD_TIMER: &str = "AddAbilityTimer";
@@ -42,6 +44,7 @@ pub struct AbilityTimers {
     hud: u64,
     abilities: u64,
     lists: u64,
+    names: Option<TypeNames>,
 }
 
 impl AbilityTimers {
@@ -61,6 +64,10 @@ impl AbilityTimers {
             tracing::debug!("No {HUD_CLASS}:{ADD_TIMER} implementation");
             return Ok(None);
         };
+        let names = TypeNames::locate(&image);
+        if names.is_none() {
+            tracing::debug!("No type name lookup in the image");
+        }
         let counts = counted_arrays(code, 3);
         let lists = indexed_arrays(code);
         let found = class
@@ -74,6 +81,7 @@ impl AbilityTimers {
                             hud,
                             abilities: u64::from(abilities),
                             lists: u64::from(list),
+                            names,
                         };
                         timers.read(reader).is_some().then_some(timers)
                     })
@@ -129,6 +137,32 @@ impl AbilityTimers {
         }
         Some(timers)
     }
+
+    /// The names of the suit's abilities in its own order, `GeodeShardsAbility`: the ones the
+    /// HUD runs timers for, so the ones the player is using, Helminth's included. `None` once
+    /// the HUD is gone or any of them can't be named.
+    pub fn abilities<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<String>> {
+        let names = self.names?;
+        if reader.read_u64(self.handle).ok()? != self.hud {
+            return None;
+        }
+        let (abilities, count) = array(reader, self.hud + self.abilities, ABILITY)?;
+        if count == 0 || count > MAX_ABILITIES {
+            return None;
+        }
+        let handles = reader
+            .read_vec(abilities, usize::try_from(count * ABILITY).ok()?)
+            .ok()?;
+        handles
+            .as_chunks::<8>()
+            .0
+            .iter()
+            .map(|handle| {
+                let object = reader.read_u64(u64::from_le_bytes(*handle)).ok()?;
+                names.of_object(reader, object)
+            })
+            .collect()
+    }
 }
 
 /// An array header's pointer and element count, if the byte count is whole elements and
@@ -164,6 +198,11 @@ mod tests {
     }
 
     fn hud() -> (FakeReader, AbilityTimers) {
+        let (heap, found) = hud_heap();
+        (FakeReader::new(vec![(HEAP, heap)]), found)
+    }
+
+    fn hud_heap() -> (Vec<u8>, AbilityTimers) {
         let mut heap = vec![0u8; 0x2000];
         let (handle, hud, abilities, lists, timers) =
             (HEAP, HEAP + 0x100, HEAP + 0x800, HEAP + 0x900, HEAP + 0xa00);
@@ -180,8 +219,9 @@ mod tests {
             hud,
             abilities: 0xd0,
             lists: 0x478,
+            names: None,
         };
-        (FakeReader::new(vec![(HEAP, heap)]), found)
+        (heap, found)
     }
 
     #[test]
@@ -218,5 +258,44 @@ mod tests {
             ..timers
         };
         assert_eq!(gone.read(&reader), None);
+    }
+
+    #[test]
+    fn names_the_suits_abilities() {
+        let (mut heap, timers) = hud_heap();
+        let heap = &mut heap;
+        let (abilities, objects, kinds, table, pool) = (
+            HEAP + 0x800,
+            HEAP + 0xc00,
+            HEAP + 0xe00,
+            HEAP + 0xf00,
+            HEAP + 0x1000,
+        );
+        for (index, offset) in [(0u64, 0u32), (1, 0x20)] {
+            let (object, kind) = (objects + index * 0x40, kinds + index * 0x40);
+            put(heap, abilities + index * 8, &(object + 0x30).to_le_bytes());
+            put(heap, object + 0x30, &object.to_le_bytes());
+            put(heap, object + 8, &kind.to_le_bytes());
+            put(heap, kind + 0x2c, &(offset << 16 | 1).to_le_bytes());
+        }
+        put(heap, table, &(table + 0x10).to_le_bytes());
+        put(heap, table + 0x20, &pool.to_le_bytes());
+        put(heap, pool, b"GeodeShardsAbility ");
+        put(heap, pool + 0x20, b"GeodeShellAbility ");
+        let reader = FakeReader::new(vec![(HEAP, heap.clone())]);
+        let named = AbilityTimers {
+            names: Some(TypeNames::at(8, 0x2c, table)),
+            ..timers
+        };
+        assert_eq!(
+            named.abilities(&reader).as_deref(),
+            Some(
+                &[
+                    "GeodeShardsAbility".to_owned(),
+                    "GeodeShellAbility".to_owned()
+                ][..]
+            )
+        );
+        assert_eq!(timers.abilities(&reader), None);
     }
 }

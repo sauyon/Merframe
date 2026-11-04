@@ -68,6 +68,9 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut icons: Vec<(String, String)> = Vec::new();
     let mut hud_icons: HashMap<hud_icons::Wanted, Option<String>> = HashMap::new();
     let mut loadout_read: Option<Instant> = None;
+    // The abilities the HUD names, which follow a warframe switch at once: the inventory's
+    // loadout only changes when the game downloads it again, sometimes a mission later.
+    let mut live: Option<Vec<String>> = None;
     loop {
         tick.tick().await;
         if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
@@ -85,12 +88,17 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
                 let attached = reattach(&owned, cached)?;
                 let readings = read_sources(&attached, &mut moved, &mut found);
                 let dots = ability_dots(attached.reader.as_ref(), &attached.lua, &mut found.hud);
-                anyhow::Ok((attached, moved, found, readings, dots))
+                let using = moved.iter().find_map(|source| source.abilities());
+                anyhow::Ok((attached, moved, found, readings, dots, using))
             })
             .await;
             match attempt {
-                Some(Ok((attached, read, found, readings, dots))) => {
+                Some(Ok((attached, read, found, readings, dots, using))) => {
                     game = Some(attached);
+                    if using != live {
+                        debug!(?using, "Buff strip slots from the HUD");
+                        live = using;
+                    }
                     if let Some(dots) = dots {
                         layout = Some(layout_of(dots));
                     }
@@ -117,8 +125,9 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             seen.clone_from(&counts);
         }
         let idle = readings.is_none();
-        let mut readings = merge(readings.unwrap_or_default(), &abilities);
-        add_hud_icons(&mut readings, &state, &abilities, &icons, &mut hud_icons).await;
+        let slots = live.as_deref().unwrap_or(&abilities);
+        let mut readings = merge(readings.unwrap_or_default(), slots);
+        add_hud_icons(&mut readings, &state, slots, &icons, &mut hud_icons).await;
         if changed {
             let read: Vec<_> = readings
                 .iter()
@@ -212,6 +221,11 @@ fn unix_ms() -> f64 {
 trait BuffSource: Send {
     /// The buffs running now; empty while the source can't be read.
     fn read(&mut self, reader: &Arc<dyn MemoryReader>, lua: &LuaState) -> Vec<Reading>;
+
+    /// The abilities the player is using, in slot order, when the source can tell.
+    fn abilities(&self) -> Option<Vec<String>> {
+        None
+    }
 }
 
 fn buff_sources() -> Vec<Box<dyn BuffSource>> {
@@ -323,6 +337,8 @@ struct AbilityTimerSource {
     /// Searches in a row that found nothing.
     misses: u32,
     falling: Falling,
+    /// The suit's abilities as the HUD last named them.
+    abilities: Option<Vec<String>>,
 }
 
 /// Keeps only readings whose value has been seen falling. The HUD lists counters under
@@ -407,6 +423,9 @@ impl BuffSource for AbilityTimerSource {
             }
         }
         let read = self.timers.and_then(|timers| timers.read(reader.as_ref()));
+        self.abilities = self
+            .timers
+            .and_then(|timers| timers.abilities(reader.as_ref()));
         if read.is_none() {
             self.search(reader);
         }
@@ -425,6 +444,10 @@ impl BuffSource for AbilityTimerSource {
             })
             .collect();
         first_ending(self.falling.keep(readings))
+    }
+
+    fn abilities(&self) -> Option<Vec<String>> {
+        self.abilities.clone()
     }
 }
 

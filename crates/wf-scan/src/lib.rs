@@ -18,14 +18,13 @@ mod roots;
 mod station;
 pub mod swig;
 mod trade;
+mod type_names;
 mod upgrade;
 
 #[cfg(test)]
 mod fake;
 
-pub use ability_hud::{
-    AbilityHud, ability_hud, ability_huds, switch_index, switched_to,
-};
+pub use ability_hud::{AbilityHud, ability_hud, ability_huds, switch_index, switched_to};
 pub use ability_timers::{AbilityTimer, AbilityTimers};
 pub use buffs::{StatusEffect, TIMED, status_effects, status_list};
 pub use bundle::{RewardTile, reward_screen};
@@ -42,4 +41,5 @@ pub use lua::{LuaState, LuaTable};
 pub use relic::{RelicScreen, relic_screen};
 pub use station::StationRiven;
 pub use trade::{TradeScreen, TradeSlot};
+pub use type_names::TypeNames;
 pub use upgrade::upgrade_fingerprint;
