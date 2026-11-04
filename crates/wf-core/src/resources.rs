@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use wf_data::{VendorOffer, currency_vendors, vendor_currencies};
 use wf_inventory::{ArchonCrystalSlot, Inventory};
 
-use crate::catalog::{Catalog, Stock};
+use crate::catalog::{Catalog, Stock, component_image};
 use crate::foundry::{self, CraftNode, FoundryItem, farmed_resource, is_blueprint};
 use crate::identity::{ItemTable, part_identity};
 use crate::view::View;
@@ -290,9 +290,8 @@ fn currency_offer(
     Some(CurrencyOffer {
         unique_name: offer.item.clone(),
         name: offer.name.clone(),
-        image_name: catalog
-            .item(&offer.item)
-            .and_then(|item| item.image_name.clone()),
+        image_name: image_of(catalog, &offer.item)
+            .or_else(|| image_of(catalog, offer.builds.as_deref()?)),
         quantity: offer.quantity,
         price,
         also_costs: offer
@@ -311,6 +310,15 @@ fn currency_offer(
         credits: offer.credits,
         affordable,
     })
+}
+
+fn image_of(catalog: &Catalog, unique_name: &str) -> Option<String> {
+    match catalog.item(unique_name) {
+        Some(item) => item.image_name.clone(),
+        None => catalog
+            .component(unique_name)
+            .and_then(|(item, component)| component_image(item, component)),
+    }
 }
 
 const SHARD_COLOURS: [(&str, &str); 6] = [

@@ -13,6 +13,8 @@ pub struct VendorOffer {
     pub quantity: i64,
     pub prices: Vec<(String, i64)>,
     pub credits: Option<i64>,
+    /// What a blueprint offer builds.
+    pub builds: Option<String>,
 }
 
 impl VendorOffer {

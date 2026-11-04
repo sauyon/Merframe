@@ -120,6 +120,11 @@ for (const manifest of Object.keys(vendors).sort()) {
     if (item.credits) {
       offer.credits = item.credits;
     }
+    // A blueprint borrows the image of what it builds.
+    const built = recipes[uniqueName]?.resultType;
+    if (built) {
+      offer.builds = built;
+    }
     // Rotating bins repeat an offer; one copy is enough.
     const key = JSON.stringify(offer);
     if (seen.has(key)) {
