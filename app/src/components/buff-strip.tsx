@@ -30,8 +30,9 @@ import type {
 // under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
 //
 // Just above the dots, as wide as the ability slots, sit the player's health and energy as
-// the HUD shows them: shields after health on one bar, split by their maxima as the HUD splits
-// its own, with overguard as a line over it, and energy on a bar under it.
+// the HUD shows them, filling from the right as its own bars do: shields after health on one
+// bar, split by their maxima as the HUD splits its own, overshields and overguard as lines
+// over it, and energy on a bar under it.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -97,13 +98,11 @@ const BAR_GAP = 1.5;
 const ENERGY_Y = DOT_Y - BACKING_RADIUS - 4 - BAR_HEIGHT;
 const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
 const OVERGUARD_HEIGHT = 0.8;
-/** The bars' numbers, as a share of the strip's text: health's left of its bar and energy's
- * right of its own, so the two never overlap. */
-const VITALS_TEXT = 0.6;
 /** The HUD's default colours for them. */
 const HEALTH = "rgb(204 41 41)";
 const SHIELD = "rgb(0 213 255)";
-const OVERGUARD = "rgb(190 120 255)";
+const OVERSHIELD = "rgb(179 0 255)";
+const OVERGUARD = "rgb(168 237 219)";
 const ENERGY = "rgb(120 170 255)";
 const EMPTY = "rgb(12 14 16 / 0.6)";
 
@@ -415,95 +414,58 @@ function share(value: number, of: number) {
   return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
 }
 
-/** Health and shields on one bar, overguard over it, and energy under it. */
-function VitalBars({ vitals, fontSize }: { vitals: Vitals; fontSize: number }) {
-  const left = CENTRE - BAR_WIDTH / 2;
-  // Overshields run past their maximum, so the bar holds whichever is more.
-  const total = Math.max(
-    vitals.max_health + vitals.max_shield,
-    vitals.health + vitals.shield,
-  );
-  const health = share(vitals.health, total) * BAR_WIDTH;
-  const shield = share(vitals.shield, total) * BAR_WIDTH;
-  const overguard = share(vitals.overguard, total) * BAR_WIDTH;
-  const energy = share(vitals.energy, vitals.max_energy) * BAR_WIDTH;
-  const size = fontSize * VITALS_TEXT;
-  const number = (
+/** Health and shields on one bar, overshields and overguard as lines over it, and energy
+ * under it. They fill from the right, as the HUD's own bars do. */
+function VitalBars({ vitals }: { vitals: Vitals }) {
+  const right = CENTRE + BAR_WIDTH / 2;
+  /** A fill reaching `start` to `end` of the bar's width in from its right end. */
+  const fill = (
+    key: string,
     y: number,
+    height: number,
+    start: number,
+    end: number,
     colour: string,
-    value: number,
-    side: "left" | "right",
-  ) => (
-    <text
-      x={side === "left" ? left - 1.5 : left + BAR_WIDTH + 1.5}
-      y={y + BAR_HEIGHT / 2 + (size * DIGIT_HEIGHT) / 2}
-      textAnchor={side === "left" ? "end" : "start"}
-      fill={colour}
-      fillOpacity={0.92}
-      fontWeight={600}
-      fontSize={size}
-      dominantBaseline="alphabetic"
-    >
-      {value}
-    </text>
+  ) =>
+    end > start && (
+      <rect
+        key={key}
+        x={right - end * BAR_WIDTH}
+        y={y}
+        width={(end - start) * BAR_WIDTH}
+        height={height}
+        fill={colour}
+      />
+    );
+  const total = vitals.max_health + vitals.max_shield;
+  const health = share(vitals.health, total);
+  const shield = share(Math.min(vitals.shield, vitals.max_shield), total);
+  const overshield = share(
+    vitals.shield - vitals.max_shield,
+    vitals.max_overshield,
   );
+  const overguard = share(
+    vitals.overguard,
+    Math.max(vitals.max_overguard, vitals.overguard),
+  );
+  const energy = share(vitals.energy, vitals.max_energy);
+  const lineY = HEALTH_Y - OVERGUARD_HEIGHT;
   return (
     <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
-      <rect
-        x={left}
-        y={HEALTH_Y}
-        width={BAR_WIDTH}
-        height={BAR_HEIGHT}
-        fill={EMPTY}
-      />
-      <rect
-        x={left}
-        y={HEALTH_Y}
-        width={health}
-        height={BAR_HEIGHT}
-        fill={HEALTH}
-      />
-      <rect
-        x={left + health}
-        y={HEALTH_Y}
-        width={Math.min(shield, BAR_WIDTH - health)}
-        height={BAR_HEIGHT}
-        fill={SHIELD}
-      />
-      {overguard > 0 && (
-        <rect
-          x={left}
-          y={HEALTH_Y - OVERGUARD_HEIGHT}
-          width={overguard}
-          height={OVERGUARD_HEIGHT}
-          fill={OVERGUARD}
-        />
+      {fill("empty", HEALTH_Y, BAR_HEIGHT, 0, 1, EMPTY)}
+      {fill("health", HEALTH_Y, BAR_HEIGHT, 0, health, HEALTH)}
+      {fill("shield", HEALTH_Y, BAR_HEIGHT, health, health + shield, SHIELD)}
+      {fill("overshield", lineY, OVERGUARD_HEIGHT, 0, overshield, OVERSHIELD)}
+      {fill(
+        "overguard",
+        lineY - (overshield > 0 ? OVERGUARD_HEIGHT : 0),
+        OVERGUARD_HEIGHT,
+        0,
+        overguard,
+        OVERGUARD,
       )}
-      <rect
-        x={left}
-        y={ENERGY_Y}
-        width={BAR_WIDTH}
-        height={BAR_HEIGHT}
-        fill={EMPTY}
-      />
-      <rect
-        x={left}
-        y={ENERGY_Y}
-        width={energy}
-        height={BAR_HEIGHT}
-        fill={ENERGY}
-      />
-      {number(
-        HEALTH_Y,
-        vitals.overguard > 0 ? OVERGUARD : vitals.shield > 0 ? SHIELD : HEALTH,
-        vitals.overguard > 0
-          ? vitals.overguard
-          : vitals.shield > 0
-            ? vitals.shield
-            : vitals.health,
-        "left",
-      )}
-      {number(ENERGY_Y, ENERGY, vitals.energy, "right")}
+      {fill("energy-empty", ENERGY_Y, BAR_HEIGHT, 0, 1, EMPTY)}
+      {fill("energy", ENERGY_Y, BAR_HEIGHT, 0, energy, ENERGY)}
     </g>
   );
 }
@@ -564,7 +526,7 @@ export function BuffStrip({
             ),
         )}
         <g opacity={opacity / 100}>
-          {vitals && <VitalBars vitals={vitals} fontSize={fontSize} />}
+          {vitals && <VitalBars vitals={vitals} />}
           {slots.map(({ x, buffs }) => {
             if (buffs.length === 0) {
               return null;

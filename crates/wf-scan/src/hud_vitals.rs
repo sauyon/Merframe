@@ -7,9 +7,9 @@
 //! `HealthAndShield.PlayerHealth`, caches the numbers it last printed: its update adds the
 //! shields to the health to tell whether there is anything to print, and stores the health,
 //! loads the overguard and stores the shields one after the other. The maxima its bars are
-//! split by are stored together, health then shields, by the first call of that update that
-//! stores a run of them beside the numbers. Nothing here is a fixed offset; it is all read out
-//! of that code.
+//! split by are stored together, health, shields, how far over that shields can go, then
+//! overguard, by the first call of that update that stores a run of them beside the numbers.
+//! Nothing here is a fixed offset; it is all read out of that code.
 
 use wf_mem::{MemoryReader, read_u32_le};
 
@@ -46,7 +46,10 @@ pub struct Vitals {
     pub max_health: u32,
     pub shield: u32,
     pub max_shield: u32,
+    /// How far over their maximum shields can go.
+    pub max_overshield: u32,
     pub overguard: u32,
+    pub max_overguard: u32,
     pub energy: f32,
     pub max_energy: f32,
 }
@@ -65,6 +68,8 @@ pub struct HudVitals {
     overguard: u64,
     max_health: u64,
     max_shield: u64,
+    max_overshield: u64,
+    max_overguard: u64,
 }
 
 impl HudVitals {
@@ -84,6 +89,8 @@ impl HudVitals {
             overguard: u64::from(numbers.overguard),
             max_health: u64::from(numbers.max_health),
             max_shield: u64::from(numbers.max_shield),
+            max_overshield: u64::from(numbers.max_overshield),
+            max_overguard: u64::from(numbers.max_overguard),
         })
     }
 
@@ -98,6 +105,8 @@ impl HudVitals {
             overguard: health + 0x14,
             max_health: health + 8,
             max_shield: health + 0xc,
+            max_overshield: health + 0x10,
+            max_overguard: health + 0x18,
         }
     }
 
@@ -123,7 +132,9 @@ impl HudVitals {
             max_health: value(self.max_health)?,
             shield: value(self.shield)?,
             max_shield: value(self.max_shield)?,
+            max_overshield: value(self.max_overshield)?,
             overguard: value(self.overguard)?,
+            max_overguard: value(self.max_overguard)?,
             energy,
             max_energy,
         };
@@ -183,7 +194,7 @@ fn panel_numbers(image: &Image, update: u64) -> Option<PanelNumbers> {
     let code = image.code(update, UPDATE_SPAN)?;
     let (health, shield) = health_and_shield(code)?;
     let overguard = overguard(code, health, shield)?;
-    let (max_health, max_shield) = calls(code, update)
+    let [max_health, max_shield, max_overshield, max_overguard] = calls(code, update)
         .filter_map(|callee| image.code(callee, CALLEE_SPAN))
         .find_map(|callee| maxima(callee, health))?;
     Some(PanelNumbers {
@@ -192,6 +203,8 @@ fn panel_numbers(image: &Image, update: u64) -> Option<PanelNumbers> {
         overguard,
         max_health,
         max_shield,
+        max_overshield,
+        max_overguard,
     })
 }
 
@@ -201,6 +214,8 @@ struct PanelNumbers {
     overguard: u32,
     max_health: u32,
     max_shield: u32,
+    max_overshield: u32,
+    max_overguard: u32,
 }
 
 /// The panel's health and shield fields: `mov eax, [panel+shield]; add eax, [panel+health]`.
@@ -236,8 +251,9 @@ fn overguard(code: &[u8], health: u32, shield: u32) -> Option<u32> {
     })
 }
 
-/// The maxima a function stores in a run beside the numbers: health, then shields.
-fn maxima(code: &[u8], health: u32) -> Option<(u32, u32)> {
+/// The maxima a function stores in a run beside the numbers: health, shields, how far over
+/// that shields can go, and overguard.
+fn maxima(code: &[u8], health: u32) -> Option<[u32; MAXIMA_RUN]> {
     (0..code.len()).find_map(|at| {
         let mut stores = Vec::with_capacity(MAXIMA_RUN);
         let mut next = at;
@@ -255,7 +271,12 @@ fn maxima(code: &[u8], health: u32) -> Option<(u32, u32)> {
             next += store.len;
             stores.push(store);
         }
-        Some((stores[0].disp, stores[1].disp))
+        Some([
+            stores[0].disp,
+            stores[1].disp,
+            stores[2].disp,
+            stores[3].disp,
+        ])
     })
 }
 
@@ -359,7 +380,7 @@ mod tests {
             0x44, 0x89, 0xBB, 0xE0, 0x02, 0, 0, 0x89, 0xB3, 0xE4, 0x02, 0, 0, 0x89, 0xAB, 0xE8,
             0x02, 0, 0, 0x44, 0x89, 0xB3, 0xF0, 0x02, 0, 0,
         ];
-        assert_eq!(maxima(&stores, 0x2d8), Some((0x2e0, 0x2e4)));
+        assert_eq!(maxima(&stores, 0x2d8), Some([0x2e0, 0x2e4, 0x2e8, 0x2f0]));
         assert_eq!(maxima(&stores[7..], 0x2d8), None);
     }
 
@@ -380,6 +401,7 @@ mod tests {
             (0x2dc, 1649),
             (0x2e0, 2000),
             (0x2e4, 1700),
+            (0x2e8, 1200),
         ] {
             put(panel + field, &value.to_le_bytes());
         }
@@ -392,7 +414,9 @@ mod tests {
                 max_health: 2000,
                 shield: 1649,
                 max_shield: 1700,
+                max_overshield: 1200,
                 overguard: 0,
+                max_overguard: 0,
                 energy: 628.5,
                 max_energy: 700.0,
             })

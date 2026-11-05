@@ -709,10 +709,17 @@ impl Sent {
         layout: Option<BuffLayout>,
         vitals: Option<Vitals>,
     ) {
-        if same(&timers, &self.timers) && layout == self.layout && vitals == self.vitals {
+        let strip = same(&timers, &self.timers) && layout == self.layout;
+        if strip && vitals == self.vitals {
             return;
         }
-        overlay::on_buffs(app, state, timers.clone(), layout, vitals);
+        // Energy and health change many times a second; while the strip stays up, only its
+        // numbers need passing on.
+        if strip && vitals.is_some() && self.vitals.is_some() {
+            overlay::on_vitals(app, state, vitals);
+        } else {
+            overlay::on_buffs(app, state, timers.clone(), layout, vitals);
+        }
         *self = Self {
             timers,
             layout,

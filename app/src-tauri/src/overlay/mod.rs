@@ -264,7 +264,10 @@ pub struct Vitals {
     pub max_health: u32,
     pub shield: u32,
     pub max_shield: u32,
+    /// How far over their maximum shields can go.
+    pub max_overshield: u32,
     pub overguard: u32,
+    pub max_overguard: u32,
     pub energy: u32,
     pub max_energy: u32,
 }
@@ -279,7 +282,9 @@ impl From<wf_scan::Vitals> for Vitals {
             max_health: read.max_health,
             shield: read.shield,
             max_shield: read.max_shield,
+            max_overshield: read.max_overshield,
             overguard: read.overguard,
+            max_overguard: read.max_overguard,
             energy: whole(read.energy),
             max_energy: whole(read.max_energy),
         }
@@ -610,6 +615,17 @@ pub fn on_buffs<R: Runtime>(
             }
         });
     }
+}
+
+/// New numbers for the vitals the strip already shows, without showing its window again.
+pub fn on_vitals<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, vitals: Option<Vitals>) {
+    update_slots(app, state, |slots| {
+        let changed = slots.buffs.is_some() && slots.vitals != vitals;
+        if changed {
+            slots.vitals = vitals;
+        }
+        changed
+    });
 }
 
 pub fn on_inventory_updated<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>) {

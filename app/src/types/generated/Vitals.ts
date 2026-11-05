@@ -4,4 +4,8 @@
  * The player's health, shields, overguard and energy, as the HUD shows them, whole numbers
  * as it prints them.
  */
-export type Vitals = { health: number, max_health: number, shield: number, max_shield: number, overguard: number, energy: number, max_energy: number, };
+export type Vitals = { health: number, max_health: number, shield: number, max_shield: number, 
+/**
+ * How far over their maximum shields can go.
+ */
+max_overshield: number, overguard: number, max_overguard: number, energy: number, max_energy: number, };
