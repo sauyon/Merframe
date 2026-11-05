@@ -103,7 +103,8 @@ const HEALTH = "rgb(204 41 41)";
 const SHIELD = "rgb(0 213 255)";
 const OVERSHIELD = "rgb(179 0 255)";
 const OVERGUARD = "rgb(168 237 219)";
-const ENERGY = "rgb(120 170 255)";
+/** Off-white like the strip's numbers, apart from the shields' blue. */
+const ENERGY = INK;
 const EMPTY = "rgb(12 14 16 / 0.6)";
 
 function useNow() {
