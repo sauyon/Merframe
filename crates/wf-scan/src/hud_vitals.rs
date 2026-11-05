@@ -16,6 +16,12 @@ use wf_mem::{MemoryReader, read_u32_le};
 use crate::swig::Image;
 
 const ENERGY_TEXT: &str = "AbilityPanel.EnergyAmount";
+/// The energy bar's body, which the readout colours from a field of the HUD just after naming.
+const ENERGY_BAR_TEXT: &str = "AbilityPanel.EnergyBar.Mover";
+/// How far past naming the bar the readout loads its colour.
+const COLOUR_SPAN: usize = 0x20;
+/// The largest `0xRRGGBB`.
+const MAX_COLOUR: f32 = 16_777_215.0;
 const PANEL_TEXT: &str = "HealthAndShield.PlayerHealth";
 /// How far past the panel's wiring the HUD calls its update.
 const WIRING_SPAN: usize = 0x1000;
@@ -52,6 +58,8 @@ pub struct Vitals {
     pub max_overguard: u32,
     pub energy: f32,
     pub max_energy: f32,
+    /// The colour the HUD draws the energy bar in, `0xRRGGBB`: the warframe's energy colour.
+    pub energy_colour: Option<u32>,
 }
 
 /// Where the HUD keeps what it shows of the local player.
@@ -60,6 +68,7 @@ pub struct HudVitals {
     /// Fields of the HUD.
     energy: u64,
     max_energy: u64,
+    energy_colour: Option<u64>,
     /// The HUD's field holding a handle to the health panel.
     panel: u64,
     /// Fields of the panel.
@@ -83,6 +92,7 @@ impl HudVitals {
         Some(Self {
             energy: u64::from(energy),
             max_energy: u64::from(max_energy),
+            energy_colour: energy_colour(image).map(u64::from),
             panel: u64::from(panel),
             health: u64::from(numbers.health),
             shield: u64::from(numbers.shield),
@@ -99,6 +109,7 @@ impl HudVitals {
         Self {
             energy,
             max_energy: energy + 8,
+            energy_colour: Some(energy + 0x10),
             panel,
             health,
             shield: health + 4,
@@ -118,6 +129,13 @@ impl HudVitals {
         };
         let energy = float(hud + self.energy)?;
         let max_energy = float(hud + self.max_energy)?;
+        // The HUD hands the bar its colour as a float holding `0xRRGGBB`.
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let energy_colour = self
+            .energy_colour
+            .and_then(|field| float(hud + field))
+            .filter(|colour| *colour <= MAX_COLOUR && colour.fract() == 0.0)
+            .map(|colour| colour as u32);
         let panel = reader
             .read_u64(reader.read_u64(hud + self.panel).ok()?)
             .ok()?;
@@ -137,6 +155,7 @@ impl HudVitals {
             max_overguard: value(self.max_overguard)?,
             energy,
             max_energy,
+            energy_colour,
         };
         (vitals.max_health > 0).then_some(vitals)
     }
@@ -292,24 +311,39 @@ fn call_target(code: &[u8], at: usize, start: u64) -> Option<u64> {
     start.checked_add_signed(i64::try_from(at + 5).ok()? + rel)
 }
 
-/// `movss xmm, [rcx+disp32]` displacements in `code`, in order.
+/// The HUD's field holding the energy bar's colour: the first float the readout loads after
+/// naming the bar's body.
+fn energy_colour(image: &Image) -> Option<u32> {
+    let text = image.text(ENERGY_BAR_TEXT)?;
+    image.references(text).into_iter().find_map(|reference| {
+        let code = image.code(reference, COLOUR_SPAN)?;
+        (0..code.len()).find_map(|at| float_load(code.get(at..)?, None))
+    })
+}
+
+/// `movss xmm, [reg+disp32]` displacements in `code`, in order, from `rcx` alone.
 fn float_loads(code: &[u8]) -> Vec<u32> {
     (0..code.len())
-        .filter_map(|at| {
-            let [0xF3, rest @ ..] = code.get(at..)? else {
-                return None;
-            };
-            let rest = match rest {
-                [rex @ 0x40..=0x47, rest @ ..] if rex & 1 == 0 => rest,
-                rest => rest,
-            };
-            let [0x0F, 0x10, modrm, ..] = *rest else {
-                return None;
-            };
-            // mod 10 (disp32), r/m 001 (rcx)
-            (modrm & 0xC7 == 0x81).then(|| read_u32_le(rest, 3))?
-        })
+        .filter_map(|at| float_load(code.get(at..)?, Some(RCX)))
         .collect()
+}
+
+/// The displacement of `movss xmm, [reg+disp32]` at the start of `code`, from `base` if given.
+fn float_load(code: &[u8], base: Option<u8>) -> Option<u32> {
+    let [0xF3, rest @ ..] = code else {
+        return None;
+    };
+    let rest = match rest {
+        [rex @ 0x40..=0x47, rest @ ..] if rex & 1 == 0 => rest,
+        rest => rest,
+    };
+    let [0x0F, 0x10, modrm, ..] = *rest else {
+        return None;
+    };
+    // mod 10 (disp32), no SIB
+    let register = modrm & 7;
+    (modrm >> 6 == 2 && register != 4 && base.is_none_or(|base| base == register))
+        .then(|| read_u32_le(rest, 3))?
 }
 
 /// An instruction reading or writing memory at a register plus a 32-bit displacement:
@@ -394,6 +428,7 @@ mod tests {
         };
         put(hud + 0x500, &628.5f32.to_le_bytes());
         put(hud + 0x508, &700.0f32.to_le_bytes());
+        put(hud + 0x510, &(0xa8_eddb as f32).to_le_bytes());
         put(hud + 0x6b0, &handle.to_le_bytes());
         put(handle, &panel.to_le_bytes());
         for (field, value) in [
@@ -419,6 +454,7 @@ mod tests {
                 max_overguard: 0,
                 energy: 628.5,
                 max_energy: 700.0,
+                energy_colour: Some(0xa8_eddb),
             })
         );
         let unset = HudVitals::at(0x500, 0x6b0, 0x2e8);

@@ -8,4 +8,8 @@ export type Vitals = { health: number, max_health: number, shield: number, max_s
 /**
  * How far over their maximum shields can go.
  */
-max_overshield: number, overguard: number, max_overguard: number, energy: number, max_energy: number, };
+max_overshield: number, overguard: number, max_overguard: number, energy: number, max_energy: number, 
+/**
+ * The colour the HUD draws the energy bar in, `0xRRGGBB`.
+ */
+energy_colour: number | null, };

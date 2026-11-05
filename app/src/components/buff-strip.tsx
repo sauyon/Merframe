@@ -103,7 +103,7 @@ const HEALTH = "rgb(204 41 41)";
 const SHIELD = "rgb(0 213 255)";
 const OVERSHIELD = "rgb(179 0 255)";
 const OVERGUARD = "rgb(168 237 219)";
-/** Off-white like the strip's numbers, apart from the shields' blue. */
+/** Energy's colour while the HUD's own can't be read. */
 const ENERGY = INK;
 const EMPTY = "rgb(12 14 16 / 0.6)";
 
@@ -415,6 +415,13 @@ function share(value: number, of: number) {
   return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
 }
 
+/** The colour the HUD draws the energy bar in: the warframe's energy colour. */
+function energyColour(vitals: Vitals) {
+  return vitals.energy_colour === null
+    ? ENERGY
+    : `#${vitals.energy_colour.toString(16).padStart(6, "0")}`;
+}
+
 /** Shields covering health, so the health shows as they drain, overshields and overguard as
  * lines over them, and energy under them, each against its own maximum. They fill from the
  * right, as the HUD's own bars do. */
@@ -466,7 +473,7 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
         OVERGUARD,
       )}
       {fill("energy-empty", ENERGY_Y, BAR_HEIGHT, 0, 1, EMPTY)}
-      {fill("energy", ENERGY_Y, BAR_HEIGHT, 0, energy, ENERGY)}
+      {fill("energy", ENERGY_Y, BAR_HEIGHT, 0, energy, energyColour(vitals))}
     </g>
   );
 }
