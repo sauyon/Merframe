@@ -92,12 +92,13 @@ const DIGIT_WIDTH = 0.56;
 const DIGIT_HEIGHT = 0.72;
 /** The health and energy bars, above the dots' discs. */
 const BAR_WIDTH = SLOTS * PITCH;
-const BAR_HEIGHT = 1.6;
-const BAR_GAP = 1;
-const ENERGY_Y = DOT_Y - BACKING_RADIUS - 2 - BAR_HEIGHT;
+const BAR_HEIGHT = 2;
+const BAR_GAP = 1.5;
+const ENERGY_Y = DOT_Y - BACKING_RADIUS - 4 - BAR_HEIGHT;
 const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
 const OVERGUARD_HEIGHT = 0.8;
-/** The bars' numbers, beside them, as a share of the strip's text. */
+/** The bars' numbers, as a share of the strip's text: health's left of its bar and energy's
+ * right of its own, so the two never overlap. */
 const VITALS_TEXT = 0.6;
 /** The HUD's default colours for them. */
 const HEALTH = "rgb(204 41 41)";
@@ -427,10 +428,16 @@ function VitalBars({ vitals, fontSize }: { vitals: Vitals; fontSize: number }) {
   const overguard = share(vitals.overguard, total) * BAR_WIDTH;
   const energy = share(vitals.energy, vitals.max_energy) * BAR_WIDTH;
   const size = fontSize * VITALS_TEXT;
-  const number = (y: number, colour: string, value: number) => (
+  const number = (
+    y: number,
+    colour: string,
+    value: number,
+    side: "left" | "right",
+  ) => (
     <text
-      x={left + BAR_WIDTH + 1.5}
+      x={side === "left" ? left - 1.5 : left + BAR_WIDTH + 1.5}
       y={y + BAR_HEIGHT / 2 + (size * DIGIT_HEIGHT) / 2}
+      textAnchor={side === "left" ? "end" : "start"}
       fill={colour}
       fillOpacity={0.92}
       fontWeight={600}
@@ -494,8 +501,9 @@ function VitalBars({ vitals, fontSize }: { vitals: Vitals; fontSize: number }) {
           : vitals.shield > 0
             ? vitals.shield
             : vitals.health,
+        "left",
       )}
-      {number(ENERGY_Y, ENERGY, vitals.energy)}
+      {number(ENERGY_Y, ENERGY, vitals.energy, "right")}
     </g>
   );
 }
