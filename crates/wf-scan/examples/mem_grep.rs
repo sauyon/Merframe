@@ -12,7 +12,9 @@ use wf_mem::open_game;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
-    let pattern = args.next().ok_or("usage: mem_grep <pattern> [context] [max]")?;
+    let pattern = args
+        .next()
+        .ok_or("usage: mem_grep <pattern> [context] [max]")?;
     let context: usize = args.next().map_or(Ok(200), |s| s.parse())?;
     let max: usize = args.next().map_or(Ok(20), |s| s.parse())?;
     let reader = open_game()?;
@@ -31,7 +33,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             let hi = (at + pattern.len() + context).min(data.len());
             let text: String = data[lo..hi]
                 .iter()
-                .map(|&b| if b.is_ascii_graphic() || b == b' ' { char::from(b) } else { '.' })
+                .map(|&b| {
+                    if b.is_ascii_graphic() || b == b' ' {
+                        char::from(b)
+                    } else {
+                        '.'
+                    }
+                })
                 .collect();
             if !seen.insert(text.clone()) {
                 continue;

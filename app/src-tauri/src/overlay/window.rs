@@ -122,9 +122,7 @@ pub(super) fn bounds_for(
             | Kind::Riven
             | Kind::Ducatering
             | Kind::Notification
-            | Kind::Buffs => {
-                (middle, (screen.height / 2.0 - height / 2.0).round())
-            }
+            | Kind::Buffs => (middle, (screen.height / 2.0 - height / 2.0).round()),
         },
     };
     Bounds {

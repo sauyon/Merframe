@@ -36,9 +36,14 @@ fn main() -> Res<()> {
         Some("obj") => {
             let addr = args.get(1).ok_or("usage: rtti obj <addr>")?;
             let addr = u64::from_str_radix(addr.trim_start_matches("0x"), 16)?;
-            println!("{addr:#x}: {}", class_name(&*reader, &image, addr).unwrap_or_else(|| "?".into()));
+            println!(
+                "{addr:#x}: {}",
+                class_name(&*reader, &image, addr).unwrap_or_else(|| "?".into())
+            );
             for off in (0..FIELDS).step_by(8) {
-                let Ok(ptr) = reader.read_u64(addr + off) else { break };
+                let Ok(ptr) = reader.read_u64(addr + off) else {
+                    break;
+                };
                 if let Some(name) = class_name(&*reader, &image, ptr) {
                     println!("  +{off:#05x} {ptr:#x} {name}");
                 }
@@ -51,7 +56,9 @@ fn main() -> Res<()> {
                 tables.extend(script.locals(&*reader));
                 for table in tables {
                     for (key, value) in table.entries(&*reader) {
-                        let LuaValue::Userdata(ud) = value else { continue };
+                        let LuaValue::Userdata(ud) = value else {
+                            continue;
+                        };
                         if let Some((at, name)) = userdata_class(&*reader, &image, ud) {
                             println!("script {i} {key}: {at:#x} {name}");
                         }
@@ -66,8 +73,15 @@ fn main() -> Res<()> {
             let hits: Vec<usize> = memchr::memmem::find_iter(&data, pattern.as_bytes()).collect();
             println!("{} hits in {} MB image", hits.len(), data.len() >> 20);
             for at in hits.into_iter().take(max) {
-                let end = data[at..].iter().position(|&b| b == 0).map_or(at, |n| at + n);
-                println!("{:#x} {}", image.base + at as u64, String::from_utf8_lossy(&data[at..end.min(at + 120)]));
+                let end = data[at..]
+                    .iter()
+                    .position(|&b| b == 0)
+                    .map_or(at, |n| at + n);
+                println!(
+                    "{:#x} {}",
+                    image.base + at as u64,
+                    String::from_utf8_lossy(&data[at..end.min(at + 120)])
+                );
             }
         }
         _ => return Err("usage: rtti obj <addr> | rtti lua | rtti img <text>".into()),
@@ -99,9 +113,13 @@ fn class_name(reader: &dyn MemoryReader, image: &Image, obj: u64) -> Option<Stri
         return None;
     }
     let rva = u32::from_le_bytes(col.get(12..16)?.try_into().ok()?);
-    let name = reader.read_vec(image.base + u64::from(rva) + 16, 128).ok()?;
+    let name = reader
+        .read_vec(image.base + u64::from(rva) + 16, 128)
+        .ok()?;
     let end = name.iter().position(|&b| b == 0)?;
     let raw = std::str::from_utf8(&name[..end]).ok()?;
-    let class = raw.strip_prefix(".?AV").or_else(|| raw.strip_prefix(".?AU"))?;
+    let class = raw
+        .strip_prefix(".?AV")
+        .or_else(|| raw.strip_prefix(".?AU"))?;
     Some(class.trim_end_matches("@@").to_owned())
 }

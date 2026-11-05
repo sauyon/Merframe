@@ -51,7 +51,9 @@ fn main() -> Res<()> {
     let state = take_opt(&mut args, "--state").unwrap_or_else(|| "timer_scan.state".into());
     let tol: f64 = take_opt(&mut args, "--tol").map_or(Ok(0.25), |s| s.parse())?;
     let wide = take_flag(&mut args, "--f64");
-    let expect: Option<f64> = take_opt(&mut args, "--expect").map(|s| s.parse()).transpose()?;
+    let expect: Option<f64> = take_opt(&mut args, "--expect")
+        .map(|s| s.parse())
+        .transpose()?;
     let cmd = args.first().cloned().unwrap_or_default();
     let reader = open_game()?;
 
@@ -66,7 +68,15 @@ fn main() -> Res<()> {
             let (Some(lo), Some(hi)) = (args.get(1), args.get(2)) else {
                 return Err("usage: timer_scan hunt <lo> <hi>".into());
             };
-            return hunt(&*reader, lo.parse()?, hi.parse()?, wide, tol, expect, &state);
+            return hunt(
+                &*reader,
+                lo.parse()?,
+                hi.parse()?,
+                wide,
+                tol,
+                expect,
+                &state,
+            );
         }
         "peek" => {
             let addr = args.get(1).ok_or("usage: timer_scan peek <addr>")?;
@@ -75,7 +85,9 @@ fn main() -> Res<()> {
             return Ok(());
         }
         "chase" => {
-            let addr = args.get(1).ok_or("usage: timer_scan chase <addr> [depth]")?;
+            let addr = args
+                .get(1)
+                .ok_or("usage: timer_scan chase <addr> [depth]")?;
             let addr = u64::from_str_radix(addr.trim_start_matches("0x"), 16)?;
             let depth: usize = args.get(2).map_or(Ok(3), |s| s.parse())?;
             chase(&*reader, addr & !7, depth);
@@ -86,7 +98,12 @@ fn main() -> Res<()> {
             let c = load(&state)?;
             for (old, new) in c.iter().zip(reread(&*reader, &c)).take(n) {
                 let v = new.map_or("-".into(), |n| format!("{:.3}", n.val));
-                println!("{:#014x} {} was {:.3} now {v}", old.addr, width(old), old.val);
+                println!(
+                    "{:#014x} {} was {:.3} now {v}",
+                    old.addr,
+                    width(old),
+                    old.val
+                );
             }
             println!("{} candidates", c.len());
             return Ok(());
@@ -103,14 +120,21 @@ fn main() -> Res<()> {
                         "dec" => dv < 0.0 && (dv + dt).abs() <= tol,
                         "inc" => dv > 0.0 && (dv - dt).abs() <= tol,
                         "up" => dv > tol,
-                        "same" => dv.to_bits() == 0.0f64.to_bits() || n.val.to_bits() == o.val.to_bits(),
+                        "same" => {
+                            dv.to_bits() == 0.0f64.to_bits() || n.val.to_bits() == o.val.to_bits()
+                        }
                         _ => n.val.to_bits() != o.val.to_bits(),
                     };
                     keep.then_some(n)
                 })
                 .collect()
         }
-        _ => return Err("usage: timer_scan new <lo> <hi> | dec | inc | up | same | changed | list [n]".into()),
+        _ => {
+            return Err(
+                "usage: timer_scan new <lo> <hi> | dec | inc | up | same | changed | list [n]"
+                    .into(),
+            );
+        }
     };
     save(&state, &cands)?;
     println!("{} candidates", cands.len());
@@ -152,15 +176,26 @@ fn full_scan(reader: &dyn MemoryReader, lo: f64, hi: f64, wide: bool) -> Res<Vec
                 let addr = pos + off as u64;
                 let v = f64::from(f32::from_le_bytes(*w));
                 if (lo..=hi).contains(&v) {
-                    out.push(Cand { addr, is_f64: false, val: v, t });
+                    out.push(Cand {
+                        addr,
+                        is_f64: false,
+                        val: v,
+                        t,
+                    });
                 }
-                if wide && off % 8 == 0
+                if wide
+                    && off % 8 == 0
                     && let Some(b) = data.get(off..off + 8)
                     && let Ok(b) = <[u8; 8]>::try_from(b)
                 {
                     let v = f64::from_le_bytes(b);
                     if (lo..=hi).contains(&v) {
-                        out.push(Cand { addr, is_f64: true, val: v, t });
+                        out.push(Cand {
+                            addr,
+                            is_f64: true,
+                            val: v,
+                            t,
+                        });
                     }
                 }
             }
@@ -184,11 +219,15 @@ fn reread(reader: &dyn MemoryReader, cands: &[Cand]) -> Vec<Option<Cand>> {
         let base = c.addr & !(BLOCK - 1);
         if block.as_ref().is_none_or(|(b, _, _)| *b != base) {
             // Read a little past the block so an f64 at its end is whole.
-            let data = reader.read_vec(base, usize::try_from(BLOCK).unwrap_or(0) + 8).unwrap_or_default();
+            let data = reader
+                .read_vec(base, usize::try_from(BLOCK).unwrap_or(0) + 8)
+                .unwrap_or_default();
             block = Some((base, data, now()));
         }
         let Some((b, data, t)) = &block else { continue };
-        let Ok(o) = usize::try_from(c.addr - b) else { continue };
+        let Ok(o) = usize::try_from(c.addr - b) else {
+            continue;
+        };
         let val = if c.is_f64 {
             data.get(o..o + 8)
                 .and_then(|s| <[u8; 8]>::try_from(s).ok())
@@ -215,7 +254,9 @@ fn save(path: &str, cands: &[Cand]) -> Res<()> {
 }
 
 fn load(path: &str) -> Res<Vec<Cand>> {
-    let mut r = BufReader::new(fs::File::open(path).map_err(|e| format!("{path}: {e}; run `timer_scan new` first"))?);
+    let mut r = BufReader::new(
+        fs::File::open(path).map_err(|e| format!("{path}: {e}; run `timer_scan new` first"))?,
+    );
     let mut out = Vec::new();
     let mut rec = [0u8; 25];
     while r.read_exact(&mut rec).is_ok() {
@@ -280,7 +321,10 @@ fn hunt(
         println!("  {:#014x} {:.2}", c.addr, c.val);
     }
 
-    println!("\nwatching for a recast: {} timers for {WATCH_SECS:.0}s)", cands.len());
+    println!(
+        "\nwatching for a recast: {} timers for {WATCH_SECS:.0}s)",
+        cands.len()
+    );
     let start = now();
     while now() - start < WATCH_SECS && !cands.is_empty() {
         std::thread::sleep(std::time::Duration::from_millis(100));
@@ -295,17 +339,30 @@ fn hunt(
                         && n.val > o.val + REFRESH_JUMP
                         && expect.is_none_or(|e| (n.val - e).abs() <= EXPECT_TOL)
                 })
-                    .map(|n| (*o, n))
+                .map(|n| (*o, n))
             })
             .collect();
         if !refreshed.is_empty() {
             let mut report = String::new();
             for (o, n) in &refreshed {
-                let _ = writeln!(report, "REFRESHED {:#014x}: {:.2} -> {:.2}", n.addr, o.val, n.val);
+                let _ = writeln!(
+                    report,
+                    "REFRESHED {:#014x}: {:.2} -> {:.2}",
+                    n.addr, o.val, n.val
+                );
             }
             for (_, n) in &refreshed {
-                let _ = write!(report, "\n== around {:#014x}\n{}", n.addr, peek(reader, n.addr));
-                let _ = write!(report, "\n== pointers into {:#014x} - {REF_SPAN:#x}\n", n.addr);
+                let _ = write!(
+                    report,
+                    "\n== around {:#014x}\n{}",
+                    n.addr,
+                    peek(reader, n.addr)
+                );
+                let _ = write!(
+                    report,
+                    "\n== pointers into {:#014x} - {REF_SPAN:#x}\n",
+                    n.addr
+                );
                 report += &refs(reader, n.addr)?;
             }
             print!("{report}");
@@ -314,7 +371,11 @@ fn hunt(
             println!("\nsaved to {out}");
             return Ok(());
         }
-        cands = fresh.into_iter().flatten().filter(|c| c.val > 0.0).collect();
+        cands = fresh
+            .into_iter()
+            .flatten()
+            .filter(|c| c.val > 0.0)
+            .collect();
     }
     println!("no timer jumped up");
     Ok(())
@@ -326,7 +387,8 @@ const PEEK_AFTER: u64 = 0x100;
 /// Hex dump around `addr`, decoding each word as floats and following pointers to text.
 fn peek(reader: &dyn MemoryReader, addr: u64) -> String {
     let base = (addr - PEEK_BEFORE) & !7;
-    let Ok(data) = reader.read_vec(base, usize::try_from(PEEK_BEFORE + PEEK_AFTER).unwrap_or(0)) else {
+    let Ok(data) = reader.read_vec(base, usize::try_from(PEEK_BEFORE + PEEK_AFTER).unwrap_or(0))
+    else {
         return "unreadable\n".into();
     };
     let mut out = String::new();
@@ -335,10 +397,18 @@ fn peek(reader: &dyn MemoryReader, addr: u64) -> String {
         let word = u64::from_le_bytes(*w);
         let lo = f32::from_le_bytes([w[0], w[1], w[2], w[3]]);
         let hi = f32::from_le_bytes([w[4], w[5], w[6], w[7]]);
-        let mark = if (at..at + 8).contains(&addr) { ">>" } else { "  " };
+        let mark = if (at..at + 8).contains(&addr) {
+            ">>"
+        } else {
+            "  "
+        };
         let off = i64::try_from(at).unwrap_or(0) - i64::try_from(addr & !7).unwrap_or(0);
         let sign = if off < 0 { '-' } else { '+' };
-        let _ = write!(out, "{mark}{sign}{:03x} {word:016x}  f32 {lo:>12.3} {hi:>12.3}", off.unsigned_abs());
+        let _ = write!(
+            out,
+            "{mark}{sign}{:03x} {word:016x}  f32 {lo:>12.3} {hi:>12.3}",
+            off.unsigned_abs()
+        );
         if let Some(s) = text_at(reader, word) {
             let _ = write!(out, "  -> {s:?}");
         } else if let Some(s) = reader.read_u64(word).ok().and_then(|p| text_at(reader, p)) {
@@ -373,7 +443,15 @@ const CHASE_SPAN: u64 = 0x100;
 fn chase(reader: &dyn MemoryReader, addr: u64, depth: usize) {
     let mut seen = std::collections::HashSet::new();
     let base = addr.saturating_sub(CHASE_SPAN);
-    walk(reader, base, CHASE_SPAN * 2, depth, &format!("{addr:#x}"), addr, &mut seen);
+    walk(
+        reader,
+        base,
+        CHASE_SPAN * 2,
+        depth,
+        &format!("{addr:#x}"),
+        addr,
+        &mut seen,
+    );
 }
 
 fn walk(
@@ -395,7 +473,11 @@ fn walk(
         }
         let at = base + (i as u64) * 8;
         let off = i128::from(at) - i128::from(origin);
-        let step = format!("{path}[{}{:#x}]", if off < 0 { "-" } else { "+" }, off.unsigned_abs());
+        let step = format!(
+            "{path}[{}{:#x}]",
+            if off < 0 { "-" } else { "+" },
+            off.unsigned_abs()
+        );
         if let Some(text) = text_at(reader, ptr) {
             println!("{step} -> {text:?}");
         }

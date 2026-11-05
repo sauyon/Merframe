@@ -15,7 +15,8 @@ use wf_scan::lua::{LuaTable, LuaValue};
 const MAX_TABLES: usize = 2_000_000;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (prefixes, needles): (Vec<String>, Vec<String>) = std::env::args().skip(1).partition(|a| a.starts_with('@'));
+    let (prefixes, needles): (Vec<String>, Vec<String>) =
+        std::env::args().skip(1).partition(|a| a.starts_with('@'));
     let prefixes: Vec<String> = prefixes.into_iter().map(|p| p[1..].to_owned()).collect();
     let needles: Vec<String> = needles.into_iter().map(|s| s.to_lowercase()).collect();
     let reader = open_game()?;
@@ -34,24 +35,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !seen.insert(table) || seen.len() > MAX_TABLES {
             continue;
         }
-        let mut push = |value: LuaValue, path: String, queue: &mut VecDeque<(LuaTable, String)>| match value {
-            LuaValue::Table(t) => queue.push_back((t, path)),
-            LuaValue::Function(f) if seen_fns.insert(f) => {
-                for (j, up) in f.upvalues(&*reader).into_iter().enumerate() {
-                    if let LuaValue::Table(t) = up {
-                        queue.push_back((t, format!("{path}^{j}")));
+        let mut push =
+            |value: LuaValue, path: String, queue: &mut VecDeque<(LuaTable, String)>| match value {
+                LuaValue::Table(t) => queue.push_back((t, path)),
+                LuaValue::Function(f) if seen_fns.insert(f) => {
+                    for (j, up) in f.upvalues(&*reader).into_iter().enumerate() {
+                        if let LuaValue::Table(t) = up {
+                            queue.push_back((t, format!("{path}^{j}")));
+                        }
                     }
                 }
-            }
-            _ => {}
-        };
+                _ => {}
+            };
         for (key, value) in table.entries(&*reader) {
             let lower = key.to_lowercase();
             let full = format!("{path}.{key}");
             let under = prefixes.iter().any(|p| full.contains(p.as_str()));
             if under || needles.iter().any(|n| lower.contains(n.as_str())) {
                 match &value {
-                    LuaValue::Table(t) => println!("{path}.{key}: table[{}]", t.items(&*reader).len()),
+                    LuaValue::Table(t) => {
+                        println!("{path}.{key}: table[{}]", t.items(&*reader).len())
+                    }
                     LuaValue::Function(_) => {}
                     other => println!("{path}.{key} = {other:?}"),
                 }

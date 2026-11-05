@@ -91,7 +91,11 @@ fn unmastered<'a>(account: Option<&Account>, catalog: &'a Catalog) -> HashSet<&'
 /// The last part of a game path: `/Lotus/Upgrades/.../AbilityDurationOnCast` gives
 /// `AbilityDurationOnCast`.
 fn stem(unique_name: &str) -> String {
-    unique_name.rsplit('/').next().unwrap_or(unique_name).to_owned()
+    unique_name
+        .rsplit('/')
+        .next()
+        .unwrap_or(unique_name)
+        .to_owned()
 }
 
 impl Core {

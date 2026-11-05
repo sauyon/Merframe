@@ -30,7 +30,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn dump(reader: &dyn MemoryReader, table: LuaTable, indent: usize, depth: usize, seen: &mut HashSet<LuaTable>) {
+fn dump(
+    reader: &dyn MemoryReader,
+    table: LuaTable,
+    indent: usize,
+    depth: usize,
+    seen: &mut HashSet<LuaTable>,
+) {
     if !seen.insert(table) {
         return;
     }
