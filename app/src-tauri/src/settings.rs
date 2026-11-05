@@ -392,6 +392,8 @@ pub struct BuffSettings {
     pub buffs_scale: u8,
     /// How far below the game's dots the strip sits, in pixels at 1080p.
     pub buffs_offset: i8,
+    /// Health, shield and energy bars above the dots.
+    pub buffs_vitals: bool,
 }
 
 impl Default for BuffSettings {
@@ -405,6 +407,7 @@ impl Default for BuffSettings {
             buffs_cover_dots: true,
             buffs_scale: 100,
             buffs_offset: 0,
+            buffs_vitals: true,
         }
     }
 }

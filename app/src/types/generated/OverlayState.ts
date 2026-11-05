@@ -10,9 +10,14 @@ import type { RecommendationTrigger } from "./RecommendationTrigger";
 import type { RewardTrigger } from "./RewardTrigger";
 import type { RivenTrigger } from "./RivenTrigger";
 import type { TextSize } from "./TextSize";
+import type { Vitals } from "./Vitals";
 
 export type OverlayState = { seq: number, opacity: number, text_size: TextSize, motion: Motion, ducatering_clipboard: boolean, reward: RewardTrigger | null, recommendation: RecommendationTrigger | null, riven: RivenTrigger | null, ducatering: DucateringProgress | null, notification: NotificationTrigger | null, buffs: Array<BuffTimer> | null, buffs_style: BuffStyle, 
 /**
  * `None` until the HUD's layout has been read.
  */
-buffs_layout: BuffLayout | null, preview: OverlayKind | null, };
+buffs_layout: BuffLayout | null, 
+/**
+ * Shown with the buff strip, while the HUD shows them and the settings want them.
+ */
+vitals: Vitals | null, preview: OverlayKind | null, };

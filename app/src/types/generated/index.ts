@@ -211,6 +211,7 @@ export type * from "./UserStatus";
 export type * from "./VaultStatus";
 export type * from "./VeiledGroup";
 export type * from "./VeiledRiven";
+export type * from "./Vitals";
 export type * from "./WorldRewardAlert";
 export type * from "./WorldRewardAlertChoices";
 export type * from "./WorldRewardAlertGroup";

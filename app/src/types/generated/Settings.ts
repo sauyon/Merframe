@@ -44,4 +44,8 @@ buffs_scale: number,
 /**
  * How far below the game's dots the strip sits, in pixels at 1080p.
  */
-buffs_offset: number, toasts_enabled: boolean, toast_position: ToastPosition, toasts_in_game: boolean, toasts_in_game_position: ToastPosition, toasts_in_game_muted: Array<InGameToast>, event_feed_enabled: boolean, event_feed_port: number, };
+buffs_offset: number, 
+/**
+ * Health, shield and energy bars above the dots.
+ */
+buffs_vitals: boolean, toasts_enabled: boolean, toast_position: ToastPosition, toasts_in_game: boolean, toasts_in_game_position: ToastPosition, toasts_in_game_muted: Array<InGameToast>, event_feed_enabled: boolean, event_feed_port: number, };

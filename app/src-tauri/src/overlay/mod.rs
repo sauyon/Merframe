@@ -255,6 +255,37 @@ pub struct BuffLayout {
     pub hud_scale: f32,
 }
 
+/// The player's health, shields, overguard and energy, as the HUD shows them, whole numbers
+/// as it prints them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+pub struct Vitals {
+    pub health: u32,
+    pub max_health: u32,
+    pub shield: u32,
+    pub max_shield: u32,
+    pub overguard: u32,
+    pub energy: u32,
+    pub max_energy: u32,
+}
+
+impl From<wf_scan::Vitals> for Vitals {
+    fn from(read: wf_scan::Vitals) -> Self {
+        // Saturating, as the HUD prints them; energy is a float the HUD rounds down.
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let whole = |value: f32| value.floor() as u32;
+        Self {
+            health: read.health,
+            max_health: read.max_health,
+            shield: read.shield,
+            max_shield: read.max_shield,
+            overguard: read.overguard,
+            energy: whole(read.energy),
+            max_energy: whole(read.max_energy),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct OverlayState {
@@ -272,6 +303,8 @@ pub struct OverlayState {
     pub buffs_style: BuffStyle,
     /// `None` until the HUD's layout has been read.
     pub buffs_layout: Option<BuffLayout>,
+    /// Shown with the buff strip, while the HUD shows them and the settings want them.
+    pub vitals: Option<Vitals>,
     pub preview: Option<Kind>,
 }
 
@@ -291,6 +324,7 @@ impl Default for OverlayState {
             buffs: None,
             buffs_style: BuffStyle::default(),
             buffs_layout: None,
+            vitals: None,
             preview: None,
         }
     }
@@ -325,7 +359,10 @@ impl OverlayState {
             Kind::Riven => self.riven = None,
             Kind::Ducatering => self.ducatering = None,
             Kind::Notification => self.notification = None,
-            Kind::Buffs => self.buffs = None,
+            Kind::Buffs => {
+                self.buffs = None;
+                self.vitals = None;
+            }
         }
     }
 }
@@ -560,12 +597,14 @@ pub fn on_buffs<R: Runtime>(
     state: &Arc<AppState>,
     buffs: Vec<BuffTimer>,
     layout: Option<BuffLayout>,
+    vitals: Option<Vitals>,
 ) {
-    if buffs.is_empty() {
+    if buffs.is_empty() && vitals.is_none() {
         hide(app, state, Kind::Buffs);
     } else {
         show(app, state, Kind::Buffs, |slots| {
             slots.buffs = Some(buffs);
+            slots.vitals = vitals;
             if layout.is_some() {
                 slots.buffs_layout = layout;
             }

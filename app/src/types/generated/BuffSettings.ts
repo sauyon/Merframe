@@ -32,4 +32,8 @@ buffs_scale: number,
 /**
  * How far below the game's dots the strip sits, in pixels at 1080p.
  */
-buffs_offset: number, };
+buffs_offset: number, 
+/**
+ * Health, shield and energy bars above the dots.
+ */
+buffs_vitals: boolean, };

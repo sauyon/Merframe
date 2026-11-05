@@ -482,6 +482,13 @@ export function OverlaysPage() {
               onChange={(checked) => saveSettings({ buffs_squad: checked })}
             />
             <SwitchField
+              id="buffs-vitals"
+              label="Health and energy bars"
+              checked={settings.buffs_vitals}
+              disabled={!buffs}
+              onChange={(checked) => saveSettings({ buffs_vitals: checked })}
+            />
+            <SwitchField
               id="buffs-cover"
               label="Cover the game's ability dots"
               checked={settings.buffs_cover_dots}

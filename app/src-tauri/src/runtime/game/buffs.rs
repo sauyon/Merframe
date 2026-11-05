@@ -20,7 +20,7 @@ use wf_scan::{
 };
 
 use super::ticks;
-use crate::overlay::{self, BuffKind, BuffLayout, BuffTimer, Overlays, SeenBuff};
+use crate::overlay::{self, BuffKind, BuffLayout, BuffTimer, Overlays, SeenBuff, Vitals};
 use crate::runtime::attach::{Attached, reattach};
 use crate::runtime::blocking;
 use crate::settings::BuffSettings;
@@ -59,9 +59,8 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut sources = buff_sources();
     let mut screens = Screens::default();
     let mut tracker = Tracker::new(LINGER);
-    let mut sent: Vec<BuffTimer> = Vec::new();
+    let mut sent = Sent::default();
     let mut layout: Option<BuffLayout> = None;
-    let mut sent_layout: Option<BuffLayout> = None;
     let started = Instant::now();
     let mut seen: Option<Vec<usize>> = None;
     let mut abilities: Vec<String> = Vec::new();
@@ -79,7 +78,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         }
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
-        let readings = if wanted {
+        let (readings, vitals) = if wanted {
             let owned = Arc::clone(&state);
             let cached = game.take();
             let mut moved = std::mem::take(&mut sources);
@@ -89,11 +88,12 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
                 let readings = read_sources(&attached, &mut moved, &mut found);
                 let dots = ability_dots(attached.reader.as_ref(), &attached.lua, &mut found.hud);
                 let using = moved.iter().find_map(|source| source.abilities());
-                anyhow::Ok((attached, moved, found, readings, dots, using))
+                let shown = moved.iter().find_map(|source| source.vitals());
+                anyhow::Ok((attached, moved, found, readings, dots, using, shown))
             })
             .await;
             match attempt {
-                Some(Ok((attached, read, found, readings, dots, using))) => {
+                Some(Ok((attached, read, found, readings, dots, using, shown))) => {
                     game = Some(attached);
                     if using != live {
                         debug!(?using, "Buff strip slots from the HUD");
@@ -104,16 +104,16 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
                     }
                     sources = read;
                     screens = found;
-                    Some(readings)
+                    (Some(readings), shown.map(Vitals::from))
                 }
                 Some(Err(error)) => {
                     debug!(?error, "Buffs not read");
-                    None
+                    (None, None)
                 }
-                None => None,
+                None => (None, None),
             }
         } else {
-            None
+            (None, None)
         };
 
         let now = started.elapsed().as_secs_f64();
@@ -142,11 +142,8 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             &read(&state.settings).overlays.buffs,
             &state.overlays,
         );
-        if !same(&timers, &sent) || layout != sent_layout {
-            overlay::on_buffs(&app, &state, timers.clone(), layout);
-            sent = timers;
-            sent_layout = layout;
-        }
+        let vitals = vitals.filter(|_| read(&state.settings).overlays.buffs.buffs_vitals);
+        sent.update(&app, &state, timers, layout, vitals);
 
         if idle {
             game = None;
@@ -224,6 +221,11 @@ trait BuffSource: Send {
 
     /// The abilities the player is using, in slot order, when the source can tell.
     fn abilities(&self) -> Option<Vec<String>> {
+        None
+    }
+
+    /// The player's health, shields and energy as the HUD shows them, when the source can tell.
+    fn vitals(&self) -> Option<wf_scan::Vitals> {
         None
     }
 }
@@ -339,6 +341,8 @@ struct AbilityTimerSource {
     falling: Falling,
     /// The suit's abilities as the HUD last named them.
     abilities: Option<Vec<String>>,
+    /// What the HUD last showed of the player's health, shields and energy.
+    vitals: Option<wf_scan::Vitals>,
 }
 
 /// Keeps only readings whose value has been seen falling. The HUD lists counters under
@@ -426,6 +430,9 @@ impl BuffSource for AbilityTimerSource {
         self.abilities = self
             .timers
             .and_then(|timers| timers.abilities(reader.as_ref()));
+        self.vitals = self
+            .timers
+            .and_then(|timers| timers.vitals(reader.as_ref()));
         if read.is_none() {
             self.search(reader);
         }
@@ -448,6 +455,10 @@ impl BuffSource for AbilityTimerSource {
 
     fn abilities(&self) -> Option<Vec<String>> {
         self.abilities.clone()
+    }
+
+    fn vitals(&self) -> Option<wf_scan::Vitals> {
+        self.vitals
     }
 }
 
@@ -679,6 +690,35 @@ fn slot(id: &str, abilities: &[String]) -> Option<u8> {
         .filter(|(_, stem)| key.starts_with(stem))
         .max_by_key(|(_, stem)| stem.len())?;
     u8::try_from(index + 1).ok()
+}
+
+/// What the strip was last sent, so it is only sent again when that changes.
+#[derive(Default)]
+struct Sent {
+    timers: Vec<BuffTimer>,
+    layout: Option<BuffLayout>,
+    vitals: Option<Vitals>,
+}
+
+impl Sent {
+    fn update<R: Runtime>(
+        &mut self,
+        app: &AppHandle<R>,
+        state: &Arc<AppState>,
+        timers: Vec<BuffTimer>,
+        layout: Option<BuffLayout>,
+        vitals: Option<Vitals>,
+    ) {
+        if same(&timers, &self.timers) && layout == self.layout && vitals == self.vitals {
+            return;
+        }
+        overlay::on_buffs(app, state, timers.clone(), layout, vitals);
+        *self = Self {
+            timers,
+            layout,
+            vitals,
+        };
+    }
 }
 
 fn same(now: &[BuffTimer], sent: &[BuffTimer]) -> bool {

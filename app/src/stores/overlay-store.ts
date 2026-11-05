@@ -15,6 +15,7 @@ const IDLE: OverlayState = {
   buffs: null,
   buffs_style: { warn_seconds: 10, cover_dots: true, scale: 100, offset: 0 },
   buffs_layout: null,
+  vitals: null,
   preview: null,
 };
 

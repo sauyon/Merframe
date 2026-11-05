@@ -27,6 +27,12 @@ const CALL: u8 = 0xE8;
 const RET_PAD: [u8; 2] = [0xC3, 0xCC];
 /// How far into a binding to look for the call into the method's implementation.
 const WRAPPER_SPAN: usize = 0x400;
+/// `ModRM` mod 00, r/m 101: `[rip+disp32]`.
+const RIP_RELATIVE: u8 = 0x05;
+const INT3: u8 = 0xCC;
+const FUNCTION_ALIGN: u64 = 16;
+/// How far back from an instruction to look for its function's start.
+const MAX_FUNCTION: usize = 0x10000;
 
 /// The hash the bindings key member names by: FNV-1a from a game-specific basis, inverted
 /// and rotated.
@@ -84,6 +90,36 @@ impl Image {
     pub fn code(&self, address: u64, len: usize) -> Option<&[u8]> {
         let at = self.offset(address)?;
         self.bytes.get(at..(at + len).min(self.bytes.len()))
+    }
+
+    /// Where the image keeps `text` as a string of its own.
+    pub fn text(&self, text: &str) -> Option<u64> {
+        let quoted = format!("\0{text}\0");
+        memmem::find(&self.bytes, quoted.as_bytes()).map(|at| self.base + at as u64 + 1)
+    }
+
+    /// Instructions loading `target` or its address rip-relatively, as the address of each
+    /// one's displacement: `lea`/`mov` with nothing after it.
+    pub fn references(&self, target: u64) -> Vec<u64> {
+        (1..self.bytes.len().saturating_sub(4))
+            .filter(|&at| self.bytes[at - 1] & 0xC7 == RIP_RELATIVE)
+            .filter_map(|at| {
+                let rel = i64::from(i32::from_le_bytes(self.bytes[at..at + 4].try_into().ok()?));
+                let next = self.base + at as u64 + 4;
+                (next.checked_add_signed(rel)? == target).then_some(self.base + at as u64)
+            })
+            .collect()
+    }
+
+    /// The start of the function holding `address`: the nearest aligned address after the
+    /// int3 padding the compiler puts between functions.
+    pub fn function_start(&self, address: u64) -> Option<u64> {
+        let at = self.offset(address)?;
+        (at.saturating_sub(MAX_FUNCTION)..=at)
+            .rev()
+            .filter(|start| (self.base + *start as u64).is_multiple_of(FUNCTION_ALIGN))
+            .find(|&start| start > 0 && self.bytes[start - 1] == INT3)
+            .map(|start| self.base + start as u64)
     }
 
     /// The type info of the bound class `class`, e.g. `LotusHudRedux`.

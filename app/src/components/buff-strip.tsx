@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useItemImageSrc } from "@/components/item-image";
-import type { BuffLayout, BuffStyle, BuffTimer, TextSize } from "@/types";
+import type {
+  BuffLayout,
+  BuffStyle,
+  BuffTimer,
+  TextSize,
+  Vitals,
+} from "@/types";
 
 // Countdown seconds over the game's ability dots, which sit at the same place below the
 // screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
@@ -22,6 +28,10 @@ import type { BuffLayout, BuffStyle, BuffTimer, TextSize } from "@/types";
 // them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
 // When the number is not the running buff that runs out first, that one's seconds sit smaller
 // under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
+//
+// Just above the dots, as wide as the ability slots, sit the player's health and energy as
+// the HUD shows them: shields after health on one bar, split by their maxima as the HUD splits
+// its own, with overguard as a line over it, and energy on a bar under it.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -80,6 +90,21 @@ const DIGIT_WIDTH = 0.56;
 /** Digits' height above their baseline, as a share of their size: half of it drops their
  * middle onto a centre line. */
 const DIGIT_HEIGHT = 0.72;
+/** The health and energy bars, above the dots' discs. */
+const BAR_WIDTH = SLOTS * PITCH;
+const BAR_HEIGHT = 1.6;
+const BAR_GAP = 1;
+const ENERGY_Y = DOT_Y - BACKING_RADIUS - 2 - BAR_HEIGHT;
+const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
+const OVERGUARD_HEIGHT = 0.8;
+/** The bars' numbers, beside them, as a share of the strip's text. */
+const VITALS_TEXT = 0.6;
+/** The HUD's default colours for them. */
+const HEALTH = "rgb(204 41 41)";
+const SHIELD = "rgb(0 213 255)";
+const OVERGUARD = "rgb(190 120 255)";
+const ENERGY = "rgb(120 170 255)";
+const EMPTY = "rgb(12 14 16 / 0.6)";
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -384,6 +409,97 @@ function ordered(buffs: BuffTimer[]) {
   return [...buffs].sort((a, b) => rank(a) - rank(b));
 }
 
+/** A bar's fill, as a share of its width. */
+function share(value: number, of: number) {
+  return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
+}
+
+/** Health and shields on one bar, overguard over it, and energy under it. */
+function VitalBars({ vitals, fontSize }: { vitals: Vitals; fontSize: number }) {
+  const left = CENTRE - BAR_WIDTH / 2;
+  // Overshields run past their maximum, so the bar holds whichever is more.
+  const total = Math.max(
+    vitals.max_health + vitals.max_shield,
+    vitals.health + vitals.shield,
+  );
+  const health = share(vitals.health, total) * BAR_WIDTH;
+  const shield = share(vitals.shield, total) * BAR_WIDTH;
+  const overguard = share(vitals.overguard, total) * BAR_WIDTH;
+  const energy = share(vitals.energy, vitals.max_energy) * BAR_WIDTH;
+  const size = fontSize * VITALS_TEXT;
+  const number = (y: number, colour: string, value: number) => (
+    <text
+      x={left + BAR_WIDTH + 1.5}
+      y={y + BAR_HEIGHT / 2 + (size * DIGIT_HEIGHT) / 2}
+      fill={colour}
+      fillOpacity={0.92}
+      fontWeight={600}
+      fontSize={size}
+      dominantBaseline="alphabetic"
+    >
+      {value}
+    </text>
+  );
+  return (
+    <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
+      <rect
+        x={left}
+        y={HEALTH_Y}
+        width={BAR_WIDTH}
+        height={BAR_HEIGHT}
+        fill={EMPTY}
+      />
+      <rect
+        x={left}
+        y={HEALTH_Y}
+        width={health}
+        height={BAR_HEIGHT}
+        fill={HEALTH}
+      />
+      <rect
+        x={left + health}
+        y={HEALTH_Y}
+        width={Math.min(shield, BAR_WIDTH - health)}
+        height={BAR_HEIGHT}
+        fill={SHIELD}
+      />
+      {overguard > 0 && (
+        <rect
+          x={left}
+          y={HEALTH_Y - OVERGUARD_HEIGHT}
+          width={overguard}
+          height={OVERGUARD_HEIGHT}
+          fill={OVERGUARD}
+        />
+      )}
+      <rect
+        x={left}
+        y={ENERGY_Y}
+        width={BAR_WIDTH}
+        height={BAR_HEIGHT}
+        fill={EMPTY}
+      />
+      <rect
+        x={left}
+        y={ENERGY_Y}
+        width={energy}
+        height={BAR_HEIGHT}
+        fill={ENERGY}
+      />
+      {number(
+        HEALTH_Y,
+        vitals.overguard > 0 ? OVERGUARD : vitals.shield > 0 ? SHIELD : HEALTH,
+        vitals.overguard > 0
+          ? vitals.overguard
+          : vitals.shield > 0
+            ? vitals.shield
+            : vitals.health,
+      )}
+      {number(ENERGY_Y, ENERGY, vitals.energy)}
+    </g>
+  );
+}
+
 /** Where the `index`th other buff goes: alternately right then left of the ability slots. */
 function flank(index: number) {
   const out =
@@ -398,12 +514,14 @@ export function BuffStrip({
   textSize,
   style,
   layout,
+  vitals,
 }: {
   buffs: BuffTimer[];
   opacity: number;
   textSize: TextSize;
   style: BuffStyle;
   layout: BuffLayout | null;
+  vitals: Vitals | null;
 }) {
   const now = useNow();
   const warn = style.warn_seconds;
@@ -438,6 +556,7 @@ export function BuffStrip({
             ),
         )}
         <g opacity={opacity / 100}>
+          {vitals && <VitalBars vitals={vitals} fontSize={fontSize} />}
           {slots.map(({ x, buffs }) => {
             if (buffs.length === 0) {
               return null;

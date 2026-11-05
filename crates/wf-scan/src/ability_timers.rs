@@ -11,6 +11,7 @@
 use wf_mem::{MemoryReader, read_u32_le, read_u64_le};
 
 use crate::Result;
+use crate::hud_vitals::{HudVitals, Vitals};
 use crate::swig::{Image, counted_arrays, indexed_arrays};
 use crate::type_names::TypeNames;
 
@@ -45,6 +46,7 @@ pub struct AbilityTimers {
     abilities: u64,
     lists: u64,
     names: Option<TypeNames>,
+    vitals: Option<HudVitals>,
 }
 
 impl AbilityTimers {
@@ -68,6 +70,10 @@ impl AbilityTimers {
         if names.is_none() {
             tracing::debug!("No type name lookup in the image");
         }
+        let vitals = HudVitals::locate(&image);
+        if vitals.is_none() {
+            tracing::debug!("No health or energy readouts in the image");
+        }
         let counts = counted_arrays(code, 3);
         let lists = indexed_arrays(code);
         let found = class
@@ -82,6 +88,7 @@ impl AbilityTimers {
                             abilities: u64::from(abilities),
                             lists: u64::from(list),
                             names,
+                            vitals,
                         };
                         timers.read(reader).is_some().then_some(timers)
                     })
@@ -163,6 +170,15 @@ impl AbilityTimers {
             })
             .collect()
     }
+
+    /// What the HUD shows of the player's health, shields, overguard and energy. `None` once
+    /// the HUD is gone or while it shows none.
+    pub fn vitals<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vitals> {
+        if reader.read_u64(self.handle).ok()? != self.hud {
+            return None;
+        }
+        self.vitals?.read(reader, self.hud)
+    }
 }
 
 /// An array header's pointer and element count, if the byte count is whole elements and
@@ -220,6 +236,7 @@ mod tests {
             abilities: 0xd0,
             lists: 0x478,
             names: None,
+            vitals: None,
         };
         (heap, found)
     }

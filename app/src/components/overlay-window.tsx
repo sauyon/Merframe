@@ -143,6 +143,7 @@ export function OverlayWindow() {
                 textSize={overlays.text_size}
                 style={overlays.buffs_style}
                 layout={overlays.buffs_layout}
+                vitals={overlays.vitals}
               />
             )
           }
