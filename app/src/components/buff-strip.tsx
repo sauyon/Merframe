@@ -30,8 +30,9 @@ import type {
 // under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
 //
 // Just above the dots, as wide as the ability slots, sit the player's health and energy as
-// the HUD shows them, filling from the right as its own bars do: shields on a thin row over
-// health, overshields and overguard as lines over those, and energy on a bar under them.
+// the HUD shows them, filling from the right as its own bars do: shields covering health, so
+// it shows as they drain, overshields and overguard as lines over those, and energy on a bar
+// under them.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -96,10 +97,6 @@ const BAR_HEIGHT = 2;
 const BAR_GAP = 1.5;
 const ENERGY_Y = DOT_Y - BACKING_RADIUS - 4 - BAR_HEIGHT;
 const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
-/** Shields on a row of their own over health, so they are seen to run out however small
- * they are beside it; overshields and overguard as lines over that. */
-const SHIELD_HEIGHT = 1.4;
-const SHIELD_Y = HEALTH_Y - 0.6 - SHIELD_HEIGHT;
 const OVERGUARD_HEIGHT = 0.8;
 /** The HUD's default colours for them. */
 const HEALTH = "rgb(204 41 41)";
@@ -417,8 +414,9 @@ function share(value: number, of: number) {
   return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
 }
 
-/** Shields over health, overshields and overguard as lines over them, and energy under them,
- * each against its own maximum. They fill from the right, as the HUD's own bars do. */
+/** Shields covering health, so the health shows as they drain, overshields and overguard as
+ * lines over them, and energy under them, each against its own maximum. They fill from the
+ * right, as the HUD's own bars do. */
 function VitalBars({ vitals }: { vitals: Vitals }) {
   const right = CENTRE + BAR_WIDTH / 2;
   /** A fill reaching `start` to `end` of the bar's width in from its right end. */
@@ -451,14 +449,12 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
     Math.max(vitals.max_overguard, vitals.overguard),
   );
   const energy = share(vitals.energy, vitals.max_energy);
-  const lineY = SHIELD_Y - OVERGUARD_HEIGHT;
+  const lineY = HEALTH_Y - OVERGUARD_HEIGHT;
   return (
     <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
-      {vitals.max_shield > 0 &&
-        fill("shield-empty", SHIELD_Y, SHIELD_HEIGHT, 0, 1, EMPTY)}
-      {fill("shield", SHIELD_Y, SHIELD_HEIGHT, 0, shield, SHIELD)}
       {fill("empty", HEALTH_Y, BAR_HEIGHT, 0, 1, EMPTY)}
       {fill("health", HEALTH_Y, BAR_HEIGHT, 0, health, HEALTH)}
+      {fill("shield", HEALTH_Y, BAR_HEIGHT, 0, shield, SHIELD)}
       {fill("overshield", lineY, OVERGUARD_HEIGHT, 0, overshield, OVERSHIELD)}
       {fill(
         "overguard",
