@@ -1,3 +1,4 @@
+mod ability_cooldowns;
 mod ability_hud;
 mod ability_timers;
 mod buffs;
@@ -25,6 +26,7 @@ mod upgrade;
 #[cfg(test)]
 mod fake;
 
+pub use ability_cooldowns::{AbilityCooldown, CooldownFields};
 pub use ability_hud::{AbilityHud, ability_hud, ability_huds, switch_index, switched_to};
 pub use ability_timers::{AbilityTimer, AbilityTimers};
 pub use buffs::{StatusEffect, TIMED, status_effects, status_list};

@@ -334,7 +334,8 @@ impl BuffSource for TraySource {
 
 /// The timers the HUD runs under each ability icon, one per cast still running, like each of
 /// Protea's grenades. These carry no names, only which ability they belong to, so they take
-/// that ability's slot, as one buff following the cast that runs out first.
+/// that ability's slot, as one buff following the cast that runs out first. Cooldowns the
+/// game keeps on the abilities themselves, like Omamori's, take their ability's slot too.
 #[derive(Default)]
 struct AbilityTimerSource {
     timers: Option<AbilityTimers>,
@@ -431,6 +432,10 @@ impl BuffSource for AbilityTimerSource {
             }
         }
         let read = self.timers.and_then(|timers| timers.read(reader.as_ref()));
+        let cooldowns = self
+            .timers
+            .and_then(|timers| timers.cooldowns(reader.as_ref()))
+            .unwrap_or_default();
         self.abilities = self
             .timers
             .and_then(|timers| timers.abilities(reader.as_ref()));
@@ -454,7 +459,19 @@ impl BuffSource for AbilityTimerSource {
                 remaining: f64::from(timer.remaining),
             })
             .collect();
-        first_ending(self.falling.keep(readings))
+        let mut readings = first_ending(self.falling.keep(readings));
+        // A cooldown always counts down, and is the ability's own, apart from its casts'.
+        readings.extend(cooldowns.into_iter().map(|cooldown| Reading {
+            id: format!("ability{}:cooldown", cooldown.ability),
+            label: String::new(),
+            slot: u8::try_from(cooldown.ability + 1).ok(),
+            rank: None,
+            buff: None,
+            icon: None,
+            total: None,
+            remaining: f64::from(cooldown.remaining),
+        }));
+        readings
     }
 
     fn abilities(&self) -> Option<Vec<String>> {

@@ -11,6 +11,7 @@
 use wf_mem::{MemoryReader, read_u32_le, read_u64_le};
 
 use crate::Result;
+use crate::ability_cooldowns::{AbilityCooldown, CooldownFields};
 use crate::hud_vitals::{HudVitals, Vitals};
 use crate::swig::{Image, counted_arrays, indexed_arrays};
 use crate::type_names::TypeNames;
@@ -47,6 +48,7 @@ pub struct AbilityTimers {
     lists: u64,
     names: Option<TypeNames>,
     vitals: Option<HudVitals>,
+    cooldowns: Option<CooldownFields>,
 }
 
 impl AbilityTimers {
@@ -85,6 +87,7 @@ impl AbilityTimers {
                             lists: u64::from(list),
                             names,
                             vitals: None,
+                            cooldowns: None,
                         };
                         timers.read(reader).is_some().then_some(timers)
                     })
@@ -103,7 +106,15 @@ impl AbilityTimers {
         if vitals.is_none() {
             tracing::debug!("No health or energy readouts in the image");
         }
-        Ok(Some(Self { vitals, ..found }))
+        let cooldowns = CooldownFields::locate(&image);
+        if cooldowns.is_none() {
+            tracing::debug!("No ability cooldowns in the image");
+        }
+        Ok(Some(Self {
+            vitals,
+            cooldowns,
+            ..found
+        }))
     }
 
     /// Every running timer, or `None` once the HUD is gone or no longer looks like one.
@@ -152,6 +163,27 @@ impl AbilityTimers {
     /// the HUD is gone or any of them can't be named.
     pub fn abilities<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<String>> {
         let names = self.names?;
+        self.objects(reader)?
+            .into_iter()
+            .map(|object| names.of_object(reader, object))
+            .collect()
+    }
+
+    /// The cooldowns running on the suit's abilities. `None` once the HUD is gone.
+    pub fn cooldowns<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<AbilityCooldown>> {
+        let fields = self.cooldowns?;
+        let objects = self.objects(reader)?;
+        Some(
+            objects
+                .into_iter()
+                .enumerate()
+                .filter_map(|(ability, object)| fields.read(reader, ability, object))
+                .collect(),
+        )
+    }
+
+    /// The suit's ability objects, in its own order. `None` once the HUD is gone.
+    fn objects<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<u64>> {
         if reader.read_u64(self.handle).ok()? != self.hud {
             return None;
         }
@@ -166,10 +198,7 @@ impl AbilityTimers {
             .as_chunks::<8>()
             .0
             .iter()
-            .map(|handle| {
-                let object = reader.read_u64(u64::from_le_bytes(*handle)).ok()?;
-                names.of_object(reader, object)
-            })
+            .map(|handle| reader.read_u64(u64::from_le_bytes(*handle)).ok())
             .collect()
     }
 
@@ -239,6 +268,7 @@ mod tests {
             lists: 0x478,
             names: None,
             vitals: None,
+            cooldowns: None,
         };
         (heap, found)
     }
