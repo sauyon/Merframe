@@ -336,7 +336,8 @@ impl LuaState {
 
     fn at<R: MemoryReader + ?Sized>(reader: &R, heap: &[&Region], thread: u64) -> Option<Self> {
         let fields = reader.read_vec(thread, THREAD_FIELDS).ok()?;
-        if fields[0] != THREAD_TAG {
+        // A read cut short, as while the game unmaps the page, comes back short.
+        if fields.first() != Some(&THREAD_TAG) {
             return None;
         }
         let (globals_field, globals) = words(&fields)

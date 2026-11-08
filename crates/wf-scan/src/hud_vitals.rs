@@ -43,7 +43,7 @@ const ADD_LOAD: u8 = 0x03;
 const REX_W: u8 = 0x08;
 const RCX: u8 = 1;
 /// Larger than any health, shields or overguard the game gives.
-const MAX_VALUE: i32 = 10_000_000;
+const MAX_VALUE: u32 = 10_000_000;
 
 /// What the HUD shows of the local player.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -123,27 +123,28 @@ impl HudVitals {
 
     /// What the HUD at `hud` shows, or `None` while its health panel is not set up.
     pub fn read<R: MemoryReader + ?Sized>(&self, reader: &R, hud: u64) -> Option<Vitals> {
-        let float = |at| {
-            let bits = read_u32_le(&reader.read_vec(at, 4).ok()?, 0)?;
+        let float = |field: u64| {
+            let bits = read_u32_le(&reader.read_vec(hud.checked_add(field)?, 4).ok()?, 0)?;
             Some(f32::from_bits(bits)).filter(|value| value.is_finite() && *value >= 0.0)
         };
-        let energy = float(hud + self.energy)?;
-        let max_energy = float(hud + self.max_energy)?;
+        let energy = float(self.energy)?;
+        let max_energy = float(self.max_energy)?;
         // The HUD hands the bar its colour as a float holding `0xRRGGBB`.
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let energy_colour = self
             .energy_colour
-            .and_then(|field| float(hud + field))
+            .and_then(float)
             .filter(|colour| *colour <= MAX_COLOUR && colour.fract() == 0.0)
             .map(|colour| colour as u32);
         let panel = reader
-            .read_u64(reader.read_u64(hud + self.panel).ok()?)
+            .read_u64(reader.read_u64(hud.checked_add(self.panel)?).ok()?)
             .ok()?;
-        let value = |field| {
-            let bits = read_u32_le(&reader.read_vec(panel + field, 4).ok()?, 0)?;
-            u32::try_from(bits.cast_signed().clamp(0, MAX_VALUE))
+        let value = |field: u64| {
+            let bits = read_u32_le(&reader.read_vec(panel.checked_add(field)?, 4).ok()?, 0)?;
+            // A negative number is shown as none.
+            u32::try_from(bits.cast_signed().max(0))
                 .ok()
-                .filter(|_| bits.cast_signed() < MAX_VALUE)
+                .filter(|&value| value < MAX_VALUE)
         };
         let vitals = Vitals {
             health: value(self.health)?,
