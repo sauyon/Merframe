@@ -12,4 +12,8 @@ max_overshield: number, overguard: number, max_overguard: number, energy: number
 /**
  * The colour the HUD draws the energy bar in, `0xRRGGBB`.
  */
-energy_colour: number | null, };
+energy_colour: number | null, 
+/**
+ * The colours the HUD draws the other bars in, `0xRRGGBB`.
+ */
+health_colour: number | null, shield_colour: number | null, overshield_colour: number | null, overguard_colour: number | null, };

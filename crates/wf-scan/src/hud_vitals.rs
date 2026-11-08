@@ -9,7 +9,10 @@
 //! loads the overguard and stores the shields one after the other. The maxima its bars are
 //! split by are stored together, health, shields, how far over that shields can go, then
 //! overguard, by the first call of that update that stores a run of them beside the numbers.
-//! Nothing here is a fixed offset; it is all read out of that code.
+//! The panel keeps the colours it draws in too, as `0xRRGGBB`: one of its methods loads the
+//! health, overshield and shield colours one after the other just after naming the bars'
+//! `DotPreviewFillMask`, and the overguard colour just before printing the overguard as
+//! `%02X%02X%02X`. Nothing here is a fixed offset; it is all read out of that code.
 
 use wf_mem::{MemoryReader, read_u32_le};
 
@@ -20,9 +23,18 @@ const ENERGY_TEXT: &str = "AbilityPanel.EnergyAmount";
 const ENERGY_BAR_TEXT: &str = "AbilityPanel.EnergyBar.Mover";
 /// How far past naming the bar the readout loads its colour.
 const COLOUR_SPAN: usize = 0x20;
-/// The largest `0xRRGGBB`.
+/// The largest `0xRRGGBB`, and as a float.
+const MAX_RGB: u32 = 0xFF_FFFF;
 const MAX_COLOUR: f32 = 16_777_215.0;
 const PANEL_TEXT: &str = "HealthAndShield.PlayerHealth";
+/// The bars' mask, which the panel names just before loading their colours.
+const FILL_MASK_TEXT: &str = "DotPreviewFillMask";
+/// How far past naming the mask the panel loads the bars' colours.
+const BAR_COLOURS_SPAN: usize = 0x100;
+/// The format the panel prints the overguard's colour in, just after loading it.
+const HEX_COLOUR_TEXT: &str = "%02X%02X%02X";
+/// How far before printing the overguard's colour the panel loads it.
+const OVERGUARD_COLOUR_SPAN: usize = 0x40;
 /// How far past the panel's wiring the HUD calls its update.
 const WIRING_SPAN: usize = 0x1000;
 /// `mov rcx, [rcx]; call`: the HUD reading the panel out of its handle and updating it.
@@ -40,6 +52,11 @@ const CALL: u8 = 0xE8;
 const MOV_LOAD: u8 = 0x8B;
 const MOV_STORE: u8 = 0x89;
 const ADD_LOAD: u8 = 0x03;
+const LEA: u8 = 0x8D;
+/// `rex lea reg, [rip+disp32]`.
+const LEA_LEN: usize = 7;
+/// `ModRM` mod 00, r/m 101: `[rip+disp32]`.
+const RIP_RELATIVE: u8 = 0x05;
 const REX_W: u8 = 0x08;
 const RCX: u8 = 1;
 /// Larger than any health, shields or overguard the game gives.
@@ -60,6 +77,11 @@ pub struct Vitals {
     pub max_energy: f32,
     /// The colour the HUD draws the energy bar in, `0xRRGGBB`: the warframe's energy colour.
     pub energy_colour: Option<u32>,
+    /// The colours the HUD draws the other bars in, `0xRRGGBB`.
+    pub health_colour: Option<u32>,
+    pub shield_colour: Option<u32>,
+    pub overshield_colour: Option<u32>,
+    pub overguard_colour: Option<u32>,
 }
 
 /// Where the HUD keeps what it shows of the local player.
@@ -79,6 +101,16 @@ pub struct HudVitals {
     max_shield: u64,
     max_overshield: u64,
     max_overguard: u64,
+    colours: Option<PanelColours<u64>>,
+}
+
+/// The panel's colour for each bar.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PanelColours<T> {
+    health: T,
+    shield: T,
+    overshield: T,
+    overguard: T,
 }
 
 impl HudVitals {
@@ -87,8 +119,11 @@ impl HudVitals {
         let (energy, max_energy) = energy_fields(image)?;
         let (panel, calls) = panel_calls(image)?;
         let numbers = calls
-            .into_iter()
-            .find_map(|update| panel_numbers(image, update))?;
+            .iter()
+            .find_map(|&update| panel_numbers(image, update))?;
+        let colours = calls
+            .iter()
+            .find_map(|&method| panel_colours(image, method));
         Some(Self {
             energy: u64::from(energy),
             max_energy: u64::from(max_energy),
@@ -101,6 +136,12 @@ impl HudVitals {
             max_shield: u64::from(numbers.max_shield),
             max_overshield: u64::from(numbers.max_overshield),
             max_overguard: u64::from(numbers.max_overguard),
+            colours: colours.map(|colours| PanelColours {
+                health: u64::from(colours.health),
+                shield: u64::from(colours.shield),
+                overshield: u64::from(colours.overshield),
+                overguard: u64::from(colours.overguard),
+            }),
         })
     }
 
@@ -118,6 +159,12 @@ impl HudVitals {
             max_shield: health + 0xc,
             max_overshield: health + 0x10,
             max_overguard: health + 0x18,
+            colours: Some(PanelColours {
+                health: health - 0xec,
+                shield: health - 0xe8,
+                overshield: health - 0xe4,
+                overguard: health - 0xd0,
+            }),
         }
     }
 
@@ -146,6 +193,11 @@ impl HudVitals {
                 .ok()
                 .filter(|&value| value < MAX_VALUE)
         };
+        let colour = |field: Option<u64>| {
+            let bits = read_u32_le(&reader.read_vec(panel.checked_add(field?)?, 4).ok()?, 0)?;
+            Some(bits).filter(|&colour| colour <= MAX_RGB)
+        };
+        let colours = self.colours;
         let vitals = Vitals {
             health: value(self.health)?,
             max_health: value(self.max_health)?,
@@ -157,6 +209,10 @@ impl HudVitals {
             energy,
             max_energy,
             energy_colour,
+            health_colour: colour(colours.map(|colours| colours.health)),
+            shield_colour: colour(colours.map(|colours| colours.shield)),
+            overshield_colour: colour(colours.map(|colours| colours.overshield)),
+            overguard_colour: colour(colours.map(|colours| colours.overguard)),
         };
         (vitals.max_health > 0).then_some(vitals)
     }
@@ -216,7 +272,7 @@ fn panel_numbers(image: &Image, update: u64) -> Option<PanelNumbers> {
     let overguard = overguard(code, health, shield)?;
     let [max_health, max_shield, max_overshield, max_overguard] = calls(code, update)
         .filter_map(|callee| image.code(callee, CALLEE_SPAN))
-        .find_map(|callee| maxima(callee, health))?;
+        .find_map(|callee| maxima(callee, health, &[shield, overguard]))?;
     Some(PanelNumbers {
         health,
         shield,
@@ -226,6 +282,73 @@ fn panel_numbers(image: &Image, update: u64) -> Option<PanelNumbers> {
         max_overshield,
         max_overguard,
     })
+}
+
+/// Where the panel keeps the colours it draws in, if `method` is the one that loads them.
+fn panel_colours(image: &Image, method: u64) -> Option<PanelColours<u32>> {
+    let code = image.code(method, UPDATE_SPAN)?;
+    let [health, overshield, shield] = naming(image, FILL_MASK_TEXT, method, code)
+        .into_iter()
+        .find_map(|after| {
+            let window = code.get(after..(after + BAR_COLOURS_SPAN).min(code.len()))?;
+            let mut loads = colour_loads(window).into_iter();
+            let first = loads.next()?;
+            let mut rest = loads.filter(|load| load.base == first.base);
+            let colours = [first, rest.next()?, rest.next()?];
+            let distinct = colours[0].disp != colours[1].disp
+                && colours[1].disp != colours[2].disp
+                && colours[0].disp != colours[2].disp;
+            distinct.then_some(colours)
+        })?;
+    let overguard = naming(image, HEX_COLOUR_TEXT, method, code)
+        .into_iter()
+        .find_map(|after| {
+            let end = after.checked_sub(LEA_LEN)?;
+            let window = code.get(end.saturating_sub(OVERGUARD_COLOUR_SPAN)..end)?;
+            colour_loads(window)
+                .into_iter()
+                .rev()
+                .find(|load| load.base == health.base)
+        })?;
+    Some(PanelColours {
+        health: health.disp,
+        shield: shield.disp,
+        overshield: overshield.disp,
+        overguard: overguard.disp,
+    })
+}
+
+/// Where in `code`, the function at `start`, each `lea reg, [rip+disp32]` of a copy of `text`
+/// ends. The image keeps some texts many times over, so they are matched by what they say.
+fn naming(image: &Image, text: &str, start: u64, code: &[u8]) -> Vec<usize> {
+    let wanted = format!("{text}\0");
+    (0..code.len().saturating_sub(LEA_LEN))
+        .filter(|&at| {
+            code[at] & 0xF8 == 0x48 && code[at + 1] == LEA && code[at + 2] & 0xC7 == RIP_RELATIVE
+        })
+        .filter_map(|at| {
+            let end = at + LEA_LEN;
+            let rel = i64::from(read_u32_le(code, at + 3)?.cast_signed());
+            let target = start.checked_add_signed(i64::try_from(end).ok()? + rel)?;
+            (image.code(target, wanted.len())? == wanted.as_bytes()).then_some(end)
+        })
+        .collect()
+}
+
+/// The 32-bit `mov reg, [base+disp32]` loads in `code`, in order.
+fn colour_loads(code: &[u8]) -> Vec<Access> {
+    let mut loads = Vec::new();
+    let mut at = 0;
+    while at < code.len() {
+        match access(code, at) {
+            Some(load) if load.op == MOV_LOAD && load.rex & REX_W == 0 => {
+                at += load.len;
+                loads.push(load);
+            }
+            _ => at += 1,
+        }
+    }
+    loads
 }
 
 struct PanelNumbers {
@@ -271,9 +394,9 @@ fn overguard(code: &[u8], health: u32, shield: u32) -> Option<u32> {
     })
 }
 
-/// The maxima a function stores in a run beside the numbers: health, shields, how far over
-/// that shields can go, and overguard.
-fn maxima(code: &[u8], health: u32) -> Option<[u32; MAXIMA_RUN]> {
+/// The maxima a function stores in a run beside the numbers, health and the `others`: health,
+/// shields, how far over that shields can go, and overguard.
+fn maxima(code: &[u8], health: u32, others: &[u32]) -> Option<[u32; MAXIMA_RUN]> {
     (0..code.len()).find_map(|at| {
         let mut stores = Vec::with_capacity(MAXIMA_RUN);
         let mut next = at;
@@ -281,7 +404,9 @@ fn maxima(code: &[u8], health: u32) -> Option<[u32; MAXIMA_RUN]> {
             let store = access(code, next)?;
             let near = store.disp > health && store.disp - health <= MAXIMA_NEAR;
             if store.op != MOV_STORE
+                || store.rex & REX_W != 0
                 || !near
+                || others.contains(&store.disp)
                 || stores
                     .first()
                     .is_some_and(|first: &Access| first.base != store.base)
@@ -415,8 +540,49 @@ mod tests {
             0x44, 0x89, 0xBB, 0xE0, 0x02, 0, 0, 0x89, 0xB3, 0xE4, 0x02, 0, 0, 0x89, 0xAB, 0xE8,
             0x02, 0, 0, 0x44, 0x89, 0xB3, 0xF0, 0x02, 0, 0,
         ];
-        assert_eq!(maxima(&stores, 0x2d8), Some([0x2e0, 0x2e4, 0x2e8, 0x2f0]));
-        assert_eq!(maxima(&stores[7..], 0x2d8), None);
+        let others = [0x2dc, 0x2ec];
+        assert_eq!(
+            maxima(&stores, 0x2d8, &others),
+            Some([0x2e0, 0x2e4, 0x2e8, 0x2f0])
+        );
+        assert_eq!(maxima(&stores[7..], 0x2d8, &others), None);
+        assert_eq!(maxima(&stores, 0x2d8, &[0x2e4]), None);
+    }
+
+    #[test]
+    fn finds_the_panels_colours() {
+        const METHOD: u64 = 0x1_4000_0000;
+        // lea rdx, [rip+mask] at 0; mov edx, [r14+0x1ec]; mov ecx, [rbx+0x10];
+        // mov eax, [r14+0x1f4]; mov r8d, [r14+0x1f0]
+        let mut code = vec![0x48, 0x8D, 0x15, 0, 0, 0, 0];
+        code.extend([0x41, 0x8B, 0x96, 0xEC, 0x01, 0, 0]);
+        code.extend([0x8B, 0x8B, 0x10, 0, 0, 0]);
+        code.extend([0x41, 0x8B, 0x86, 0xF4, 0x01, 0, 0]);
+        code.extend([0x45, 0x8B, 0x86, 0xF0, 0x01, 0, 0]);
+        // mov r8d, [r14+0x208]; lea rdx, [rip+hex]
+        code.extend([0x45, 0x8B, 0x86, 0x08, 0x02, 0, 0]);
+        let hex = code.len();
+        code.extend([0x48, 0x8D, 0x15, 0, 0, 0, 0]);
+        // The texts follow the code; each `lea` points at its own.
+        let point = |code: &mut Vec<u8>, lea: usize, text: &[u8]| {
+            let rel = u32::try_from(code.len() - (lea + LEA_LEN)).expect("near");
+            code[lea + 3..lea + LEA_LEN].copy_from_slice(&rel.to_le_bytes());
+            code.extend(text);
+        };
+        point(&mut code, 0, b"DotPreviewFillMask\0");
+        let without_hex = Image::from_bytes(METHOD, code.clone());
+        point(&mut code, hex, b"%02X%02X%02X\0");
+        let image = Image::from_bytes(METHOD, code);
+        assert_eq!(
+            panel_colours(&image, METHOD),
+            Some(PanelColours {
+                health: 0x1ec,
+                shield: 0x1f0,
+                overshield: 0x1f4,
+                overguard: 0x208,
+            })
+        );
+        assert_eq!(panel_colours(&without_hex, METHOD), None);
     }
 
     #[test]
@@ -438,6 +604,10 @@ mod tests {
             (0x2e0, 2000),
             (0x2e4, 1700),
             (0x2e8, 1200),
+            (0x1ec, 0xcc_2929),
+            (0x1f0, 0x00_d5ff),
+            (0x1f4, 0xb3_00ff),
+            (0x208, 0x1_000_000),
         ] {
             put(panel + field, &value.to_le_bytes());
         }
@@ -456,6 +626,10 @@ mod tests {
                 energy: 628.5,
                 max_energy: 700.0,
                 energy_colour: Some(0xa8_eddb),
+                health_colour: Some(0xcc_2929),
+                shield_colour: Some(0x00_d5ff),
+                overshield_colour: Some(0xb3_00ff),
+                overguard_colour: None,
             })
         );
         let unset = HudVitals::at(0x500, 0x6b0, 0x2e8);

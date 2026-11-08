@@ -272,6 +272,11 @@ pub struct Vitals {
     pub max_energy: u32,
     /// The colour the HUD draws the energy bar in, `0xRRGGBB`.
     pub energy_colour: Option<u32>,
+    /// The colours the HUD draws the other bars in, `0xRRGGBB`.
+    pub health_colour: Option<u32>,
+    pub shield_colour: Option<u32>,
+    pub overshield_colour: Option<u32>,
+    pub overguard_colour: Option<u32>,
 }
 
 impl From<wf_scan::Vitals> for Vitals {
@@ -290,6 +295,10 @@ impl From<wf_scan::Vitals> for Vitals {
             energy: whole(read.energy),
             max_energy: whole(read.max_energy),
             energy_colour: read.energy_colour,
+            health_colour: read.health_colour,
+            shield_colour: read.shield_colour,
+            overshield_colour: read.overshield_colour,
+            overguard_colour: read.overguard_colour,
         }
     }
 }

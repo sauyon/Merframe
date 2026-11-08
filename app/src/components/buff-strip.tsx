@@ -98,13 +98,8 @@ const BAR_GAP = 1.5;
 const ENERGY_Y = DOT_Y - BACKING_RADIUS - 4 - BAR_HEIGHT;
 const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
 const OVERGUARD_HEIGHT = 0.8;
-/** The HUD's default colours for them. */
-const HEALTH = "rgb(204 41 41)";
-const SHIELD = "rgb(0 213 255)";
-const OVERSHIELD = "rgb(179 0 255)";
-const OVERGUARD = "rgb(168 237 219)";
-/** Energy's colour while the HUD's own can't be read. */
-const ENERGY = INK;
+/** A bar's colour while the HUD's own can't be read. */
+const UNREAD = INK;
 const EMPTY = "rgb(12 14 16 / 0.6)";
 
 function useNow() {
@@ -415,11 +410,9 @@ function share(value: number, of: number) {
   return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
 }
 
-/** The colour the HUD draws the energy bar in: the warframe's energy colour. */
-function energyColour(vitals: Vitals) {
-  return vitals.energy_colour === null
-    ? ENERGY
-    : `#${vitals.energy_colour.toString(16).padStart(6, "0")}`;
+/** A colour the HUD draws a bar in, `0xRRGGBB`, as CSS. */
+function colour(rgb: number | null) {
+  return rgb === null ? UNREAD : `#${rgb.toString(16).padStart(6, "0")}`;
 }
 
 /** Shields covering health, so the health shows as they drain, overshields and overguard as
@@ -461,19 +454,47 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
   return (
     <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
       {fill("empty", HEALTH_Y, BAR_HEIGHT, 0, 1, EMPTY)}
-      {fill("health", HEALTH_Y, BAR_HEIGHT, 0, health, HEALTH)}
-      {fill("shield", HEALTH_Y, BAR_HEIGHT, 0, shield, SHIELD)}
-      {fill("overshield", lineY, OVERGUARD_HEIGHT, 0, overshield, OVERSHIELD)}
+      {fill(
+        "health",
+        HEALTH_Y,
+        BAR_HEIGHT,
+        0,
+        health,
+        colour(vitals.health_colour),
+      )}
+      {fill(
+        "shield",
+        HEALTH_Y,
+        BAR_HEIGHT,
+        0,
+        shield,
+        colour(vitals.shield_colour),
+      )}
+      {fill(
+        "overshield",
+        lineY,
+        OVERGUARD_HEIGHT,
+        0,
+        overshield,
+        colour(vitals.overshield_colour),
+      )}
       {fill(
         "overguard",
         lineY - (overshield > 0 ? OVERGUARD_HEIGHT : 0),
         OVERGUARD_HEIGHT,
         0,
         overguard,
-        OVERGUARD,
+        colour(vitals.overguard_colour),
       )}
       {fill("energy-empty", ENERGY_Y, BAR_HEIGHT, 0, 1, EMPTY)}
-      {fill("energy", ENERGY_Y, BAR_HEIGHT, 0, energy, energyColour(vitals))}
+      {fill(
+        "energy",
+        ENERGY_Y,
+        BAR_HEIGHT,
+        0,
+        energy,
+        colour(vitals.energy_colour),
+      )}
     </g>
   );
 }

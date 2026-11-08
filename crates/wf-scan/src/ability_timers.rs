@@ -70,10 +70,6 @@ impl AbilityTimers {
         if names.is_none() {
             tracing::debug!("No type name lookup in the image");
         }
-        let vitals = HudVitals::locate(&image);
-        if vitals.is_none() {
-            tracing::debug!("No health or energy readouts in the image");
-        }
         let counts = counted_arrays(code, 3);
         let lists = indexed_arrays(code);
         let found = class
@@ -88,20 +84,26 @@ impl AbilityTimers {
                             abilities: u64::from(abilities),
                             lists: u64::from(list),
                             names,
-                            vitals,
+                            vitals: None,
                         };
                         timers.read(reader).is_some().then_some(timers)
                     })
                 })
             });
-        if found.is_none() {
+        let Some(found) = found else {
             tracing::debug!(
                 ?counts,
                 ?lists,
                 "No live HUD matches its ability timer layout"
             );
+            return Ok(None);
+        };
+        // Only once there is a HUD to read them from, as finding them reads through the image.
+        let vitals = HudVitals::locate(&image);
+        if vitals.is_none() {
+            tracing::debug!("No health or energy readouts in the image");
         }
-        Ok(found)
+        Ok(Some(Self { vitals, ..found }))
     }
 
     /// Every running timer, or `None` once the HUD is gone or no longer looks like one.
