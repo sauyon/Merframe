@@ -85,10 +85,14 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             let mut found = std::mem::take(&mut screens);
             let attempt = blocking("read buffs", move || {
                 let attached = reattach(&owned, cached)?;
-                let readings = read_sources(&attached, &mut moved, &mut found);
+                let (readings, playing) = read_sources(&attached, &mut moved, &mut found);
                 let dots = ability_dots(attached.reader.as_ref(), &attached.lua, &mut found.hud);
                 let using = moved.iter().find_map(|source| source.abilities());
-                let shown = moved.iter().find_map(|source| source.vitals());
+                // A source keeps the vitals it last read, which go stale once it stops being read.
+                let shown = moved
+                    .iter()
+                    .find_map(|source| source.vitals())
+                    .filter(|_| playing);
                 anyhow::Ok((attached, moved, found, readings, dots, using, shown))
             })
             .await;
@@ -582,17 +586,17 @@ fn layout_of(dots: DotsLayout) -> BuffLayout {
 
 /// Reads every source, or none out of a mission, with the Esc menu up or while the game hides
 /// its HUD: once a mission ends, the HUD's last timers linger in memory, frozen, and the menu
-/// and the end-of-mission screen cover the HUD.
+/// and the end-of-mission screen cover the HUD. Also says whether the sources were read.
 fn read_sources(
     attached: &Attached,
     sources: &mut [Box<dyn BuffSource>],
     screens: &mut Screens,
-) -> Vec<Vec<Reading>> {
+) -> (Vec<Vec<Reading>>, bool) {
     let reader = attached.reader.as_ref();
     let playing = in_gameplay(reader, &attached.lua, &mut screens.chat) != Some(false)
         && menu_open(reader, &attached.lua, &mut screens.squad) != Some(true)
         && hud_hidden(reader, &attached.lua) != Some(true);
-    sources
+    let readings = sources
         .iter_mut()
         .map(|source| {
             if playing {
@@ -601,7 +605,8 @@ fn read_sources(
                 Vec::new()
             }
         })
-        .collect()
+        .collect();
+    (readings, playing)
 }
 
 /// What to look up the game's icon for a buff an ability's own HUD names by: the ability's
