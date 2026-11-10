@@ -15,6 +15,8 @@ pub struct VendorOffer {
     pub credits: Option<i64>,
     /// What a blueprint offer builds.
     pub builds: Option<String>,
+    /// The export's icon, as an image name the app fetches from browse.wf.
+    pub icon: Option<String>,
 }
 
 impl VendorOffer {

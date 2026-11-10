@@ -291,7 +291,8 @@ fn currency_offer(
         unique_name: offer.item.clone(),
         name: offer.name.clone(),
         image_name: image_of(catalog, &offer.item)
-            .or_else(|| image_of(catalog, offer.builds.as_deref()?)),
+            .or_else(|| image_of(catalog, offer.builds.as_deref()?))
+            .or_else(|| offer.icon.clone()),
         quantity: offer.quantity,
         price,
         also_costs: offer

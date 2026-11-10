@@ -61,8 +61,7 @@ impl ImageCache {
     }
 
     async fn download(&self, image_name: &str) -> CommandResult<Vec<u8>> {
-        let url = format!("https://cdn.warframestat.us/img/{image_name}");
-        self.fetch(&url).await.map_err(|source| {
+        self.fetch(&source_url(image_name)).await.map_err(|source| {
             CommandError::from(format!(
                 "Downloading {image_name} failed: {}",
                 cause_chain(&source)
@@ -79,6 +78,18 @@ impl ImageCache {
             .await?
             .error_for_status()?;
         Ok(response.bytes().await?.to_vec())
+    }
+}
+
+// Export icons arrive as their game path with dots for slashes, since cached
+// names must be flat; anything else is a WFCD image.
+fn source_url(image_name: &str) -> String {
+    match image_name
+        .strip_prefix("Lotus.")
+        .and_then(|path| path.strip_suffix(".png"))
+    {
+        Some(path) => format!("https://browse.wf/Lotus/{}.png", path.replace('.', "/")),
+        None => format!("https://cdn.warframestat.us/img/{image_name}"),
     }
 }
 
@@ -120,6 +131,20 @@ mod tests {
             Some("braton-prime-barrel.png")
         );
         assert_eq!(sanitise(" Ash.png "), Some("Ash.png"));
+    }
+
+    #[test]
+    fn export_icons_come_from_browse_wf() {
+        let icon = "Lotus.Interface.Icons.StoreIcons.Captura.Deimos.png";
+        assert_eq!(sanitise(icon), Some(icon));
+        assert_eq!(
+            source_url(icon),
+            "https://browse.wf/Lotus/Interface/Icons/StoreIcons/Captura/Deimos.png"
+        );
+        assert_eq!(
+            source_url("Ash.png"),
+            "https://cdn.warframestat.us/img/Ash.png"
+        );
     }
 
     #[test]
