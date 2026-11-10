@@ -13,6 +13,10 @@ pub struct VendorOffer {
     pub quantity: i64,
     pub prices: Vec<(String, i64)>,
     pub credits: Option<i64>,
+    /// What a blueprint offer builds.
+    pub builds: Option<String>,
+    /// The export's icon, as an image name the app fetches from browse.wf.
+    pub icon: Option<String>,
 }
 
 impl VendorOffer {

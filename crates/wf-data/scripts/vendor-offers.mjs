@@ -63,12 +63,26 @@ const [vendors, recipes, relics, dict, ...named] = await Promise.all([
 ]);
 
 const keys = new Map();
-for (const table of named) {
+const icons = new Map();
+for (const table of [...named, relics]) {
   for (const [uniqueName, entry] of Object.entries(table)) {
     if (entry?.name && !keys.has(uniqueName)) {
       keys.set(uniqueName, entry.name);
     }
+    if (entry?.icon && !icons.has(uniqueName)) {
+      icons.set(uniqueName, entry.icon);
+    }
   }
+}
+
+// The app's image cache takes flat file names, so the export's icon path
+// travels with dots for slashes and is fetched from browse.wf.
+function iconOf(...uniqueNames) {
+  const icon = uniqueNames.map((uniqueName) => icons.get(uniqueName)).find(Boolean);
+  if (!icon || !/^\/Lotus\/[A-Za-z0-9_/-]+\.png$/.test(icon)) {
+    return null;
+  }
+  return icon.slice(1).replaceAll("/", ".");
 }
 
 function tidy(text) {
@@ -119,6 +133,15 @@ for (const manifest of Object.keys(vendors).sort()) {
     };
     if (item.credits) {
       offer.credits = item.credits;
+    }
+    // A blueprint borrows the image of what it builds.
+    const built = recipes[uniqueName]?.resultType;
+    if (built) {
+      offer.builds = built;
+    }
+    const icon = iconOf(uniqueName, item.storeItem, built);
+    if (icon) {
+      offer.icon = icon;
     }
     // Rotating bins repeat an offer; one copy is enough.
     const key = JSON.stringify(offer);

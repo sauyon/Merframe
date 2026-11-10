@@ -114,6 +114,7 @@ Services Merframe talks to:
 - `api.merframe.net`: a price cache run by me, so that Merframe does not ask warframe.market for every item separately. The app fetches this every 15 minutes by default and only downloads it when it changed. The cache itself checks Prime parts and sets every 30 minutes, other items with orders every 4 hours, the rest daily, and refreshes trade volumes and the 90-day history once a day. A price in Merframe is for Prime items at most about half an hour old, for anything else likely a couple hours.
 - `raw.githubusercontent.com`: item data from WFCD's `warframe-items`.
 - `cdn.warframestat.us`: item images, downloaded once and kept in the app data directory.
+- `browse.wf`: icons for vendor offers the item data has no image for, downloaded once and kept with the item images.
 - A Discord webhook, only if you set one up under notifications.
 
 ## How does Merframe work?
@@ -155,6 +156,7 @@ Merframe stands on the work of others. Thank you to:
 - [AlecaFrame](https://alecaframe.com/), whose feature set Merframe re-creates for Linux and Windows. No AlecaFrame code is used.
 - [warframe.market](https://warframe.market) for the trading platform and its public API.
 - The [Warframe Community Developers](https://github.com/WFCD): item data from [`warframe-items`](https://github.com/WFCD/warframe-items), the node, sortie and Nightwave tables from [`warframe-worldstate-data`](https://github.com/WFCD/warframe-worldstate-data), the world cycle arithmetic documented by [`warframe-worldstate-parser`](https://github.com/WFCD/warframe-worldstate-parser), and the item images served from `cdn.warframestat.us`.
+- [calamity-inc](https://github.com/calamity-inc) for [`warframe-public-export-plus`](https://github.com/calamity-inc/warframe-public-export-plus), the source of the vendor offers, and the icons served from `browse.wf`.
 - The editors of the [Warframe wiki](https://wiki.warframe.com), the source of the Helminth ability table and of the items the exports do not carry.
 - Digital Extremes for Warframe, its public worldState and a content policy that lets fan projects exist.
 - [ChickenDrawsDogs](https://x.com/ChickenDraws) for their awesome `Dog Days "Hang Loose" Poster` drawing, which is the header image.
