@@ -65,6 +65,12 @@ fn show_sample<R: Runtime>(
         }
         Kind::Notification => bail!("Notifications are tested from the settings page"),
         Kind::Buffs => bail!("The buff strip shows live buffs in a mission"),
+        Kind::ArbitrationLive => {
+            let Some(run) = lock(&state.core).arbitration_runs()?.into_iter().next() else {
+                bail!("No arbitration run recorded yet");
+            };
+            super::show_arbitration_run(app, state, Box::new(run));
+        }
     }
 
     Ok(())

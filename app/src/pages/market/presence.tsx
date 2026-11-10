@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { OptionSelect } from "@/components/option-select";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { api, logError, reportError } from "@/lib/bridge";
+import type { FilterOption } from "@/lib/filters";
 import { usePresenceStore } from "@/stores/presence-store";
 import type { MarketPresenceChoice, UserStatus } from "@/types";
 
@@ -13,9 +13,13 @@ const STATUS_LABELS: Record<UserStatus, string> = {
   ingame: "In game",
 };
 
-const OPTIONS = (["invisible", "online", "ingame"] as UserStatus[]).map(
-  (value) => ({ value, label: STATUS_LABELS[value] }),
-);
+const CHOICE_OPTIONS: FilterOption<MarketPresenceChoice>[] = [
+  { value: "untouched", label: "Status untouched" },
+  { value: "invisible", label: STATUS_LABELS.invisible },
+  { value: "online", label: STATUS_LABELS.online },
+  { value: "ingame", label: STATUS_LABELS.ingame },
+  { value: "follow_game", label: "Follow the game" },
+];
 
 export function LiveStatusBadge() {
   const live = usePresenceStore((state) => state.presence.live);
@@ -53,25 +57,12 @@ export function PresenceControl() {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <label className="text-muted-foreground flex cursor-pointer items-center gap-2 text-xs">
-        <Checkbox
-          checked={presence.auto}
-          onCheckedChange={(checked) =>
-            choose({ status: presence.status, auto: checked === true })
-          }
-        />
-        Follow the game
-      </label>
-      <OptionSelect
-        label="warframe.market status"
-        value={presence.status}
-        options={OPTIONS}
-        anyLabel="Status untouched"
-        onChange={(status) => choose({ status, auto: presence.auto })}
-        size="sm"
-        disabled={presence.auto}
-      />
-    </div>
+    <OptionSelect
+      label="warframe.market status"
+      value={presence.choice}
+      options={CHOICE_OPTIONS}
+      onChange={choose}
+      size="sm"
+    />
   );
 }

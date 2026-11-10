@@ -171,6 +171,54 @@
         "data": {
           "type": "object",
           "properties": {
+            "run": {
+              "$ref": "#/$defs/ArbitrationRun"
+            }
+          },
+          "required": [
+            "run"
+          ]
+        },
+        "event": {
+          "type": "string",
+          "const": "arbitration_run_updated"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "run": {
+              "$ref": "#/$defs/ArbitrationRun"
+            }
+          },
+          "required": [
+            "run"
+          ]
+        },
+        "event": {
+          "type": "string",
+          "const": "arbitration_run_recorded"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
             "ends_at": {
               "type": "string",
               "format": "date-time"
@@ -320,6 +368,246 @@
         "at_start",
         "minutes_ahead",
         "reminder"
+      ]
+    },
+    "ArbitrationRun": {
+      "type": "object",
+      "properties": {
+        "boosters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArbitrationRunResourceBooster"
+          }
+        },
+        "complete_capture": {
+          "type": "boolean"
+        },
+        "drone_spawns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "duration_secs": {
+          "type": "number",
+          "format": "double"
+        },
+        "enemy_spawns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "host": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "mission_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "peak_live_agents": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "planet": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reward_cycles": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 0
+        },
+        "rotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArbitrationRunRotation"
+          }
+        },
+        "samples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArbitrationRunSample"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/ArbitrationRunSource"
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "status": {
+          "$ref": "#/$defs/ArbitrationRunStatus"
+        },
+        "waves": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArbitrationRunWave"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "status",
+        "duration_secs",
+        "complete_capture",
+        "notes",
+        "rotations",
+        "waves",
+        "boosters",
+        "samples"
+      ]
+    },
+    "ArbitrationRunResourceBooster": {
+      "type": "object",
+      "properties": {
+        "expires_secs": {
+          "type": "number",
+          "format": "double"
+        },
+        "kind": {
+          "$ref": "#/$defs/ArbitrationRunResourceBoosterKind"
+        }
+      },
+      "required": [
+        "kind",
+        "expires_secs"
+      ]
+    },
+    "ArbitrationRunResourceBoosterKind": {
+      "type": "string",
+      "enum": [
+        "amount",
+        "drop_chance",
+        "drop_chance_blessing"
+      ]
+    },
+    "ArbitrationRunRotation": {
+      "type": "object",
+      "properties": {
+        "at_secs": {
+          "type": "number",
+          "format": "double"
+        },
+        "duration_secs": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "index": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "index",
+        "at_secs"
+      ]
+    },
+    "ArbitrationRunSample": {
+      "type": "object",
+      "properties": {
+        "drone_spawns": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "live_agents": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "secs": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "required": [
+        "secs",
+        "drone_spawns",
+        "live_agents"
+      ]
+    },
+    "ArbitrationRunSource": {
+      "type": "string",
+      "enum": [
+        "live",
+        "import"
+      ]
+    },
+    "ArbitrationRunStatus": {
+      "type": "string",
+      "enum": [
+        "recording",
+        "completed",
+        "failed",
+        "aborted",
+        "ended",
+        "interrupted"
+      ]
+    },
+    "ArbitrationRunWave": {
+      "type": "object",
+      "properties": {
+        "complete": {
+          "type": "boolean"
+        },
+        "index": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "index",
+        "complete"
       ]
     },
     "ArbitrationSlot": {

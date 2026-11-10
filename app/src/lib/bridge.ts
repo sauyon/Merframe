@@ -1,9 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { toast } from "sonner";
 import type {
   AppEvent,
   ArbitrationDashboard,
+  ArbitrationRun,
+  ArbitrationRunExportFormat,
   Auction,
   CommandError,
   ComparedStat,
@@ -20,6 +23,7 @@ import type {
   MarketItem,
   MarketMover,
   MarketOrders,
+  MarketPresence,
   MarketPresenceChoice,
   MarketWindow,
   MasteryOrdering,
@@ -30,7 +34,6 @@ import type {
   OrderPatch,
   OverlayKind,
   OverlayState,
-  Presence,
   RelicPlan,
   RelicPlannerTab,
   RelicSource,
@@ -184,9 +187,9 @@ export const api = {
     call<void>("market_close_order", { id, quantity }),
   marketDeleteOrder: (id: string) => call<Order>("market_delete_order", { id }),
   marketActivity: () => call<void>("market_activity"),
-  marketPresence: () => call<Presence>("market_presence"),
+  marketPresence: () => call<MarketPresence>("market_presence"),
   marketSetPresence: (choice: MarketPresenceChoice) =>
-    call<Presence>("market_set_presence", { choice }),
+    call<MarketPresence>("market_set_presence", { choice }),
   marketRemoveAll: () => call<number>("market_remove_all"),
   marketFixOrders: (id?: string) => call<number>("market_fix_orders", { id }),
   marketSetVisibility: (visible: boolean) =>
@@ -207,9 +210,18 @@ export const api = {
     call<void>("market_set_auctions_visibility", { visible }),
   worldstate: () => call<WorldStateView>("worldstate"),
   arbitrations: () => call<ArbitrationDashboard>("arbitrations"),
+  arbitrationRuns: () => call<ArbitrationRun[]>("arbitration_runs"),
+  arbitrationLiveRun: () => call<ArbitrationRun | null>("arbitration_live_run"),
+  deleteArbitrationRun: (id: string) =>
+    call<void>("delete_arbitration_run", { id }),
+  setArbitrationRunVitus: (id: string, vitus: number | null) =>
+    call<void>("set_arbitration_run_vitus", { id, vitus }),
+  importArbitrationLog: () => call<number | null>("import_arbitration_log"),
+  refreshArbitrationRuns: () => call<number>("refresh_arbitration_runs"),
+  exportArbitrationRun: (id: string, format: ArbitrationRunExportFormat) =>
+    call<string | null>("export_arbitration_run", { id, format }),
   invasionWeaponParts: () =>
     call<InvasionWeaponPart[]>("invasion_weapon_parts"),
-  openUrl: (url: string) => call<void>("open_url", { url }),
   appLogFile: () => call<string>("app_log_file"),
   openDataFolder: () => call<void>("open_data_folder"),
   openGameLogFolder: () => call<void>("open_game_log_folder"),
@@ -221,7 +233,7 @@ export const api = {
 
 export async function openExternal(url: string) {
   try {
-    await api.openUrl(url);
+    await openUrl(url);
   } catch (error) {
     reportError(error);
   }

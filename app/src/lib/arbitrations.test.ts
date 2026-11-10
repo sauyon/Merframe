@@ -106,6 +106,7 @@ test("labels and search text", () => {
   expect(slotPlace({ node: "SolNode99999", planet: null })).toBe(
     "SolNode99999",
   );
+  expect(slotPlace({ node: null, planet: null })).toBe("Unknown node");
   expect(slotSearchText(slot(0))).toBe("umbriel uranus interception grineer s");
   expect(slotSearchText(slot(0, { planet: null, faction: null }))).toBe(
     "umbriel interception s",

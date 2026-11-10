@@ -3,6 +3,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use serde::Serialize;
 use wf_inventory::Inventory;
 use wf_log::Event as LogEvent;
@@ -10,14 +11,18 @@ use wf_market::{RivenData, WeaponAuctions};
 use wf_worldstate::{ArbitrationForecast, ArbitrationTiers, WorldState};
 
 use crate::account::Account;
+use crate::arbitration_runs::{
+    ArbitrationRun, ArbitrationRunRecorder, ArbitrationRunReward, ArbitrationRunSource,
+    ArbitrationRunUpdate, MissionEndReward, VITUS_ESSENCE,
+};
 use crate::catalog::{Catalog, REQUIEM_MARKER};
 use crate::comparables::{self, ComparedStat, RivenComparables};
 use crate::delta;
 use crate::ducatering::{self, Ducatering, DucateringFilter};
 use crate::error::Result;
 use crate::events::{
-    self, AlertSettings, ArbitrationOutlook, ArbitrationSchedule, CoreEvent, Engine,
-    ScannedRewards, ScannedTrade, WorldRewardAlert,
+    self, ARBITRATION_FORECAST_TRUSTED, AlertSettings, ArbitrationOutlook, ArbitrationSchedule,
+    CoreEvent, Engine, ScannedRewards, ScannedTrade, WorldRewardAlert,
 };
 use crate::export::{ExportBundle, export};
 use crate::favourites::Favourites;
@@ -70,11 +75,13 @@ pub struct Core {
     items: ItemTable,
     prices: Arc<dyn PriceSource + Send + Sync>,
     engine: Engine,
+    arbitration_recorder: ArbitrationRunRecorder,
     account: Option<Account>,
     world: Option<WorldState>,
     arbitrations: Option<LoadedArbitrationForecast>,
     riven_data: Option<RivenData>,
     latest_snapshot: Option<Snapshot>,
+    synced_vitus: Option<u32>,
     own_relic_reward: Option<String>,
     reward_screen_recorded: bool,
     favourites: Favourites,
@@ -112,11 +119,13 @@ impl Core {
             catalog,
             prices,
             engine: Engine::new(alerts),
+            arbitration_recorder: ArbitrationRunRecorder::new(ArbitrationRunSource::Live),
             account: None,
             world: None,
             arbitrations: None,
             riven_data: None,
             latest_snapshot: None,
+            synced_vitus: None,
             own_relic_reward: None,
             reward_screen_recorded: false,
             favourites,
@@ -238,8 +247,14 @@ impl Core {
             "Snapshot restored as the current inventory"
         );
         self.latest_snapshot = Some(snapshot.clone());
-        self.account = Some(Account::new(inventory));
+        self.adopt_inventory(inventory);
         Ok(Some(snapshot))
+    }
+
+    fn adopt_inventory(&mut self, inventory: Inventory) {
+        self.arbitration_recorder
+            .keep_latest_booster_expiries(&inventory.boosters);
+        self.account = Some(Account::new(inventory));
     }
 
     pub fn ingest_inventory(&mut self, json: &str, now: DateTime<Utc>) -> Result<Vec<CoreEvent>> {
@@ -248,6 +263,7 @@ impl Core {
         let previous = self.store.latest_snapshot()?;
         let id = self.store.record_snapshot(&inventory, now)?;
         let mut changes = 0;
+        self.synced_vitus = None;
         if previous.as_ref().is_none_or(|snapshot| snapshot.id != id) {
             if let Some(previous) = previous
                 && let Some(cached) = self.store.cached_inventory()?
@@ -255,13 +271,14 @@ impl Core {
                 let deltas = delta::compute(&Inventory::parse(&cached)?, &inventory);
                 self.store.record_deltas(previous.id, id, &deltas)?;
                 changes = deltas.len();
+                self.synced_vitus = synced_vitus(&deltas);
             }
             self.store.cache_inventory(json)?;
         }
         tracing::info!(snapshot = id.0, changes, "Inventory ingested");
         self.latest_snapshot = self.store.snapshot(id)?;
         let events = events::inventory_events(&inventory, changes);
-        self.account = Some(Account::new(inventory));
+        self.adopt_inventory(inventory);
         Ok(events)
     }
 
@@ -342,6 +359,7 @@ impl Core {
         &mut self,
         event: &LogEvent,
         now: DateTime<Utc>,
+        secs: f64,
     ) -> Result<Vec<CoreEvent>> {
         if let LogEvent::OwnRelicReward { store_item, .. } = event {
             self.own_relic_reward = Some(store_item.clone());
@@ -349,9 +367,125 @@ impl Core {
         if matches!(event, LogEvent::RelicRewardScreenOpened) {
             self.reward_screen_recorded = false;
         }
-        let events = self.engine.handle_log_event(event, now);
+        let mut events = self.engine.handle_log_event(event, now);
+        events.extend(self.record_arbitration_run(event, now, secs)?);
         self.record(&events, now)?;
         Ok(events)
+    }
+
+    fn record_arbitration_run(
+        &mut self,
+        event: &LogEvent,
+        now: DateTime<Utc>,
+        secs: f64,
+    ) -> Result<Option<CoreEvent>> {
+        let current_node = self.current_arbitration_node(now);
+        let update = self
+            .arbitration_recorder
+            .observe(event, secs, current_node.as_deref());
+        self.arbitration_run_event(update, now)
+    }
+
+    fn arbitration_run_event(
+        &mut self,
+        update: ArbitrationRunUpdate,
+        now: DateTime<Utc>,
+    ) -> Result<Option<CoreEvent>> {
+        match update {
+            ArbitrationRunUpdate::Finished(run) => {
+                self.store.save_arbitration_run(&run, now)?;
+                Ok(Some(CoreEvent::ArbitrationRunRecorded { run }))
+            }
+            ArbitrationRunUpdate::Unchanged => Ok(None),
+            ArbitrationRunUpdate::Changed(run) => {
+                Ok(Some(CoreEvent::ArbitrationRunUpdated { run }))
+            }
+        }
+    }
+
+    fn current_arbitration_node(&self, now: DateTime<Utc>) -> Option<String> {
+        let loaded = self.arbitrations.as_ref()?;
+        if now.signed_duration_since(loaded.fetched_at) > ARBITRATION_FORECAST_TRUSTED {
+            return None;
+        }
+
+        let index = loaded.forecast.index_at(now)?;
+        loaded
+            .forecast
+            .hour(index)
+            .map(|hour| hour.node_id.to_owned())
+    }
+
+    pub fn live_arbitration_run(&self) -> Option<ArbitrationRun> {
+        self.arbitration_recorder.live()
+    }
+
+    pub fn finish_arbitration_run(&mut self, now: DateTime<Utc>) -> Result<Vec<CoreEvent>> {
+        let update = self.arbitration_recorder.finish();
+        Ok(self
+            .arbitration_run_event(update, now)?
+            .into_iter()
+            .collect())
+    }
+
+    pub fn arbitration_runs(&self) -> Result<Vec<ArbitrationRun>> {
+        self.store.arbitration_runs()
+    }
+
+    pub fn arbitration_run(&self, id: &str) -> Result<Option<ArbitrationRun>> {
+        self.store.arbitration_run(id)
+    }
+
+    pub fn delete_arbitration_run(&self, id: &str) -> Result<()> {
+        self.store.delete_arbitration_run(id)
+    }
+
+    pub fn set_arbitration_run_vitus(&self, id: &str, vitus: Option<u32>) -> Result<bool> {
+        let Some(mut run) = self.store.arbitration_run(id)? else {
+            return Ok(false);
+        };
+
+        run.set_manual_vitus(vitus);
+        self.store.update_arbitration_run(&run)?;
+        Ok(true)
+    }
+
+    pub fn record_mission_end(&mut self, rewards: &[MissionEndReward]) -> bool {
+        let mut merged: IndexMap<String, ArbitrationRunReward> = IndexMap::new();
+        for reward in rewards {
+            let record = self.items.resolve(&reward.store_item);
+            merged
+                .entry(record.unique_name.clone())
+                .or_insert_with_key(|item_type| ArbitrationRunReward {
+                    item_type: item_type.clone(),
+                    name: record.name.clone(),
+                    count: 0,
+                })
+                .count += reward.item_count;
+        }
+        let rewards: Vec<ArbitrationRunReward> = merged.into_values().collect();
+        self.arbitration_recorder
+            .attach_mission_end(&rewards, self.synced_vitus)
+    }
+
+    pub fn import_arbitration_runs(
+        &self,
+        lines: &[wf_log::LogLine],
+        now: DateTime<Utc>,
+    ) -> Result<usize> {
+        let mut known = self.store.arbitration_runs()?;
+        known.extend(self.arbitration_recorder.live());
+        let mut imported = 0;
+        for run in ArbitrationRunRecorder::replay(lines, ArbitrationRunSource::Import) {
+            if known.iter().any(|seen| seen.same_mission(&run)) {
+                continue;
+            }
+
+            if self.store.save_arbitration_run(&run, now)? {
+                imported += 1;
+            }
+        }
+        Ok(imported)
     }
 
     pub fn handle_trade_screen(
@@ -701,9 +835,18 @@ impl Core {
     }
 }
 
+fn synced_vitus(deltas: &[delta::ItemDelta]) -> Option<u32> {
+    let change = deltas
+        .iter()
+        .find(|delta| delta.item_type == VITUS_ESSENCE)
+        .map_or(0, |delta| delta.after - delta.before);
+    u32::try_from(change).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arbitration_runs::ArbitrationRunStatus;
     use crate::catalog::fixtures::{self, TRINITY_PRIME_SYSTEMS, at, scratch_dir, synced};
     use crate::events::ScannedTradeItem;
     use crate::events::{CyclePhase, FissureFilter, InventorySummary, TimerAlerts};
@@ -1025,7 +1168,7 @@ mod tests {
         let tab = LogEvent::ChatTabAdded {
             channel: "Fexampletenno".to_owned(),
         };
-        let first = core.handle_log_event(&tab, now).expect("chat tab");
+        let first = core.handle_log_event(&tab, now, 1.0).expect("chat tab");
         assert_eq!(
             first,
             vec![CoreEvent::NewConversation {
@@ -1033,10 +1176,10 @@ mod tests {
                 player: "exampletenno".to_owned(),
             }]
         );
-        let second = core.handle_log_event(&tab, now).expect("chat tab");
+        let second = core.handle_log_event(&tab, now, 1.0).expect("chat tab");
         assert!(second.is_empty());
         core.set_alert_settings(AlertSettings::default());
-        let third = core.handle_log_event(&tab, now).expect("chat tab");
+        let third = core.handle_log_event(&tab, now, 1.0).expect("chat tab");
         assert!(third.is_empty());
         let region = core
             .handle_log_event(
@@ -1044,6 +1187,7 @@ mod tests {
                     channel: "Q_EN_EU".to_owned(),
                 },
                 now,
+                1.0,
             )
             .expect("chat tab");
         assert!(region.is_empty());
@@ -1060,6 +1204,7 @@ mod tests {
                 store_item: "/Lotus/StoreItems/Upgrades/Mods/Immortal/RequiemModA".to_owned(),
             },
             now,
+            1.0,
         )
         .unwrap();
         let events = core
@@ -1094,6 +1239,7 @@ mod tests {
                     .to_owned(),
             },
             now,
+            1.0,
         )
         .unwrap();
         let events = core
@@ -1226,5 +1372,191 @@ mod tests {
             fixtures::INVENTORY
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    fn observe_lines(core: &mut Core, lines: &[wf_log::LogLine], now: DateTime<Utc>) {
+        for line in lines {
+            if let Some(event) = wf_log::classify(line) {
+                core.handle_log_event(&event, now, line.time).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn arbitration_log_import_is_idempotent() {
+        let lines = crate::arbitration_runs::fixture_lines();
+        let core = core();
+        let now = at(1_792_858_804_954);
+        assert_eq!(core.import_arbitration_runs(&lines, now).unwrap(), 1);
+        assert_eq!(core.import_arbitration_runs(&lines, now).unwrap(), 0);
+        let runs = core.arbitration_runs().unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].source, ArbitrationRunSource::Import);
+        assert!(
+            core.set_arbitration_run_vitus(&runs[0].id, Some(4))
+                .unwrap()
+        );
+        assert_eq!(
+            core.arbitration_run(&runs[0].id)
+                .unwrap()
+                .unwrap()
+                .manual_vitus,
+            Some(4)
+        );
+        core.delete_arbitration_run(&runs[0].id).unwrap();
+        assert!(core.arbitration_runs().unwrap().is_empty());
+    }
+
+    fn synced_with_vitus(oid: &str, count: i64) -> String {
+        let mut synced: serde_json::Value = serde_json::from_str(fixtures::INVENTORY).unwrap();
+        fixtures::push_counted(&mut synced, "MiscItems", VITUS_ESSENCE, count);
+        synced["LastInventorySync"] = serde_json::json!({ "$oid": oid });
+        synced.to_string()
+    }
+
+    fn mission_end_rewards() -> Vec<MissionEndReward> {
+        let vitus = || MissionEndReward {
+            store_item: String::from("/Lotus/StoreItems/Types/Items/MiscItems/Elitium"),
+            item_count: 1,
+        };
+        vec![vitus(), vitus()]
+    }
+
+    #[test]
+    fn mission_end_attaches_to_the_live_run() {
+        let lines = crate::arbitration_runs::fixture_lines();
+        let home = lines
+            .iter()
+            .rposition(|line| matches!(wf_log::classify(line), Some(LogEvent::LevelLoaded { .. })))
+            .unwrap();
+        let (mission, rest) = lines.split_at(home);
+        let mut core = ingested();
+        let now = at(1_792_858_804_954);
+        observe_lines(&mut core, mission, now);
+        core.ingest_inventory(&synced_with_vitus("6a9eeb1f000000000000c002", 3), now)
+            .unwrap();
+
+        let rewards = mission_end_rewards();
+        assert!(core.record_mission_end(&rewards));
+        assert!(!core.record_mission_end(&rewards));
+        let live = core.live_arbitration_run().unwrap();
+        assert_eq!(live.status, ArbitrationRunStatus::Completed);
+        assert_eq!(live.vitus, Some(3));
+
+        observe_lines(&mut core, rest, now);
+        let runs = core.arbitration_runs().unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].collected_vitus, Some(3));
+        assert_eq!(
+            runs[0].rewards,
+            Some(vec![ArbitrationRunReward {
+                item_type: String::from(VITUS_ESSENCE),
+                name: String::from("Vitus Essence"),
+                count: 2,
+            }])
+        );
+    }
+
+    #[test]
+    fn mission_end_without_a_previous_sync_reads_no_vitus() {
+        let lines = crate::arbitration_runs::fixture_lines();
+        let home = lines
+            .iter()
+            .rposition(|line| matches!(wf_log::classify(line), Some(LogEvent::LevelLoaded { .. })))
+            .unwrap();
+        let mut core = core();
+        let now = at(1_792_858_804_954);
+        observe_lines(&mut core, &lines[..home], now);
+        core.ingest_inventory(&synced_with_vitus("6a9eeb1f000000000000c002", 3), now)
+            .unwrap();
+
+        assert!(core.record_mission_end(&mission_end_rewards()));
+        let live = core.live_arbitration_run().unwrap();
+        assert_eq!(live.vitus, None);
+        assert_eq!(live.rewards.as_ref().map(Vec::len), Some(1));
+    }
+
+    #[test]
+    fn arbitration_log_import_skips_a_run_keyed_differently() {
+        let lines = crate::arbitration_runs::fixture_lines();
+        let core = core();
+        let now = at(1_792_858_804_954);
+        let mut stored = crate::arbitration_runs::fixture_runs().remove(0);
+        stored.id = format!("drone:{}", stored.id);
+        stored.started_at = stored
+            .started_at
+            .map(|at| at + chrono::Duration::seconds(30));
+        core.store.save_arbitration_run(&stored, now).unwrap();
+
+        assert_eq!(core.import_arbitration_runs(&lines, now).unwrap(), 0);
+
+        let mut later = stored.clone();
+        later.id = "later".to_owned();
+        later.started_at = stored
+            .started_at
+            .map(|at| at + chrono::Duration::seconds(60));
+        assert!(stored.same_mission(&later));
+        assert!(later.same_mission(&stored));
+
+        let mut elsewhere = stored.clone();
+        elsewhere.id = "elsewhere".to_owned();
+        elsewhere.node_id = Some("SolNode1".to_owned());
+        assert!(!stored.same_mission(&elsewhere));
+        assert_eq!(core.arbitration_runs().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn arbitration_run_without_a_reward_is_dropped() {
+        let mut core = core();
+        let now = at(1_792_858_804_954);
+        let mission = LogEvent::MissionLoading {
+            host: true,
+            node_id: "SolNode64".to_owned(),
+            elite: true,
+        };
+        core.handle_log_event(&mission, now, 10.0).unwrap();
+        core.handle_log_event(&LogEvent::MissionAborted, now, 40.0)
+            .unwrap();
+        let home = LogEvent::LevelLoaded {
+            path: "/Lotus/Levels/Proc/PlayerShip/AeAo.lp".to_owned(),
+        };
+        let events = core.handle_log_event(&home, now, 50.0).unwrap();
+
+        assert!(matches!(
+            events.as_slice(),
+            [CoreEvent::ArbitrationRunUpdated { run }] if run.status == ArbitrationRunStatus::Aborted
+        ));
+        assert!(core.live_arbitration_run().is_none());
+        assert!(core.arbitration_runs().unwrap().is_empty());
+    }
+
+    #[test]
+    fn arbitration_log_import_skips_the_live_run() {
+        let lines = crate::arbitration_runs::fixture_lines();
+        let first_reward = lines
+            .iter()
+            .position(|line| {
+                matches!(
+                    wf_log::classify(line),
+                    Some(LogEvent::SurvivalReward { .. })
+                )
+            })
+            .unwrap();
+        let (started, rest) = lines.split_at(first_reward + 1);
+        let mut core = core();
+        let now = at(1_792_858_804_954);
+        observe_lines(&mut core, started, now);
+        let live = core.live_arbitration_run().unwrap();
+
+        assert_eq!(core.import_arbitration_runs(started, now).unwrap(), 0);
+
+        observe_lines(&mut core, rest, now);
+        core.finish_arbitration_run(now).unwrap();
+
+        let runs = core.arbitration_runs().unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].id, live.id);
+        assert_eq!(runs[0].source, ArbitrationRunSource::Live);
+        assert_eq!(runs[0].status, ArbitrationRunStatus::Completed);
     }
 }

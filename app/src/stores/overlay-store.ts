@@ -11,6 +11,7 @@ const IDLE: OverlayState = {
   recommendation: null,
   riven: null,
   ducatering: null,
+  arbitration: null,
   notification: null,
   buffs: null,
   buffs_style: { warn_seconds: 10, cover_dots: true, scale: 100, offset: 0 },

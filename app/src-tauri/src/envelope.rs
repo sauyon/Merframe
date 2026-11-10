@@ -38,6 +38,8 @@ fn kind(event: &CoreEvent) -> &'static str {
         CoreEvent::FissureAlert { .. } => "fissure-alert",
         CoreEvent::WorldRewardAlert { .. } => "world-reward-alert",
         CoreEvent::ArbitrationAlert { .. } => "arbitration-alert",
+        CoreEvent::ArbitrationRunUpdated { .. } => "arbitration-run-updated",
+        CoreEvent::ArbitrationRunRecorded { .. } => "arbitration-run-recorded",
         CoreEvent::TimerAlert { .. } => "timer-alert",
     }
 }

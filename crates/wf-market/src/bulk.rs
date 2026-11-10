@@ -223,7 +223,6 @@ mod tests {
             onos.mod_type,
             "/Lotus/Upgrades/Mods/Randomized/LotusPistolRandomModRare"
         );
-        assert!((onos.disposition - 0.8).abs() < f64::EPSILON);
         assert_eq!(onos.mastery_rank, 14);
 
         let good = data.good_rolls.get("onos").unwrap();

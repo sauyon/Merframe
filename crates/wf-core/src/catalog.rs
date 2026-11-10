@@ -462,7 +462,7 @@ mod tests {
     #[test]
     fn fixture_counts() {
         let catalog = fixtures::catalog();
-        assert_eq!(catalog.items().count(), 4);
+        assert_eq!(catalog.items().count(), 5);
         assert_eq!(catalog.relics().count(), 2);
         assert_eq!(catalog.skins().count(), 0);
     }
@@ -470,7 +470,7 @@ mod tests {
     #[test]
     fn skins_kept_apart() {
         let catalog = fixtures::with_skins(fixtures::ITEMS);
-        assert_eq!(catalog.items().count(), 9);
+        assert_eq!(catalog.items().count(), 10);
         assert_eq!(catalog.skins().count(), 13);
         assert!(catalog.items().all(|item| !item.is_skin()));
         assert!(

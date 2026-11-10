@@ -12,7 +12,7 @@ use wf_market::{
 use super::{Shared, ready};
 
 use crate::error::{CommandError, CommandResult};
-use crate::market::{self, MarketItems, MarketOrders, MarketPresenceChoice, Presence};
+use crate::market::{self, MarketItems, MarketOrders, MarketPresence, MarketPresenceChoice};
 use crate::market_session;
 use crate::runtime::{self, AppEvent};
 use crate::settings::MarketAccount;
@@ -375,7 +375,7 @@ pub async fn market_set_auctions_visibility(state: Shared<'_>, visible: bool) ->
 }
 
 #[tauri::command]
-pub async fn market_presence(state: Shared<'_>) -> CommandResult<Presence> {
+pub async fn market_presence(state: Shared<'_>) -> CommandResult<MarketPresence> {
     let state = ready(&state).await?;
     Ok(*read(&state.market_presence))
 }
@@ -385,7 +385,7 @@ pub async fn market_set_presence<R: Runtime>(
     app: AppHandle<R>,
     state: Shared<'_>,
     choice: MarketPresenceChoice,
-) -> CommandResult<Presence> {
+) -> CommandResult<MarketPresence> {
     let state = ready(&state).await?;
     Ok(market_session::set_presence(&app, &state, choice)?)
 }

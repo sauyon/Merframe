@@ -135,7 +135,12 @@ mod tests {
         let fingerprint = RivenFingerprint::parse(&rolled(&weapon.game_ref, buffs, curse)).unwrap();
         let good = grader.good_roll_of(Some(weapon.game_ref.as_str()));
         grader
-            .graded(&fingerprint, riven_type, Some(weapon.disposition), good)
+            .graded(
+                &fingerprint,
+                riven_type,
+                fixture.disposition_of(&weapon.game_ref),
+                good,
+            )
             .into_iter()
             .filter(|attribute| attribute.desired)
             .map(|attribute| attribute.tag)
@@ -152,7 +157,7 @@ mod tests {
         let attributes = grader.graded(
             &fingerprint,
             riven_type,
-            Some(weapon.disposition),
+            fixture.disposition_of(&weapon.game_ref),
             Some(good),
         );
         Some(grader.good_roll(good, &attributes, riven_type))

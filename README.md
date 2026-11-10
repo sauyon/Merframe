@@ -2,10 +2,11 @@
 
 ![Merframe header image](.github/Merframe.png)
 
-Merframe is an open-source alternative to AlecaFrame that runs natively on Linux (Proton) and Windows.
+Merframe is an open-source alternative to AlecaFrame that runs natively on Linux and Windows.
 
 Merframe displays information about:
- - World timers
+ - World timers, fissures, alerts, invasions and events
+ - Arbitrations
  - Foundry
  - Inventory
  - Relics
@@ -13,10 +14,14 @@ Merframe displays information about:
  - Mastery
  - Resources
  - warframe.market trading
- - warframe.market analytics
+ - Trading Analytics
  - Stats
 
-In-game overlays are available on Windows, X11 and XWayland (This includes Wayland and Hyprland since Proton uses XWayland).
+In-game overlays show relic rewards, relic recommendations, riven grades, live Arbitration stats, in-game notifications and Ducatering (selling Prime parts at the Ducat Kiosk). They are available on Windows, X11 and XWayland (This includes Wayland and Hyprland since Proton uses XWayland). For more details, read the [Overlays Wiki page](https://github.com/akshualy/Merframe/wiki/Overlays).
+
+Notifications for fissures, rewards, Arbitrations, cycle timers, trades and new conversations are available as normal desktop notifications, in-game pop-ups, and a Discord webhook. For more info, check the [Notifications Wiki page](https://github.com/akshualy/Merframe/wiki/Notifications).
+
+You can create scripts or allow other programs on your PC to listen to Merframe events through the [Event Feed](https://github.com/akshualy/Merframe/wiki/Event-Feed-for-other-applications). This is off by default.
 
 Big Warframe script updates (usually big content drops) will break the overlays until Merframe is updated as well. Changes in data structures from content we get from Warframe Community Developers (WFCD) may break the app. Please create an issue if either of these go unnoticed for a day.
 
@@ -59,7 +64,7 @@ On Arch, you may install the `.pkg.tar.zst` with `pacman -U`, or run `bash packa
 
 The app will offer you a self-installing update when one is available. You may disable this in settings or at any update offer.
 
-The Arch package does not update itself. You'll have to install the next `.pkg.tar.zst` with `pacman -U` again.
+Package details, the Arch package and how updates work are on the [Installing and Updating Wiki page](https://github.com/akshualy/Merframe/wiki/Installing-and-Updating).
 
 ## Running the app from source
 
@@ -110,45 +115,32 @@ Inventory and analytics are kept locally. Signing in sends your email and passwo
 
 Services Merframe talks to:
 - `api.warframe.com`: the public world state, polled every 5 to 10 minutes.
-- `api.warframe.market`: orders and riven auctions. Prices work without a login, only listing items needs one.
+- `api.warframe.market`: orders and riven auctions. Prices work without a login, only listing items needs one. While you are logged in, your unread message count is retrieved alongside your orders.
+- `browse.wf`: the Arbitration forecast and the community tiers, fetched every 6 hours.
 - `api.merframe.net`: a price cache run by me, so that Merframe does not ask warframe.market for every item separately. The app fetches this every 15 minutes by default and only downloads it when it changed. The cache itself checks Prime parts and sets every 30 minutes, other items with orders every 4 hours, the rest daily, and refreshes trade volumes and the 90-day history once a day. A price in Merframe is for Prime items at most about half an hour old, for anything else likely a couple hours.
 - `raw.githubusercontent.com`: item data from WFCD's `warframe-items`.
 - `cdn.warframestat.us`: item images, downloaded once and kept in the app data directory.
 - `browse.wf`: icons for vendor offers the item data has no image for, downloaded once and kept with the item images.
-- A Discord webhook, only if you set one up under notifications.
+- A Discord webhook, only if you set one up under notifications. It receives the alert types you pick there.
 
 ## How does Merframe work?
 
-Merframe reads out what the game stores in its own space on your computer - the game's memory.
-This is the same approach AlecaFrame uses (via Overwolf) for inventory data.
+Merframe reads out what the game stores in its own space on your computer - the game's memory - and reads the game's log file (`EE.log`).
+Reading memory is the same approach AlecaFrame uses (via Overwolf) for inventory data.
 
-Merframe goes a bit further and takes this approach for all data: Your current inventory, displayed riven, riven rolls, relic fissure & relic rewards. AlecaFrame uses OCR for this, which is arguably less risky.
+Merframe goes a bit further and takes this approach for all data: Your current inventory, displayed riven, riven rolls, relic fissure & relic rewards, trades and the Ducat Kiosk. AlecaFrame uses OCR for most of this, which is arguably less risky.
 
 DE has so far tolerated memory reading, but they can not give a clear okay or recommendation for third-party tools.
+What that can mean for your account is on the [Legality & Risks Wiki page](https://github.com/akshualy/Merframe/wiki/Legality-&-Risks).
 As with all user tools: Use at your own risk.
 
 Memory holds way more than the game shows to a user. Merframe strives to only display what a player could also work out by hand from what the game shows them. To put it in a concrete rule: If it can be done with pen and paper, Merframe may show it.
 
 ## On memory (Linux)
 
-Merframe reads the memory of the running game through `/proc/<pid>/mem` on Linux.
+Merframe reads the memory of the running game through `/proc/<pid>/mem`.
 With `kernel.yama.ptrace_scope` at 0 or 1, the default of most distributions, this works without any setup.
-Wine and Proton let other processes of the same user read the game.
-
-A system with scope 2 refuses the read unless Merframe holds `CAP_SYS_PTRACE`. Scope 3 refuses it in every case and can only be lowered by a reboot.
-In case of a memory permission issue, Merframe reports it as `Reading process <pid> is not permitted`.
-
-You have the following options in case you run into that error at scope 2:
-
-Globally set your system's memory read scope until the next reboot (will also allow other programs to read memory across processes)
-```bash
-sudo sysctl kernel.yama.ptrace_scope=0
-```
-
-Allow it for just Merframe:
-```bash
-sudo setcap cap_sys_ptrace=ep ./merframe
-```
+If Merframe has an error at the tope saying `Reading process <pid> is not permitted`, your system is at scope 2 or 3. The [Memory permissions on Linux Wiki page](https://github.com/akshualy/Merframe/wiki/Memory-permissions-on-Linux) has more detail on what to do in these cases.
 
 ## Credits
 

@@ -50,42 +50,82 @@ impl MarketCategory {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
-pub struct MarketPresenceChoice {
-    pub status: Option<UserStatus>,
-    pub auto: bool,
+#[serde(rename_all = "snake_case")]
+pub enum MarketPresenceChoice {
+    #[default]
+    Untouched,
+    Invisible,
+    Online,
+    Ingame,
+    FollowGame,
 }
 
 impl MarketPresenceChoice {
-    pub fn taken_offline() -> Self {
-        Self {
-            status: Some(UserStatus::Invisible),
-            auto: false,
-        }
-    }
-
     pub fn wanted(self, game_detected: bool) -> Option<UserStatus> {
-        if self.auto {
-            return Some(if game_detected {
-                UserStatus::Ingame
-            } else {
-                UserStatus::Invisible
-            });
+        match self {
+            Self::Untouched => None,
+            Self::Online => Some(UserStatus::Online),
+            Self::Ingame => Some(UserStatus::Ingame),
+            Self::FollowGame if game_detected => Some(UserStatus::Ingame),
+            Self::Invisible | Self::FollowGame => Some(UserStatus::Invisible),
         }
-        self.status
     }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
-pub struct Presence {
-    #[serde(flatten)]
+pub struct MarketPresence {
     pub choice: MarketPresenceChoice,
     pub live: Option<UserStatus>,
+    #[serde(skip)]
+    pub pause: MarketPresencePause,
 }
 
-impl Presence {
+/// One-off for going offline after the last trade of the day,
+/// to allow the explicit status choice to take over the next choice/restart.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MarketPresencePause {
+    #[default]
+    Off,
+    Due {
+        standing: Option<UserStatus>,
+    },
+    Holding {
+        standing: Option<UserStatus>,
+    },
+}
+
+impl MarketPresence {
     pub fn is_live_online(self) -> bool {
         matches!(self.live, Some(UserStatus::Online | UserStatus::Ingame))
+    }
+
+    pub fn go_offline_after_last_trade(&mut self, game_detected: bool) {
+        self.pause = MarketPresencePause::Due {
+            standing: self.choice.wanted(game_detected),
+        };
+    }
+
+    pub fn next_status(self, game_detected: bool) -> Option<UserStatus> {
+        let wanted = self.choice.wanted(game_detected);
+        match self.pause {
+            MarketPresencePause::Due { .. } => Some(UserStatus::Invisible),
+            MarketPresencePause::Holding { standing } if standing == wanted => None,
+            MarketPresencePause::Off | MarketPresencePause::Holding { .. } => wanted,
+        }
+    }
+
+    pub fn status_applied(&mut self, decided: MarketPresencePause) {
+        if self.pause != decided {
+            return;
+        }
+
+        self.pause = match decided {
+            MarketPresencePause::Due { standing } => MarketPresencePause::Holding { standing },
+            MarketPresencePause::Off | MarketPresencePause::Holding { .. } => {
+                MarketPresencePause::Off
+            }
+        };
     }
 }
 
@@ -640,38 +680,80 @@ mod tests {
     fn presence_follows_game() {
         use wf_market::UserStatus;
 
-        let untouched = MarketPresenceChoice::default();
-        assert_eq!(untouched.wanted(true), None);
+        assert_eq!(MarketPresenceChoice::default().wanted(true), None);
+        assert_eq!(
+            MarketPresenceChoice::Online.wanted(false),
+            Some(UserStatus::Online)
+        );
+        assert_eq!(
+            MarketPresenceChoice::FollowGame.wanted(true),
+            Some(UserStatus::Ingame)
+        );
+        assert_eq!(
+            MarketPresenceChoice::FollowGame.wanted(false),
+            Some(UserStatus::Invisible)
+        );
+    }
 
-        let manual = MarketPresenceChoice {
-            status: Some(UserStatus::Online),
-            auto: false,
+    #[test]
+    fn last_trade_pauses_the_standing_choice() {
+        use wf_market::UserStatus;
+
+        let mut presence = MarketPresence {
+            choice: MarketPresenceChoice::FollowGame,
+            ..MarketPresence::default()
         };
-        assert_eq!(manual.wanted(true), Some(UserStatus::Online));
-        assert_eq!(manual.wanted(false), Some(UserStatus::Online));
+        assert_eq!(presence.next_status(true), Some(UserStatus::Ingame));
 
-        let automatic = MarketPresenceChoice {
-            status: Some(UserStatus::Online),
-            auto: true,
+        presence.go_offline_after_last_trade(true);
+        assert_eq!(presence.next_status(true), Some(UserStatus::Invisible));
+        assert_eq!(presence.next_status(true), Some(UserStatus::Invisible));
+
+        presence.status_applied(presence.pause);
+        assert_eq!(presence.next_status(true), None);
+        assert_eq!(presence.next_status(false), Some(UserStatus::Invisible));
+
+        presence.status_applied(presence.pause);
+        assert_eq!(presence.pause, MarketPresencePause::Off);
+        assert_eq!(presence.next_status(true), Some(UserStatus::Ingame));
+    }
+
+    #[test]
+    fn last_trade_during_a_send_is_not_lost() {
+        use wf_market::UserStatus;
+
+        let mut presence = MarketPresence {
+            choice: MarketPresenceChoice::Online,
+            ..MarketPresence::default()
         };
-        assert_eq!(automatic.wanted(true), Some(UserStatus::Ingame));
-        assert_eq!(automatic.wanted(false), Some(UserStatus::Invisible));
+        let decided = presence.pause;
+        presence.go_offline_after_last_trade(false);
+        presence.status_applied(decided);
+        assert_eq!(presence.next_status(false), Some(UserStatus::Invisible));
+    }
 
-        let offline = MarketPresenceChoice::taken_offline();
-        assert_eq!(offline.wanted(true), Some(UserStatus::Invisible));
-        assert!(!offline.auto);
+    #[test]
+    fn last_trade_sends_offline_once_without_a_standing_choice() {
+        use wf_market::UserStatus;
+
+        let mut presence = MarketPresence::default();
+        presence.go_offline_after_last_trade(false);
+        assert_eq!(presence.next_status(false), Some(UserStatus::Invisible));
+
+        presence.status_applied(presence.pause);
+        assert_eq!(presence.next_status(false), None);
     }
 
     #[test]
     fn presence_is_online_while_the_socket_reports_it() {
         use wf_market::UserStatus;
 
-        let presence = Presence {
-            choice: MarketPresenceChoice::default(),
+        let presence = MarketPresence {
             live: Some(UserStatus::Ingame),
+            ..MarketPresence::default()
         };
         assert!(presence.is_live_online());
-        assert!(!Presence::default().is_live_online());
+        assert!(!MarketPresence::default().is_live_online());
     }
 
     #[test]

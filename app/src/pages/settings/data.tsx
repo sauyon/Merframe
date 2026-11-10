@@ -125,7 +125,7 @@ export function PricesAndData({
             onChange={(checked) =>
               patch({ market_offline_after_last_trade: checked })
             }
-            hint="Sets your warframe.market status to offline once the day's trade limit is used up."
+            hint="Sets your warframe.market status to offline once the day's trade limit is used up. The status you chose on the Market page takes over again when you change it, when it follows the game and the game starts or closes, or when you restart Merframe."
           >
             Go offline after the last trade
           </SwitchRow>

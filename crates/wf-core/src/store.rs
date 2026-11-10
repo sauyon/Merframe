@@ -11,6 +11,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use wf_inventory::Inventory;
 
+use crate::arbitration_runs::ArbitrationRun;
 use crate::catalog::DUCATS_ITEM;
 use crate::delta::ItemDelta;
 use crate::error::{CoreError, Result};
@@ -18,7 +19,10 @@ use crate::favourites::Favourites;
 use crate::stats::AYA_ITEM;
 use crate::trade::Trade;
 
-const MIGRATIONS: [(i64, &str); 1] = [(1, include_str!("sql/0001_init.sql"))];
+const MIGRATIONS: [(i64, &str); 2] = [
+    (1, include_str!("sql/0001_init.sql")),
+    (2, include_str!("sql/0002_arbitration_runs.sql")),
+];
 const SNAPSHOT_COLUMNS: &str = "id, taken_at, last_sync_oid, plat, credits, endo, ducats, mr";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
@@ -455,6 +459,69 @@ impl Store {
         Ok(true)
     }
 
+    pub fn save_arbitration_run(
+        &self,
+        run: &ArbitrationRun,
+        recorded_at: DateTime<Utc>,
+    ) -> Result<bool> {
+        let run_json = serde_json::to_string(run)?;
+        let inserted = self.connection.execute(
+            "INSERT INTO arbitration_runs (id, started_at, recorded_at, run_json) \
+             VALUES (?1, ?2, ?3, ?4) ON CONFLICT(id) DO NOTHING",
+            params![
+                run.id,
+                run.started_at.map(|at| at.timestamp_millis()),
+                recorded_at.timestamp_millis(),
+                run_json,
+            ],
+        )?;
+        Ok(inserted == 1)
+    }
+
+    pub fn update_arbitration_run(&self, run: &ArbitrationRun) -> Result<()> {
+        let run_json = serde_json::to_string(run)?;
+        self.connection.execute(
+            "UPDATE arbitration_runs SET run_json = ?2 WHERE id = ?1",
+            params![run.id, run_json],
+        )?;
+        Ok(())
+    }
+
+    pub fn arbitration_runs(&self) -> Result<Vec<ArbitrationRun>> {
+        let mut statement = self.connection.prepare(
+            "SELECT run_json FROM arbitration_runs \
+             ORDER BY started_at IS NULL, started_at DESC, recorded_at DESC",
+        )?;
+        let runs = statement
+            .query_and_then([], |row| {
+                let run_json: String = row.get(0)?;
+                Ok(serde_json::from_str(&run_json)?)
+            })?
+            .collect::<Result<Vec<ArbitrationRun>>>()?;
+        Ok(runs)
+    }
+
+    pub fn arbitration_run(&self, id: &str) -> Result<Option<ArbitrationRun>> {
+        let run_json: Option<String> = self
+            .connection
+            .query_row(
+                "SELECT run_json FROM arbitration_runs WHERE id = ?1",
+                params![id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        run_json
+            .map(|run_json| serde_json::from_str(&run_json))
+            .transpose()
+            .map_err(Into::into)
+    }
+
+    pub fn delete_arbitration_run(&self, id: &str) -> Result<()> {
+        self.connection
+            .execute("DELETE FROM arbitration_runs WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
     pub fn setting<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let raw: Option<String> = self
             .connection
@@ -543,6 +610,26 @@ mod tests {
     use crate::delta;
     use crate::rivens::support::riven_table;
     use crate::trade::TradeItem;
+
+    #[test]
+    fn arbitration_run_round_trip() {
+        let store = Store::in_memory().unwrap();
+        let runs = crate::arbitration_runs::fixture_runs();
+        let run = &runs[0];
+        assert!(store.save_arbitration_run(run, at(1_000_000)).unwrap());
+        assert!(!store.save_arbitration_run(run, at(1_000_001)).unwrap());
+        assert_eq!(store.arbitration_run(&run.id).unwrap().unwrap().id, run.id);
+
+        let mut changed = run.clone();
+        changed.manual_vitus = Some(4);
+        store.update_arbitration_run(&changed).unwrap();
+        let stored = store.arbitration_runs().unwrap();
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].manual_vitus, Some(4));
+
+        store.delete_arbitration_run(&run.id).unwrap();
+        assert!(store.arbitration_run(&run.id).unwrap().is_none());
+    }
 
     #[test]
     fn snapshot_round_trip() {

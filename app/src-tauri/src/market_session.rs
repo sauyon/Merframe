@@ -4,7 +4,7 @@ use tauri::{AppHandle, Runtime};
 use tracing::warn;
 use wf_market::UserStatus;
 
-use crate::market::{MarketOrders, MarketPresenceChoice, Presence};
+use crate::market::{MarketOrders, MarketPresence, MarketPresenceChoice, MarketPresencePause};
 use crate::runtime::{AppEvent, emit, update_status};
 use crate::settings::{self, MarketAccount};
 use crate::state::{AppState, write};
@@ -59,9 +59,10 @@ pub fn set_presence<R: Runtime>(
     app: &AppHandle<R>,
     state: &AppState,
     choice: MarketPresenceChoice,
-) -> anyhow::Result<Presence> {
+) -> anyhow::Result<MarketPresence> {
     let mut guard = write(&state.market_presence);
     guard.choice = choice;
+    guard.pause = MarketPresencePause::Off;
     let presence = *guard;
     drop(guard);
 

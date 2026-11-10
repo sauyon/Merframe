@@ -118,7 +118,6 @@ mod tests {
     fn owned_variant_disposition() {
         let table = riven_table();
         let braton = table_weapon_named(&table, "Braton");
-        assert!((braton.disposition - 1.35).abs() < f64::EPSILON);
         let roll = rolled(
             &braton.game_ref,
             &[

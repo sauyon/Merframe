@@ -30,12 +30,23 @@ pub struct InventoryBuffer {
     pub len: usize,
     pub last_sync: String,
     pub json: String,
+    pub mission_rewards: Option<Vec<MissionEndReward>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MissionEndReward {
+    #[serde(rename = "StoreItem")]
+    pub store_item: String,
+    #[serde(rename = "ItemCount")]
+    pub item_count: u32,
 }
 
 #[derive(Deserialize)]
 struct MissionEnd {
     #[serde(rename = "InventoryJson")]
     inventory_json: String,
+    #[serde(rename = "MissionRewards", default)]
+    mission_rewards: Vec<MissionEndReward>,
 }
 
 #[derive(Deserialize)]
@@ -50,13 +61,13 @@ pub(crate) fn accept(addr: u64, body: &[u8]) -> Option<InventoryBuffer> {
     }
 
     let text = str::from_utf8(body).ok()?;
-    let json = if memmem::find(body, b"\"LastInventorySync\":{\"$oid\":\"").is_some() {
-        text.to_owned()
-    } else {
-        serde_json::from_str::<MissionEnd>(text)
-            .ok()?
-            .inventory_json
-    };
+    let (json, mission_rewards) =
+        if memmem::find(body, b"\"LastInventorySync\":{\"$oid\":\"").is_some() {
+            (text.to_owned(), None)
+        } else {
+            let end = serde_json::from_str::<MissionEnd>(text).ok()?;
+            (end.inventory_json, Some(end.mission_rewards))
+        };
 
     let fields: HashMap<&str, &RawValue> = serde_json::from_str(&json).ok()?;
     if !REQUIRED_KEYS.iter().all(|key| fields.contains_key(key)) {
@@ -69,6 +80,7 @@ pub(crate) fn accept(addr: u64, body: &[u8]) -> Option<InventoryBuffer> {
         len: body.len(),
         last_sync: last_sync.oid,
         json,
+        mission_rewards,
     })
 }
 
@@ -99,6 +111,7 @@ mod tests {
         assert_eq!(buffer.len, body.len());
         assert_eq!(buffer.last_sync, OID);
         assert_eq!(buffer.json, body);
+        assert_eq!(buffer.mission_rewards, None);
     }
 
     #[test]
@@ -137,6 +150,15 @@ mod tests {
         assert_eq!(buffer.last_sync, OID);
         assert_eq!(buffer.json, inventory);
         assert_eq!(buffer.len, body.len());
+        assert_eq!(
+            buffer.mission_rewards,
+            Some(vec![MissionEndReward {
+                store_item: String::from(
+                    "/Lotus/StoreItems/Types/Recipes/Components/FormaBlueprint"
+                ),
+                item_count: 2,
+            }])
+        );
     }
 
     #[test]

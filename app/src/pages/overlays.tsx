@@ -4,6 +4,7 @@ import { BuffFilters } from "@/components/buff-filters";
 import { DucateringFilters } from "@/components/ducatering-filters";
 import { SelectField } from "@/components/option-select";
 import {
+  ArbitrationLiveSlot,
   DucateringSlot,
   RecommendationSlot,
   RewardSlot,
@@ -47,7 +48,8 @@ type PlacementSetting =
   | "overlay_relic_reward_placement"
   | "overlay_relic_recommendation_placement"
   | "overlay_riven_placement"
-  | "overlay_ducatering_placement";
+  | "overlay_ducatering_placement"
+  | "overlay_arbitration_placement";
 
 const REFINEMENTS: { value: RecommendationRefinement; label: string }[] = [
   { value: "radiant", label: "Always Radiant" },
@@ -193,6 +195,7 @@ export function OverlaysPage() {
   const riven = master && settings.overlay_riven;
   const ducatering = master && settings.overlay_ducatering;
   const buffs = master && settings.overlay_buffs;
+  const arbitration = master && settings.overlay_arbitration;
 
   const actions = (
     kind: OverlayKind,
@@ -549,6 +552,36 @@ export function OverlaysPage() {
             onChange={(hidden) => saveSettings({ buffs_hidden: hidden })}
           />
         )}
+      </Section>
+
+      <Section
+        title="Live Arbitration"
+        controls={
+          <CardControls
+            name="arbitration"
+            enabled={settings.overlay_arbitration}
+            disabled={!master}
+            onEnabled={(enabled) =>
+              saveSettings({ overlay_arbitration: enabled })
+            }
+          />
+        }
+        action={actions(
+          "arbitration_live",
+          "overlay_arbitration_placement",
+          arbitration,
+        )}
+        description={
+          arbitration
+            ? "Shown while an Arbitration runs and for a moment after it ends, with the drone pace."
+            : OFF
+        }
+      >
+        <Focused trigger={arbitration ? overlays.arbitration : null}>
+          <ArbitrationLiveSlot
+            trigger={arbitration ? overlays.arbitration : null}
+          />
+        </Focused>
       </Section>
     </Page>
   );

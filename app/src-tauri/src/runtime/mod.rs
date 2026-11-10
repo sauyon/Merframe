@@ -11,7 +11,7 @@ use wf_core::{ArbitrationAlert, CoreEvent};
 
 use crate::envelope::CoreEventEnvelope;
 use crate::event_feed::{self, EventFeed};
-use crate::market::{MarketSnapshot, Presence};
+use crate::market::{MarketPresence, MarketSnapshot};
 use crate::notice::Notice;
 use crate::overlay::{self, OverlayState};
 pub use crate::runtime::market_loop::MarketAutoClose;
@@ -41,6 +41,8 @@ pub enum AppEvent {
     StatusUpdated(GameStatus),
     InventoryUpdated(GameStatus),
     SettingsUpdated(Box<Settings>),
+    ArbitrationRunUpdated,
+    ArbitrationRunsUpdated,
     TradesUpdated,
     WorldStateUpdated,
     RivenDataUpdated,
@@ -49,7 +51,7 @@ pub enum AppEvent {
     MarketUpdated(MarketSnapshot),
     MarketAutoClosed(MarketAutoClose),
     MarketSessionRejected,
-    MarketPresence(Presence),
+    MarketPresence(MarketPresence),
     OverlayState(Box<OverlayState>),
 }
 
@@ -188,6 +190,18 @@ async fn deliver<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, event: &
         }
         CoreEvent::ArbitrationAlert { alert } => {
             arbitration_alert(app, state, &settings, alert).await;
+        }
+        CoreEvent::ArbitrationRunUpdated { run } => {
+            overlay::on_arbitration_run_updated(app, state, run.clone());
+            emit(app, AppEvent::ArbitrationRunUpdated);
+        }
+        CoreEvent::ArbitrationRunRecorded { run } => {
+            tauri::async_runtime::spawn(overlay::on_arbitration_run_recorded(
+                app.clone(),
+                Arc::clone(state),
+                run.clone(),
+            ));
+            emit(app, AppEvent::ArbitrationRunsUpdated);
         }
         CoreEvent::TimerAlert {
             name,

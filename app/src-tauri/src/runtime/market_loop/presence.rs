@@ -7,7 +7,7 @@ use wf_market::{IncomingEvent, MarketSocket, StatusSetPayload, UserStatus};
 
 use super::MARKET_SIGNED_OUT_POLL;
 use crate::market_session;
-use crate::state::{AppState, USER_AGENT, read};
+use crate::state::{AppState, USER_AGENT, read, write};
 
 pub(crate) async fn market_presence_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
     let mut failures: u32 = 0;
@@ -90,18 +90,22 @@ async fn presence_session<R: Runtime>(
     let mut reported: Option<UserStatus> = None;
     let mut last_frame = Instant::now();
     loop {
-        let wanted = wanted_presence(state);
-        if let Some(status) = wanted
-            && reported != wanted
-        {
-            socket
-                .set_status(StatusSetPayload {
-                    status,
-                    duration: None,
-                })
-                .await?;
-            reported = wanted;
-            info!(status = ?status, "Market socket status set");
+        let game_detected = read(&state.status).game_detected;
+        let presence = *read(&state.market_presence);
+        let wanted = presence.next_status(game_detected);
+        if let Some(status) = wanted {
+            if reported != wanted {
+                socket
+                    .set_status(StatusSetPayload {
+                        status,
+                        duration: None,
+                    })
+                    .await?;
+                reported = wanted;
+                info!(status = ?status, "Market socket status set");
+            }
+
+            write(&state.market_presence).status_applied(presence.pause);
         }
 
         tokio::select! {
@@ -130,11 +134,6 @@ async fn presence_session<R: Runtime>(
             }
         }
     }
-}
-
-fn wanted_presence(state: &Arc<AppState>) -> Option<UserStatus> {
-    let detected = read(&state.status).game_detected;
-    read(&state.market_presence).choice.wanted(detected)
 }
 
 #[cfg(test)]

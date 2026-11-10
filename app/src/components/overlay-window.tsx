@@ -6,6 +6,7 @@ import {
   NotificationOverlay,
 } from "@/components/notification-overlay";
 import {
+  ArbitrationLiveSlot,
   DucateringSlot,
   RecommendationSlot,
   RewardSlot,
@@ -145,6 +146,16 @@ export function OverlayWindow() {
                 layout={overlays.buffs_layout}
                 vitals={overlays.vitals}
               />
+            )
+          }
+        />
+        <Route
+          path="arbitration"
+          element={
+            overlays.arbitration && (
+              <OverlayFrame opacity={overlays.opacity} scroll={false}>
+                <ArbitrationLiveSlot trigger={overlays.arbitration} />
+              </OverlayFrame>
             )
           }
         />

@@ -6,16 +6,8 @@ import { FilterGrid } from "@/components/filter-grid";
 import { FilterSelect } from "@/components/filter-select";
 import { ItemImage } from "@/components/item-image";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dash } from "@/components/ui/dash";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -381,38 +373,25 @@ export function OrdersTable({
 
   return (
     <>
-      <Dialog
+      <ConfirmDialog
         open={confirming !== null}
         onOpenChange={(open) => !open && setConfirming(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {confirming === "remove"
-                ? "Delete Every Order"
-                : "Fix the Missing Items"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirming === "remove"
-                ? `All ${num(rows.length)} orders on your warframe.market profile are deleted, buy orders included. This cannot be undone.`
-                : `${num(missingCount)} sell orders offer more than the account holds. Each one drops to the number owned, and an order for an item you no longer own is deleted.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirming(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant={confirming === "remove" ? "destructive" : "default"}
-              onClick={handleBulk}
-            >
-              {confirming === "remove"
-                ? "Delete All Orders"
-                : "Fix Missing Items"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title={
+          confirming === "remove"
+            ? "Delete Every Order"
+            : "Fix the Missing Items"
+        }
+        description={
+          confirming === "remove"
+            ? `All ${num(rows.length)} orders on your warframe.market profile are deleted, buy orders included. This cannot be undone.`
+            : `${num(missingCount)} sell orders offer more than the account holds. Each one drops to the number owned, and an order for an item you no longer own is deleted.`
+        }
+        confirmLabel={
+          confirming === "remove" ? "Delete All Orders" : "Fix Missing Items"
+        }
+        destructive={confirming === "remove"}
+        onConfirm={handleBulk}
+      />
       <DataTable
         tableId="marketOrders"
         columns={columns}

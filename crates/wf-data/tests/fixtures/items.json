@@ -381,5 +381,21 @@
     "category": "Misc",
     "tradable": false,
     "masterable": false
+  },
+  {
+    "uniqueName": "/Lotus/Types/Items/MiscItems/Elitium",
+    "name": "Vitus Essence",
+    "codexSecret": false,
+    "itemCount": 1,
+    "buildPrice": 15000,
+    "buildTime": 3600,
+    "skipBuildTimePrice": 2,
+    "buildQuantity": 1,
+    "consumeOnBuild": false,
+    "type": "Resource",
+    "imageName": "Elitium.png",
+    "category": "Misc",
+    "tradable": false,
+    "masterable": false
   }
 ]

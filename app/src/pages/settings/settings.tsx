@@ -1,4 +1,4 @@
-import { Save, TriangleAlert } from "lucide-react";
+import { Save, TriangleAlert, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { Page } from "@/components/page";
@@ -64,33 +64,26 @@ export function SettingsPage() {
   const dirty = JSON.stringify(draft) !== JSON.stringify(stored);
 
   return (
-    <Page
-      title="Settings"
-      quote="settings"
-      actions={
-        <Button onClick={handleSave} disabled={saving || !dirty}>
-          <Save className="size-4" />
-          Save
-        </Button>
-      }
-    >
-      <div className="sticky top-2 z-10 h-10">
+    <Page title="Settings" quote="settings">
+      <div className="sticky top-2 z-10 h-13">
         {dirty && (
-          <button
-            type="button"
-            className="bg-card text-card-foreground border-border mx-auto flex w-fit cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 text-sm shadow-md"
-            onClick={(event) =>
-              event.currentTarget
-                .closest("main")
-                ?.scrollTo({ top: 0, behavior: "smooth" })
-            }
-          >
+          <div className="bg-card text-card-foreground border-border mx-auto flex w-fit items-center gap-3 rounded-lg border py-2 pr-2 pl-4 text-sm shadow-md">
             <TriangleAlert className="text-warning size-4" />
             <span className="font-medium">You have unsaved settings.</span>
-            <span className="text-muted-foreground">
-              Click to scroll to Save.
-            </span>
-          </button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setDraft(stored)}
+              disabled={saving}
+            >
+              <Undo2 className="size-4" />
+              Discard
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={saving}>
+              <Save className="size-4" />
+              Save
+            </Button>
+          </div>
         )}
       </div>
 

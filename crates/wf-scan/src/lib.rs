@@ -38,7 +38,7 @@ pub use gameplay::{hud_hidden, in_gameplay, menu_open};
 pub use http::HttpClients;
 pub use hud_layout::{DotsLayout, HudTables, ability_dots};
 pub use hud_vitals::{HudVitals, Vitals};
-pub use inventory::InventoryBuffer;
+pub use inventory::{InventoryBuffer, MissionEndReward};
 pub use kiosk::{DucatKiosk, KioskItem};
 pub use logbuf::{LogBuffer, find_log_buffer, is_line_head, locate, read_pending};
 pub use lua::{LuaState, LuaTable};

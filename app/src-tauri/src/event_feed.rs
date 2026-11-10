@@ -18,8 +18,8 @@ use tokio::sync::{broadcast, watch};
 use tokio_stream::wrappers::BroadcastStream;
 use tracing::{debug, info, warn};
 use wf_core::{
-    ArbitrationAlert, CoreEvent, FissureInfo, InventorySummary, RewardScreen, Trade,
-    WorldRewardAlert,
+    ArbitrationAlert, ArbitrationRun, CoreEvent, FissureInfo, InventorySummary, RewardScreen,
+    Trade, WorldRewardAlert,
 };
 
 use crate::runtime::{AppEvent, MarketAutoClose, update_status};
@@ -99,6 +99,12 @@ pub enum FeedEvent {
     ArbitrationAlert {
         alert: ArbitrationAlert,
     },
+    ArbitrationRunUpdated {
+        run: ArbitrationRun,
+    },
+    ArbitrationRunRecorded {
+        run: ArbitrationRun,
+    },
     TimerAlert {
         name: String,
         next_state: String,
@@ -126,6 +132,8 @@ impl FeedEvent {
             AppEvent::MarketAutoClosed(closed) => Some(Self::MarketAutoClosed(closed.clone())),
             AppEvent::InventoryUpdated(_)
             | AppEvent::SettingsUpdated(_)
+            | AppEvent::ArbitrationRunUpdated
+            | AppEvent::ArbitrationRunsUpdated
             | AppEvent::MarketUpdated(_)
             | AppEvent::MarketSessionRejected
             | AppEvent::MarketPresence(_)
@@ -152,6 +160,12 @@ impl FeedEvent {
             }),
             CoreEvent::ArbitrationAlert { alert } => Some(Self::ArbitrationAlert {
                 alert: alert.clone(),
+            }),
+            CoreEvent::ArbitrationRunUpdated { run } => Some(Self::ArbitrationRunUpdated {
+                run: (**run).clone(),
+            }),
+            CoreEvent::ArbitrationRunRecorded { run } => Some(Self::ArbitrationRunRecorded {
+                run: (**run).clone(),
             }),
             CoreEvent::TimerAlert {
                 name,

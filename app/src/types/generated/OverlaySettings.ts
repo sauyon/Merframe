@@ -40,4 +40,4 @@ buffs_offset: number,
 /**
  * Health, shield and energy bars above the dots.
  */
-buffs_vitals: boolean, };
+buffs_vitals: boolean, overlay_arbitration: boolean, overlay_arbitration_placement: OverlayPlacement, };

@@ -274,21 +274,19 @@ async fn stored_riven_data(state: &Arc<AppState>) -> Option<StoredRivenData> {
         lock(&owned.core)
             .store()
             .setting::<StoredRivenData>(RIVEN_DATA_KEY)
-            .context("Reading the stored riven data")
+            .map_err(Into::into)
     })
     .await;
-    match loaded {
-        Ok(stored) => {
-            if stored.is_none() {
-                debug!("No stored riven data yet");
-            }
-            stored
-        }
-        Err(error) => {
-            warn!(?error, "Stored riven data unreadable");
-            None
-        }
+    let Ok(stored) = loaded else {
+        info!("Stored riven data has an older shape, downloading again");
+        return None;
+    };
+
+    if stored.is_none() {
+        debug!("No stored riven data yet");
     }
+
+    stored
 }
 
 async fn load_riven_data<R: Runtime>(

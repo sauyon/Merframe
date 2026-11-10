@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_store::{Store, StoreExt};
 use wf_core::{AlertSettings, DucateringFilter, DucateringHidden, MasteryOptions, MasteryOrdering};
-use wf_market::{OrderType, Reach, Session, TraderStatus};
+use wf_market::{OrderType, Reach, Session, TraderStatus, UserStatus};
 
 use crate::market::MarketPresenceChoice;
 use crate::state::{AppState, lock, write};
@@ -369,6 +369,8 @@ pub struct OverlaySettings {
     pub ducatering: DucateringSettings,
     #[serde(flatten)]
     pub buffs: BuffSettings,
+    #[serde(flatten)]
+    pub arbitration: ArbitrationOverlaySettings,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -408,6 +410,23 @@ impl Default for BuffSettings {
             buffs_scale: 100,
             buffs_offset: 0,
             buffs_vitals: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+#[serde(default)]
+pub struct ArbitrationOverlaySettings {
+    pub overlay_arbitration: bool,
+    pub overlay_arbitration_placement: OverlayPlacement,
+}
+
+impl Default for ArbitrationOverlaySettings {
+    fn default() -> Self {
+        Self {
+            overlay_arbitration: true,
+            overlay_arbitration_placement: OverlayPlacement::TopRight,
         }
     }
 }
@@ -548,6 +567,7 @@ impl Default for OverlaySettings {
             overlay_account_balance: true,
             ducatering: DucateringSettings::default(),
             buffs: BuffSettings::default(),
+            arbitration: ArbitrationOverlaySettings::default(),
         }
     }
 }
@@ -800,8 +820,35 @@ pub fn set_account<R: Runtime>(
 }
 
 pub fn presence<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<MarketPresenceChoice> {
-    let choice = stored(app, PRESENCE_KEY, "Stored market presence is not readable")?;
-    Ok(choice.unwrap_or_default())
+    let choice: Option<StoredMarketPresenceChoice> =
+        stored(app, PRESENCE_KEY, "Stored market presence is not readable")?;
+    Ok(choice.map(MarketPresenceChoice::from).unwrap_or_default())
+}
+
+/// Migration: Until 2026-11-02 the presence choice was stored as a status with an `auto` flag.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum StoredMarketPresenceChoice {
+    Choice(MarketPresenceChoice),
+    StatusAndAuto {
+        status: Option<UserStatus>,
+        auto: bool,
+    },
+}
+
+impl From<StoredMarketPresenceChoice> for MarketPresenceChoice {
+    fn from(stored: StoredMarketPresenceChoice) -> Self {
+        match stored {
+            StoredMarketPresenceChoice::Choice(choice) => choice,
+            StoredMarketPresenceChoice::StatusAndAuto { auto: true, .. } => Self::FollowGame,
+            StoredMarketPresenceChoice::StatusAndAuto { status, .. } => match status {
+                None => Self::Untouched,
+                Some(UserStatus::Offline | UserStatus::Invisible) => Self::Invisible,
+                Some(UserStatus::Online) => Self::Online,
+                Some(UserStatus::Ingame) => Self::Ingame,
+            },
+        }
+    }
 }
 
 pub fn set_presence<R: Runtime>(
@@ -873,6 +920,11 @@ mod tests {
         assert!(settings.overlays.shown.overlay_relic_recommendation);
         assert!(settings.overlays.shown.overlay_riven);
         assert!(settings.overlays.ducatering.overlay_ducatering);
+        assert!(settings.overlays.arbitration.overlay_arbitration);
+        assert_eq!(
+            settings.overlays.arbitration.overlay_arbitration_placement,
+            OverlayPlacement::TopRight
+        );
         assert_eq!(
             settings.overlays.ducatering.overlay_ducatering_placement,
             OverlayPlacement::TopRight
@@ -1181,6 +1233,28 @@ mod tests {
     }
 
     #[test]
+    fn stored_presence_reads_both_shapes() {
+        let read = |json: &str| {
+            MarketPresenceChoice::from(
+                serde_json::from_str::<StoredMarketPresenceChoice>(json).unwrap(),
+            )
+        };
+        assert_eq!(read(r#""follow_game""#), MarketPresenceChoice::FollowGame);
+        assert_eq!(
+            read(r#"{"status":"online","auto":true}"#),
+            MarketPresenceChoice::FollowGame
+        );
+        assert_eq!(
+            read(r#"{"status":"invisible","auto":false}"#),
+            MarketPresenceChoice::Invisible
+        );
+        assert_eq!(
+            read(r#"{"status":null,"auto":false}"#),
+            MarketPresenceChoice::Untouched
+        );
+    }
+
+    #[test]
     fn last_trade_actions_opt_in() {
         let enabled: Settings =
             serde_json::from_str(r#"{"market_hide_after_last_trade":true}"#).unwrap();
@@ -1297,22 +1371,19 @@ mod tests {
 
     #[test]
     fn stylesheet_sets_the_same_root_sizes() {
-        let css = include_str!("../../src/globals.css").replace("\r\n", "\n");
+        let css = include_str!("../../src/globals.css").replace(char::is_whitespace, "");
         for (size, name) in [
             (TextSize::Small, "small"),
             (TextSize::Medium, "medium"),
             (TextSize::Large, "large"),
         ] {
             let rule = format!(
-                "html[data-text-size=\"{name}\"] {{\n    font-size: {}px;",
+                "html[data-text-size=\"{name}\"]{{font-size:{}px;",
                 size.root_px()
             );
             assert!(css.contains(&rule), "{rule}");
         }
-        let fallback = format!(
-            "html {{\n    font-size: {}px;",
-            TextSize::default().root_px()
-        );
+        let fallback = format!("html{{font-size:{}px;", TextSize::default().root_px());
         assert!(css.contains(&fallback), "{fallback}");
     }
 

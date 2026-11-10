@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ArbitrationLiveOverlay } from "@/components/arbitration-live-overlay";
 import { DucateringOverlay } from "@/components/ducatering-overlay";
 import { EmptyNote } from "@/components/page";
 import {
@@ -11,6 +12,7 @@ import { useLoaded } from "@/hooks/use-loaded";
 import { api, logError } from "@/lib/bridge";
 import { DEFAULT_SQUAD_SIZE } from "@/stores/preferences-store";
 import type {
+  ArbitrationRun,
   DucateringProgress,
   RecommendationTrigger,
   RewardTrigger,
@@ -117,6 +119,21 @@ export function RivenSlot({
       compact={compact}
     />
   );
+}
+
+export function ArbitrationLiveSlot({
+  trigger,
+}: {
+  trigger: ArbitrationRun | null;
+}) {
+  if (!trigger) {
+    return (
+      <EmptyNote>
+        No Arbitration is running. Test shows the last recorded run.
+      </EmptyNote>
+    );
+  }
+  return <ArbitrationLiveOverlay run={trigger} />;
 }
 
 export function DucateringSlot({

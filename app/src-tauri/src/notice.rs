@@ -2,7 +2,8 @@ use std::fmt::Write as _;
 
 use serde::Serialize;
 use wf_core::{
-    ArbitrationAlert, CoreEvent, FissureInfo, InventorySummary, WorldRewardAlert, thousands,
+    ArbitrationAlert, ArbitrationRun, CoreEvent, FissureInfo, InventorySummary, WorldRewardAlert,
+    thousands,
 };
 use wf_worldstate::WorldRewardSource;
 
@@ -30,7 +31,7 @@ impl Notice {
     pub fn for_event(event: &CoreEvent) -> Option<Self> {
         match event {
             CoreEvent::InventoryUpdated(summary) => Self::inventory(summary),
-            CoreEvent::RelicRewardScreen { .. } => None,
+            CoreEvent::RelicRewardScreen { .. } | CoreEvent::ArbitrationRunUpdated { .. } => None,
             CoreEvent::TradeCompleted { trade, partner, .. } => {
                 Some(Self::trade(trade.plat, partner.as_deref()))
             }
@@ -38,6 +39,7 @@ impl Notice {
             CoreEvent::FissureAlert { fissure } => Some(Self::fissure(fissure)),
             CoreEvent::WorldRewardAlert { reward } => Some(Self::reward(reward)),
             CoreEvent::ArbitrationAlert { alert } => Some(Self::arbitration(alert)),
+            CoreEvent::ArbitrationRunRecorded { run } => Some(Self::arbitration_run(run)),
             CoreEvent::TimerAlert {
                 name,
                 next_state,
@@ -158,6 +160,24 @@ impl Notice {
         }
     }
 
+    pub fn arbitration_run(run: &ArbitrationRun) -> Self {
+        let mut body = run.place();
+        if let Some(mission) = &run.mission_type {
+            let _ = write!(body, ", {mission}");
+        }
+        let seconds = whole_seconds(run.duration_secs);
+        if seconds > 0 {
+            let _ = write!(body, ", {}", countdown(seconds));
+        }
+
+        Self {
+            title: String::from("Arbitration run recorded"),
+            body,
+            tone: Tone::Success,
+            in_game: None,
+        }
+    }
+
     pub fn timer(name: &str, next_state: &str, remaining_secs: i64) -> Self {
         Self {
             title: format!("{name} turns {next_state}"),
@@ -170,6 +190,12 @@ impl Notice {
     pub fn webhook_message(&self) -> String {
         format!("{}\n{}", self.title, self.body)
     }
+}
+
+fn whole_seconds(secs: f64) -> i64 {
+    std::time::Duration::try_from_secs_f64(secs).map_or(0, |duration| {
+        i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
+    })
 }
 
 pub fn countdown(seconds: i64) -> String {

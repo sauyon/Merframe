@@ -22,9 +22,9 @@ fn after<'a>(message: &'a str, marker: &str) -> Option<&'a str> {
     message.split_once(marker).map(|(_, rest)| rest)
 }
 
-fn braced(message: &str) -> Option<&str> {
+fn first_braced(message: &str) -> Option<&str> {
     let start = message.find('{')?;
-    let end = message.rfind('}')?;
+    let end = start + message[start..].find('}')?;
     message.get(start..=end)
 }
 
@@ -34,7 +34,7 @@ struct LoadingMissionWire {
 }
 
 fn mission_loading(message: &str, host: bool) -> Option<Event> {
-    let wire: LoadingMissionWire = serde_json::from_str(braced(message)?).ok()?;
+    let wire: LoadingMissionWire = serde_json::from_str(first_braced(message)?).ok()?;
     let (node_id, elite) = node_and_elite(&wire.name);
     Some(Event::MissionLoading {
         host,
@@ -147,6 +147,8 @@ fn gameplay(message: &str) -> Option<Event> {
         "Disruption: Endless mission reward given",
         "ZarimanSurvivalMission.lua: Gave reward tier",
         "Created /Lotus/Interface/DefenseReward.swf",
+        "ColonistRescueMission.lua: Defection: Reward ",
+        "ExcavationMission.lua: Survival: Gave reward tier ",
     ];
     if rotation_markers
         .iter()
@@ -259,6 +261,16 @@ mod tests {
             Some(Event::MissionLoading {
                 host: true,
                 node_id: "ClanNode11".to_owned(),
+                elite: true,
+            })
+        );
+        assert_eq!(
+            classify(
+                "ThemedSquadOverlay.lua: Host loading {\"name\":\"SolNode177_EliteAlert\"} with MissionInfo: \ninfo={\n    missionType=MT_ARTIFACT\n}"
+            ),
+            Some(Event::MissionLoading {
+                host: true,
+                node_id: "SolNode177".to_owned(),
                 elite: true,
             })
         );
@@ -376,6 +388,8 @@ mod tests {
             "Disruption: Endless mission reward given",
             "ZarimanSurvivalMission.lua: Gave reward tier 2",
             "Created /Lotus/Interface/DefenseReward.swf",
+            "ColonistRescueMission.lua: Defection: Reward 1 given",
+            "ExcavationMission.lua: Survival: Gave reward tier 2",
         ] {
             assert_eq!(
                 classify(message),

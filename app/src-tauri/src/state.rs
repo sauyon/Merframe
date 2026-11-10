@@ -19,7 +19,7 @@ use wf_market::{Client, Platform, PriceTable};
 use crate::auctions::AuctionCache;
 use crate::focus::GameFocus;
 use crate::images::ImageCache;
-use crate::market::{Listings, MarketItems, Presence};
+use crate::market::{Listings, MarketItems, MarketPresence};
 use crate::overlay::{OverlaySupport, Overlays};
 use crate::settings::{self, MarketAccount, Settings};
 
@@ -159,7 +159,7 @@ pub struct AppState {
     pub market: RwLock<Arc<Client>>,
     pub market_items: AsyncMutex<Option<Arc<MarketItems>>>,
     pub market_activity: Mutex<Option<Instant>>,
-    pub market_presence: RwLock<Presence>,
+    pub market_presence: RwLock<MarketPresence>,
     pub market_presence_wake: Notify,
     pub listings: Listings,
     pub prices: Arc<SharedPrices>,
@@ -275,9 +275,9 @@ impl AppState {
             market: RwLock::new(Arc::new(market)),
             market_items: AsyncMutex::new(None),
             market_activity: Mutex::new(None),
-            market_presence: RwLock::new(Presence {
+            market_presence: RwLock::new(MarketPresence {
                 choice: settings::presence(app)?,
-                live: None,
+                ..MarketPresence::default()
             }),
             market_presence_wake: Notify::new(),
             listings: Listings::default(),

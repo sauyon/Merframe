@@ -4,10 +4,10 @@ use anyhow::Context;
 use chrono::Utc;
 use serde::Serialize;
 use tauri::{AppHandle, Manager, Runtime};
-use tauri_plugin_dialog::{DialogExt, FilePath};
+use tauri_plugin_dialog::{DialogExt, FileDialogBuilder};
 use tauri_plugin_opener::OpenerExt;
 
-use super::{Shared, ready};
+use super::{Shared, ask_path, game_log_path, pick_log, ready};
 use crate::error::{CommandError, CommandResult};
 use crate::event_feed::EventFeed;
 use crate::overlay;
@@ -96,13 +96,11 @@ pub async fn export<R: Runtime>(
 ) -> CommandResult<Option<String>> {
     let state = ready(&state).await?;
     let dialog = app.dialog().file().set_title("Export inventory JSON");
-    let picked =
-        tauri::async_runtime::spawn_blocking(move || dialog.blocking_pick_folder()).await?;
-    let Some(dir) = picked.as_ref().and_then(FilePath::as_path) else {
+    let Some(dir) = ask_path(dialog, FileDialogBuilder::blocking_pick_folder).await? else {
         return Ok(None);
     };
 
-    let target = dir.to_path_buf();
+    let target = dir.clone();
     tauri::async_runtime::spawn_blocking(move || lock(&state.core).export(&target, Utc::now()))
         .await??;
     Ok(Some(dir.display().to_string()))
@@ -110,16 +108,8 @@ pub async fn export<R: Runtime>(
 
 #[tauri::command]
 pub async fn pick_log_file<R: Runtime>(app: AppHandle<R>) -> CommandResult<Option<String>> {
-    let dialog = app
-        .dialog()
-        .file()
-        .set_title("Choose EE.log")
-        .add_filter("Warframe log", &["log"]);
-    let picked = tauri::async_runtime::spawn_blocking(move || dialog.blocking_pick_file()).await?;
-    Ok(picked
-        .as_ref()
-        .and_then(FilePath::as_path)
-        .map(|path| path.display().to_string()))
+    let picked = pick_log(&app, "Choose EE.log").await?;
+    Ok(picked.map(|path| path.display().to_string()))
 }
 
 #[tauri::command]
@@ -157,30 +147,6 @@ pub async fn test_notifications<R: Runtime>(
 }
 
 #[tauri::command]
-pub async fn open_url<R: Runtime>(app: AppHandle<R>, url: String) -> CommandResult<()> {
-    let url = browser_url(&url)?;
-    Ok(app
-        .opener()
-        .open_url(url.as_str(), None::<&str>)
-        .context("Opening the URL")?)
-}
-
-fn browser_url(url: &str) -> CommandResult<tauri::Url> {
-    let parsed = tauri::Url::parse(url)
-        .map_err(|_| CommandError::from("Not a valid browser URL".to_owned()))?;
-    if !matches!(parsed.scheme(), "http" | "https")
-        || parsed.host_str().is_none()
-        || !parsed.username().is_empty()
-        || parsed.password().is_some()
-    {
-        return Err(CommandError::from(
-            "Only HTTP and HTTPS browser URLs without credentials are allowed".to_owned(),
-        ));
-    }
-    Ok(parsed)
-}
-
-#[tauri::command]
 pub async fn app_log_file(state: Shared<'_>) -> CommandResult<String> {
     let state = ready(&state).await?;
     Ok(state.data_dir.join(LOG_FILE).display().to_string())
@@ -204,12 +170,9 @@ pub async fn open_game_log_folder<R: Runtime>(
     state: Shared<'_>,
 ) -> CommandResult<()> {
     let state = ready(&state).await?;
-    let log = read(&state.settings)
-        .log_path()
-        .context("EE.log not found on this machine")?;
     Ok(app
         .opener()
-        .reveal_item_in_dir(log)
+        .reveal_item_in_dir(game_log_path(&state)?)
         .context("Opening the EE.log folder")?)
 }
 
@@ -251,36 +214,4 @@ pub async fn prefetch_images(
         .flatten()
         .collect();
     Ok(held)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::browser_url;
-
-    #[test]
-    fn browser_links_allow_web_pages() {
-        for url in [
-            "https://wiki.warframe.com/w/Braton_Prime",
-            "https://warframe.market/items/braton_prime_set",
-            "http://example.com/",
-        ] {
-            assert!(browser_url(url).is_ok(), "{url}");
-        }
-    }
-
-    #[test]
-    fn browser_links_reject_files_and_protocol_handlers() {
-        for url in [
-            "file:///C:/Windows/System32/calc.exe",
-            "C:\\Windows\\System32\\calc.exe",
-            "\\\\server\\share\\program.exe",
-            "javascript:alert(1)",
-            "ms-settings:windowsupdate",
-            "steam://run/123",
-            "https://user:password@example.com/",
-            "not a URL",
-        ] {
-            assert!(browser_url(url).is_err(), "{url}");
-        }
-    }
 }

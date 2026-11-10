@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { SwitchField } from "@/components/ui/switch";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useFilters } from "@/hooks/use-filters";
+import { median } from "@/lib/arrays";
 import { api } from "@/lib/bridge";
 import { changeTone } from "@/lib/chart";
 import { num, plat } from "@/lib/format";
@@ -51,15 +52,6 @@ const CHANGE_TITLES: Record<Measure, string> = {
   value: "Platinum vs previous window by category",
   volume: "Amount vs previous window by category",
 };
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  const upper = sorted[middle] ?? 0;
-  return sorted.length % 2 === 0
-    ? ((sorted[middle - 1] ?? 0) + upper) / 2
-    : upper;
-}
 
 function valueChange(mover: MarketMover): number | null {
   return mover.price_change === null || mover.volume_change === null

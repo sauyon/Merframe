@@ -103,6 +103,7 @@ pub(super) fn bounds_for(
         Kind::Notification => (380.0 * text, 100.0 * text),
         // Drawn against the game's ability dots, so it follows the screen, never the text size.
         Kind::Buffs => (440.0 * scale, 440.0 * scale),
+        Kind::ArbitrationLive => (420.0 * text, 190.0 * text),
     };
     let width = width.round();
     let height = height.min(screen.height - 2.0 * MARGIN).round();
@@ -122,7 +123,8 @@ pub(super) fn bounds_for(
             | Kind::Riven
             | Kind::Ducatering
             | Kind::Notification
-            | Kind::Buffs => (middle, (screen.height / 2.0 - height / 2.0).round()),
+            | Kind::Buffs
+            | Kind::ArbitrationLive => (middle, (screen.height / 2.0 - height / 2.0).round()),
         },
     };
     Bounds {

@@ -384,7 +384,6 @@ pub struct RivenWeapon {
     pub group: String,
     pub riven_type: String,
     pub mod_type: String,
-    pub disposition: f64,
     pub mastery_rank: u32,
 }
 

@@ -18,6 +18,7 @@ pub(crate) use engine::{Engine, inventory_events};
 pub(crate) use rewards::world_reward_alerts;
 pub use rewards::{WorldRewardAlert, WorldRewardAlertChoices, WorldRewardAlertGroup};
 
+use crate::arbitration_runs::ArbitrationRun;
 use crate::relic_planner::RewardScreen;
 use crate::trade::Trade;
 
@@ -98,6 +99,12 @@ pub enum CoreEvent {
     ArbitrationAlert {
         alert: ArbitrationAlert,
     },
+    ArbitrationRunUpdated {
+        run: Box<ArbitrationRun>,
+    },
+    ArbitrationRunRecorded {
+        run: Box<ArbitrationRun>,
+    },
     TimerAlert {
         name: String,
         next_state: String,
@@ -116,6 +123,8 @@ impl CoreEvent {
             Self::FissureAlert { .. } => "FissureAlert",
             Self::WorldRewardAlert { .. } => "WorldRewardAlert",
             Self::ArbitrationAlert { .. } => "ArbitrationAlert",
+            Self::ArbitrationRunUpdated { .. } => "ArbitrationRunUpdated",
+            Self::ArbitrationRunRecorded { .. } => "ArbitrationRunRecorded",
             Self::TimerAlert { .. } => "TimerAlert",
         }
     }

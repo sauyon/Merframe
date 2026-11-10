@@ -1,12 +1,15 @@
+import { CalendarDays, History } from "lucide-react";
 import { useState } from "react";
 import { FilterGrid } from "@/components/filter-grid";
 import { FilterSelect } from "@/components/filter-select";
 import { OptionTabs } from "@/components/option-tabs";
 import { Page, Section } from "@/components/page";
 import { SearchInput } from "@/components/search-input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useFilters } from "@/hooks/use-filters";
 import { useNow } from "@/hooks/use-now";
+import { useTabParam } from "@/hooks/use-tab-param";
 import {
   ARBITRATION_RELOAD_EVENTS,
   ARBITRATION_TIERS,
@@ -22,7 +25,7 @@ import {
 } from "@/lib/arbitrations";
 import { api } from "@/lib/bridge";
 import { type FilterOption, plainOptions } from "@/lib/filters";
-import { counted } from "@/lib/format";
+import { counted, num } from "@/lib/format";
 import { useSettings } from "@/stores/app-store";
 import type {
   ArbitrationDashboard,
@@ -36,6 +39,8 @@ import {
   ForecastSource,
   RemindersPanel,
 } from "./panels";
+import { ArbitrationRunDialog } from "./run-dialog";
+import { ArbitrationLiveRunCard, ArbitrationRunHistory } from "./runs";
 import { DayList, HeroCards, type SlotMarks } from "./schedule";
 
 const ALL_DAYS = "all";
@@ -71,6 +76,14 @@ export function ArbitrationsPage() {
   const now = useNow();
   const alertsOn = useSettings().alerts.arbitrations.enabled;
   const { busy, toggleFavourite, toggleReminder } = useArbitrationMarks();
+  const { data: runs, error: runsError } = useAsyncData(
+    "arbitration-runs",
+    api.arbitrationRuns,
+    ["arbitrationRunsUpdated"],
+  );
+  const [tab, setTab] = useTabParam<"forecast" | "history">("forecast");
+  const [reportId, setReportId] = useState<string | null>(null);
+  const report = runs?.find((run) => run.id === reportId) ?? null;
   const [search, setSearch] = useState("");
   const [day, setDay] = useState(ALL_DAYS);
   const filters = useFilters<{
@@ -145,6 +158,7 @@ export function ArbitrationsPage() {
       error={error}
     >
       {notice && <ForecastNotice>{notice}</ForecastNotice>}
+      <ArbitrationLiveRunCard now={now} />
       <HeroCards
         current={current}
         next={next}
@@ -154,81 +168,110 @@ export function ArbitrationsPage() {
         marks={marks}
       />
 
-      <div className="grid gap-3 @lg:grid-cols-2">
-        <FavouriteNodesPanel
-          nodes={favouriteNodes}
-          busy={busy}
-          onRemove={toggleFavourite}
-        />
-        <RemindersPanel
-          slots={reminders}
-          alertsOn={alertsOn}
-          busy={busy}
-          onRemove={toggleReminder}
-        />
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="mb-4 h-10">
+          <TabsTrigger value="forecast" className="h-8 px-3 text-base">
+            <CalendarDays className="size-4" />
+            Forecast
+          </TabsTrigger>
+          <TabsTrigger value="history" className="h-8 px-3 text-base">
+            <History className="size-4" />
+            Run History ({num(runs?.length ?? 0)})
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="forecast" className="flex flex-col gap-6">
+          <div className="grid gap-3 @lg:grid-cols-2">
+            <FavouriteNodesPanel
+              nodes={favouriteNodes}
+              busy={busy}
+              onRemove={toggleFavourite}
+            />
+            <RemindersPanel
+              slots={reminders}
+              alertsOn={alertsOn}
+              busy={busy}
+              onRemove={toggleReminder}
+            />
+          </div>
 
-      <Section
-        className="min-w-0"
-        title="Next Seven Days"
-        description={counted(shown.length, "rotation")}
-        action={
-          <OptionTabs
-            value={dayTabs.some((tab) => tab.value === day) ? day : ALL_DAYS}
-            options={dayTabs}
-            onChange={setDay}
-          />
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <SearchInput
-            value={search}
-            onValueChange={setSearch}
-            placeholder="Search the schedule"
-          />
-          <FilterGrid activeFilters={filters.active} onClear={filters.clear}>
-            <FilterSelect
-              label="Mission type"
-              value={chosen.mission}
-              options={plainOptions(nodeValues(nodes, "mission_type"))}
-              onChange={(value) => filters.set("mission", value)}
-            />
-            <FilterSelect
-              label="Planet"
-              value={chosen.planet}
-              options={plainOptions(nodeValues(nodes, "planet"))}
-              onChange={(value) => filters.set("planet", value)}
-            />
-            <FilterSelect
-              label="Faction"
-              value={chosen.faction}
-              options={plainOptions(nodeValues(nodes, "faction"))}
-              onChange={(value) => filters.set("faction", value)}
-            />
-            <FilterSelect
-              label="Community tier"
-              value={chosen.tier}
-              options={TIERS}
-              onChange={(value) => filters.set("tier", value)}
-            />
-            <FilterSelect
-              label="Personal"
-              value={chosen.personal}
-              options={PERSONAL}
-              onChange={(value) => filters.set("personal", value)}
-            />
-          </FilterGrid>
-          <DayList
-            days={shownDays}
-            total={slots.length}
-            now={now}
-            marks={marks}
-            onClear={clear}
-          />
-        </div>
-      </Section>
+          <Section
+            className="min-w-0"
+            title="Next Seven Days"
+            description={counted(shown.length, "rotation")}
+            action={
+              <OptionTabs
+                value={
+                  dayTabs.some((tab) => tab.value === day) ? day : ALL_DAYS
+                }
+                options={dayTabs}
+                onChange={setDay}
+              />
+            }
+          >
+            <div className="flex flex-col gap-4">
+              <SearchInput
+                value={search}
+                onValueChange={setSearch}
+                placeholder="Search the schedule"
+              />
+              <FilterGrid
+                activeFilters={filters.active}
+                onClear={filters.clear}
+              >
+                <FilterSelect
+                  label="Mission type"
+                  value={chosen.mission}
+                  options={plainOptions(nodeValues(nodes, "mission_type"))}
+                  onChange={(value) => filters.set("mission", value)}
+                />
+                <FilterSelect
+                  label="Planet"
+                  value={chosen.planet}
+                  options={plainOptions(nodeValues(nodes, "planet"))}
+                  onChange={(value) => filters.set("planet", value)}
+                />
+                <FilterSelect
+                  label="Faction"
+                  value={chosen.faction}
+                  options={plainOptions(nodeValues(nodes, "faction"))}
+                  onChange={(value) => filters.set("faction", value)}
+                />
+                <FilterSelect
+                  label="Community tier"
+                  value={chosen.tier}
+                  options={TIERS}
+                  onChange={(value) => filters.set("tier", value)}
+                />
+                <FilterSelect
+                  label="Personal"
+                  value={chosen.personal}
+                  options={PERSONAL}
+                  onChange={(value) => filters.set("personal", value)}
+                />
+              </FilterGrid>
+              <DayList
+                days={shownDays}
+                total={slots.length}
+                now={now}
+                marks={marks}
+                onClear={clear}
+              />
+            </div>
+          </Section>
 
-      <ForecastSource />
+          <ForecastSource />
+        </TabsContent>
+        <TabsContent value="history">
+          <ArbitrationRunHistory
+            runs={runs}
+            error={runsError}
+            onOpenReport={(run) => setReportId(run.id)}
+          />
+        </TabsContent>
+      </Tabs>
+      {report && (
+        <ArbitrationRunDialog run={report} onClose={() => setReportId(null)} />
+      )}
     </Page>
   );
 }

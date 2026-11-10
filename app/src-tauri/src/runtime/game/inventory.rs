@@ -6,7 +6,7 @@ use anyhow::Context;
 use chrono::Utc;
 use tauri::{AppHandle, Runtime};
 use tracing::{debug, warn};
-use wf_core::CoreEvent;
+use wf_core::{CoreEvent, MissionEndReward};
 use wf_mem::MemoryReader;
 use wf_scan::{HttpClients, InventoryBuffer};
 
@@ -89,8 +89,14 @@ where
     }
 
     match ingested {
-        Ingested::Newer { events } => {
+        Ingested::Newer {
+            events,
+            rewards_attached,
+        } => {
             emit(app, AppEvent::InventoryUpdated(state.status_snapshot()));
+            if rewards_attached {
+                emit(app, AppEvent::ArbitrationRunsUpdated);
+            }
             overlay::on_inventory_updated(app, state);
             state.prices_wake.notify_one();
             dispatch(app, state, events).await;
@@ -101,7 +107,10 @@ where
 }
 
 enum Ingested {
-    Newer { events: Vec<CoreEvent> },
+    Newer {
+        events: Vec<CoreEvent>,
+        rewards_attached: bool,
+    },
     Unchanged,
 }
 
@@ -160,11 +169,29 @@ fn ingest_buffer(state: &Arc<AppState>, buffer: &InventoryBuffer) -> anyhow::Res
         );
         return Ok(Ingested::Unchanged);
     }
+
+    let now = Utc::now();
     let mut core = lock(&state.core);
     let events = core
-        .ingest_inventory(&buffer.json, Utc::now())
+        .ingest_inventory(&buffer.json, now)
         .context("Ingesting the inventory")?;
-    Ok(Ingested::Newer { events })
+    let rewards_attached = match &buffer.mission_rewards {
+        Some(rewards) => {
+            let rewards: Vec<MissionEndReward> = rewards
+                .iter()
+                .map(|reward| MissionEndReward {
+                    store_item: reward.store_item.clone(),
+                    item_count: reward.item_count,
+                })
+                .collect();
+            core.record_mission_end(&rewards)
+        }
+        None => false,
+    };
+    Ok(Ingested::Newer {
+        events,
+        rewards_attached,
+    })
 }
 
 #[cfg(test)]

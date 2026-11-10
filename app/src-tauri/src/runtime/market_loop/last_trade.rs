@@ -4,10 +4,9 @@ use tauri::{AppHandle, Runtime};
 use tracing::{info, warn};
 
 use super::market_refresh;
-use crate::market::{MarketPresenceChoice, market_snapshot};
-use crate::market_session;
+use crate::market::market_snapshot;
 use crate::runtime::{AppEvent, emit};
-use crate::state::{AppState, read};
+use crate::state::{AppState, read, write};
 
 pub(crate) fn last_trade_done<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>) {
     let settings = read(&state.settings).market.last_trade;
@@ -19,7 +18,7 @@ pub(crate) fn last_trade_done<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppSta
     }
 
     if settings.market_offline_after_last_trade {
-        offline_after_last_trade(app, state);
+        offline_after_last_trade(state);
     }
 }
 
@@ -53,13 +52,13 @@ async fn hide_listings<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, au
     }
 }
 
-fn offline_after_last_trade<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>) {
+fn offline_after_last_trade(state: &Arc<AppState>) {
     if !read(&state.market_presence).is_live_online() {
         return;
     }
 
-    match market_session::set_presence(app, state, MarketPresenceChoice::taken_offline()) {
-        Ok(_) => info!("Last trade of the day completed, warframe.market status set to offline"),
-        Err(error) => warn!(%error, "Storing the offline status after the last trade failed"),
-    }
+    let game_detected = read(&state.status).game_detected;
+    write(&state.market_presence).go_offline_after_last_trade(game_detected);
+    state.market_presence_wake.notify_one();
+    info!("Last trade of the day completed, going offline on warframe.market");
 }

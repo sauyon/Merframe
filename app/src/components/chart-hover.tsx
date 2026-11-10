@@ -69,16 +69,23 @@ export function ChartHeader({
   note,
   value,
   caption,
+  control,
 }: {
   color: string;
   label: string;
-  note: ReactNode;
+  note?: ReactNode;
   value: ReactNode;
   caption: ReactNode;
+  control?: ReactNode;
 }) {
   return (
     <>
-      <div className="flex items-baseline justify-between gap-2">
+      <div
+        className={cn(
+          "flex justify-between gap-2",
+          control ? "items-center" : "items-baseline",
+        )}
+      >
         <Hint as="span" className="flex items-center gap-1.5">
           <span
             className="size-2 rounded-full"
@@ -87,7 +94,12 @@ export function ChartHeader({
           />
           {label}
         </Hint>
-        {note !== null && <Hint as="span">{note}</Hint>}
+        {(note || control) && (
+          <span className="flex items-center gap-2">
+            {note && <Hint as="span">{note}</Hint>}
+            {control}
+          </span>
+        )}
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-foreground text-lg font-bold">{value}</span>

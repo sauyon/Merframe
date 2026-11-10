@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import type { Presence } from "@/types";
+import type { MarketPresence } from "@/types";
 
 interface PresenceState {
-  presence: Presence;
-  setPresence: (presence: Presence) => void;
+  presence: MarketPresence;
+  setPresence: (presence: MarketPresence) => void;
 }
 
 export const usePresenceStore = create<PresenceState>((set) => ({
-  presence: { status: null, auto: false, live: null },
+  presence: { choice: "untouched", live: null },
   setPresence: (presence) => set({ presence }),
 }));

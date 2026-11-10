@@ -62,6 +62,7 @@ interface DataTableProps<TData, TValue> {
   filters?: ReactNode;
   emptyMessage?: string;
   renderSubRow?: (row: TData) => ReactNode;
+  onRowClick?: (row: TData) => void;
   rowKey?: (row: TData, index: number) => string;
   fixedPageSize?: number;
   initialPageSize?: number;
@@ -89,6 +90,7 @@ export function DataTable<TData, TValue>({
   filters,
   emptyMessage = "Nothing here yet.",
   renderSubRow,
+  onRowClick,
   rowKey,
   fixedPageSize,
   initialPageSize,
@@ -259,12 +261,14 @@ export function DataTable<TData, TValue>({
                   <Fragment key={key}>
                     <TableRow
                       onClick={
-                        renderSubRow
-                          ? () => setExpanded(isOpen ? null : key)
-                          : undefined
+                        onRowClick
+                          ? () => onRowClick(row.original)
+                          : renderSubRow
+                            ? () => setExpanded(isOpen ? null : key)
+                            : undefined
                       }
                       className={cn(
-                        renderSubRow && "cursor-pointer",
+                        (renderSubRow || onRowClick) && "cursor-pointer",
                         isOpen && "bg-secondary/50",
                       )}
                     >

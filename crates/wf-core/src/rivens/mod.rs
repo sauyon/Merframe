@@ -345,6 +345,12 @@ pub(crate) mod support {
         pub(crate) fn grader(&self) -> Grader<'_> {
             Grader::new(&self.catalog, &self.items, Some(&self.table))
         }
+
+        pub(crate) fn disposition_of(&self, weapon_path: &str) -> Option<f64> {
+            self.catalog
+                .item(weapon_path)
+                .and_then(|item| item.omega_attenuation)
+        }
     }
 
     pub(crate) fn fixture() -> Fixture {

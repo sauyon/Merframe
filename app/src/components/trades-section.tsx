@@ -6,14 +6,7 @@ import { Section } from "@/components/page";
 import { TradeDialog, type TradeEntry } from "@/components/trade-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -219,28 +212,18 @@ export function TradesSection({
           onClose={close}
         />
       )}
-      <Dialog
+      <ConfirmDialog
         open={editing?.kind === "delete"}
         onOpenChange={(open) => !open && close()}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Trade</DialogTitle>
-            <DialogDescription>
-              {editing?.kind === "delete" &&
-                `The trade from ${dateTime(editing.trade.at)} is removed from the history. This cannot be undone.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={remove}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        title="Delete Trade"
+        description={
+          editing?.kind === "delete" &&
+          `The trade from ${dateTime(editing.trade.at)} is removed from the history. This cannot be undone.`
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={remove}
+      />
     </Section>
   );
 }

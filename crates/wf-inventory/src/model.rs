@@ -229,7 +229,7 @@ pub struct FocusUpgrade {
 #[serde(rename_all = "PascalCase")]
 pub struct Booster {
     pub item_type: String,
-    pub expiry_date: u64,
+    pub expiry_date: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

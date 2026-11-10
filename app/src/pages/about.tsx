@@ -12,12 +12,23 @@ import { ago } from "@/lib/format";
 import { notify } from "@/lib/toast";
 import { useAppStore } from "@/stores/app-store";
 
-const PROJECT_LINKS = [
+interface AboutLink {
+  label: string;
+  url: string;
+}
+
+const PROJECT_LINKS: AboutLink[] = [
   { label: "yareli.net/merframe", url: "https://yareli.net/merframe" },
   { label: "GitHub", url: "https://github.com/akshualy/Merframe" },
 ];
 
-const CREDIT_LINKS = [
+const LEGAL_LINKS: AboutLink[] = [
+  { label: "Legal Notice", url: "https://yareli.net/impressum" },
+  { label: "Privacy", url: "https://yareli.net/privacy" },
+  { label: "Terms", url: "https://yareli.net/terms" },
+];
+
+const CREDIT_LINKS: AboutLink[] = [
   { label: "AlecaFrame", url: "https://alecaframe.com" },
   { label: "warframe.market", url: "https://warframe.market" },
   {
@@ -26,6 +37,36 @@ const CREDIT_LINKS = [
   },
   { label: "Warframe wiki", url: "https://wiki.warframe.com" },
 ];
+
+function AboutLinkButton({ link }: { link: AboutLink }) {
+  return (
+    <Button variant="outline" size="sm" onClick={() => openExternal(link.url)}>
+      {link.label}
+      <ExternalLink className="size-3.5" />
+    </Button>
+  );
+}
+
+function AboutLinkSection({
+  title,
+  description,
+  links,
+}: {
+  title: string;
+  description: string;
+  links: AboutLink[];
+}) {
+  return (
+    <Section title={title}>
+      <p className="text-muted-foreground mb-3 text-sm">{description}</p>
+      <div className="flex flex-wrap gap-2">
+        {links.map((link) => (
+          <AboutLinkButton key={link.url} link={link} />
+        ))}
+      </div>
+    </Section>
+  );
+}
 
 export function AboutPage() {
   const status = useAppStore((state) => state.status);
@@ -96,15 +137,7 @@ export function AboutPage() {
                 </Button>
               )}
               {PROJECT_LINKS.map((link) => (
-                <Button
-                  key={link.url}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openExternal(link.url)}
-                >
-                  {link.label}
-                  <ExternalLink className="size-3.5" />
-                </Button>
+                <AboutLinkButton key={link.url} link={link} />
               ))}
             </div>
           </div>
@@ -142,24 +175,17 @@ export function AboutPage() {
         </div>
       </Section>
 
-      <Section title="Credits">
-        <p className="text-muted-foreground mb-3 text-sm">
-          Merframe could not exist without the below inspirations and sources.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {CREDIT_LINKS.map((link) => (
-            <Button
-              key={link.url}
-              variant="outline"
-              size="sm"
-              onClick={() => openExternal(link.url)}
-            >
-              {link.label}
-              <ExternalLink className="size-3.5" />
-            </Button>
-          ))}
-        </div>
-      </Section>
+      <AboutLinkSection
+        title="Legal"
+        description="Got questions about Privacy or Terms of Service? Everything can be found here."
+        links={LEGAL_LINKS}
+      />
+
+      <AboutLinkSection
+        title="Credits"
+        description="Merframe could not exist without the below inspirations and sources."
+        links={CREDIT_LINKS}
+      />
     </Page>
   );
 }

@@ -13,6 +13,7 @@ export const AXIS_TICK = {
 };
 export const GRID = { stroke: "currentColor", strokeOpacity: 0.1 };
 export const MARGIN = { top: 8, right: 8, bottom: 0, left: 0 };
+export const LABELLED_MARGIN = { ...MARGIN, top: 16 };
 export const LINE_CURSOR = { stroke: "currentColor", strokeOpacity: 0.3 };
 export const BAR_CURSOR = { fill: "currentColor", fillOpacity: 0.08 };
 

@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn parses_fixtures() {
         let data = fixture();
-        assert_eq!(data.items.len(), 4);
+        assert_eq!(data.items.len(), 5);
         assert!(!data.relics.is_empty());
     }
 
@@ -308,7 +308,7 @@ mod tests {
     #[test]
     fn skins_by_unique_name_only() {
         let data = fixture_with_skins();
-        assert_eq!(data.items().len(), 22);
+        assert_eq!(data.items().len(), 23);
         let helmet = data
             .by_unique_name("/Lotus/Upgrades/Skins/Excalibur/ExcaliburHelmet")
             .unwrap();

@@ -30,10 +30,11 @@ export type ArbitrationPersonalFilter = "favourites" | "matches" | "reminders";
 export type ArbitrationRunRoleFilter = "host" | "client";
 
 export function slotPlace(slot: {
-  node: string;
+  node: string | null;
   planet: string | null;
 }): string {
-  return slot.planet ? `${slot.node}, ${slot.planet}` : slot.node;
+  const node = slot.node ?? "Unknown node";
+  return slot.planet ? `${node}, ${slot.planet}` : node;
 }
 
 export function slotMission(slot: { mission_type: string | null }): string {

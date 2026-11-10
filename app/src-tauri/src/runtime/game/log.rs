@@ -36,7 +36,7 @@ pub(crate) async fn log_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>
         });
         match wf_log::lines(&path, selection) {
             Ok(stream) => {
-                replay_game_monitor(&app, &state, &path);
+                replay_log_head(&app, &state, &path).await;
                 update_status(&app, &state, |status| status.log_attached = true);
                 pin_mut!(stream);
                 while let Some(line) = stream.next().await {
@@ -65,6 +65,13 @@ pub(crate) async fn log_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>
                     }
                 }
                 update_status(&app, &state, |status| status.log_attached = false);
+                let finished = core_events(&app, &state, "log end", |core| {
+                    core.finish_arbitration_run(Utc::now())
+                })
+                .await;
+                if let Err(error) = finished {
+                    warn!(%error, "Core rejected the log end");
+                }
                 warn!("Log stream ended, reattaching in 10 s");
             }
             Err(error) => warn!(%error, "Opening EE.log failed, next attempt in 10 s"),
@@ -73,14 +80,21 @@ pub(crate) async fn log_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>
     }
 }
 
-fn replay_game_monitor<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, path: &Path) {
+async fn replay_log_head<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, path: &Path) {
     let lines = match wf_log::read_all(path) {
         Ok(lines) => lines,
         Err(error) => {
-            warn!(%error, "Reading the existing EE.log for the game monitor failed");
+            warn!(%error, "Reading the existing EE.log failed");
             return;
         }
     };
+    let clock = lines.iter().find_map(|line| match wf_log::classify(line) {
+        Some(event @ LogEvent::ClockAnchor { .. }) => Some((event, line.time)),
+        _ => None,
+    });
+    if let Some((event, at)) = clock {
+        handle_log_event(app, state, event, at).await;
+    }
     let monitor = lines
         .iter()
         .rev()
@@ -131,7 +145,7 @@ async fn handle_log_event<R: Runtime>(
         LogEvent::SquadRewardInfoComplete | LogEvent::RelicRewardsShown
     );
     let handled = core_events(app, state, "log event", move |core| {
-        core.handle_log_event(&event, Utc::now())
+        core.handle_log_event(&event, Utc::now(), at)
     })
     .await;
     if let Err(error) = handled {

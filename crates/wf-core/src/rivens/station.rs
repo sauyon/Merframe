@@ -97,10 +97,11 @@ impl Grader<'_> {
         riven_type: Option<&RivenType>,
         inventory: Option<&Inventory>,
     ) -> RivenRow {
+        let item = self.catalog.item(&weapon.game_ref);
         let (disposition, disposition_weapon) = self.disposition_shown(
             &weapon.game_ref,
             &weapon.name,
-            Some(weapon.disposition),
+            item.and_then(|item| item.omega_attenuation),
             inventory,
         );
         RivenRow {
@@ -112,10 +113,7 @@ impl Grader<'_> {
             weapon: weapon.name.clone(),
             weapon_path: Some(weapon.game_ref.clone()),
             weapon_slug: Some(weapon.slug.clone()),
-            image_name: self
-                .catalog
-                .item(&weapon.game_ref)
-                .and_then(|item| item.image_name.clone()),
+            image_name: item.and_then(|item| item.image_name.clone()),
             disposition,
             disposition_weapon,
             unveiled: false,
@@ -263,7 +261,7 @@ mod tests {
         assert_eq!(row.weapon_slug.as_deref(), Some("acceltra"));
         assert_eq!(row.item_type, acceltra.mod_type);
         assert_eq!(row.weapon_class.as_deref(), Some("Rifle"));
-        assert_eq!(row.disposition, Some(0.65));
+        assert_eq!(row.disposition, None);
         assert_eq!(row.rerolls, 1);
         assert_eq!(row.rank, 8);
         assert_eq!(row.rank_required, Some(16));
