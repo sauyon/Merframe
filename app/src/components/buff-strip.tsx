@@ -1,3 +1,4 @@
+import "@fontsource/roboto/latin-700.css";
 import { useEffect, useState } from "react";
 import { useItemImageSrc } from "@/components/item-image";
 import type {
@@ -11,8 +12,8 @@ import type {
 // Countdown seconds over the game's ability dots, which sit at the same place below the
 // screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
 // each number covering its dot; other buffs flank them, each under the game's icon for it
-// standing in for a dot. Styled like the HUD: off-white numbers and icons, colour only
-// as a recast hint.
+// standing in for a dot. Styled like the HUD: white numbers and icons in its bold typeface,
+// set on soft shadows rather than panels, colour only as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The strip is drawn as the dots were measured at
@@ -74,17 +75,21 @@ const GROUP_GAP = 0.5;
  * settings' seconds are: long enough to recast. A buff's full length is only known from seeing
  * it applied, so the seconds also cover ones first seen part way through. */
 const WARN_SHARE = 0.25;
-const INK = "rgb(235 238 240)";
+/** The HUD's typeface and ink for its numbers: white, bold, on a soft dark shadow. */
+const FONT = "Roboto, sans-serif";
+const INK = "rgb(255 255 255)";
+const SHADOW = "drop-shadow(0 0 1.2px rgb(0 0 0 / 0.85))";
 const WARN = "rgb(240 190 110)";
 const DOWN = "rgb(235 110 95)";
 /** The running buff that runs out first, when the number shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
-/** A disc hiding the game's ability dot, which each ability's number stands on in its place:
- * solid whatever the strip's opacity, as wide as the dots' spacing allows. Dark while the buff
- * has time; once it is nearly out or gone the disc takes the warning colour and the number
- * goes dark on it. */
-const BACKING = "rgb(12 14 16)";
+/** A soft dark glow hiding the game's ability dot, which each ability's number stands on in its
+ * place: solid over the dot whatever the strip's opacity, fading out by the dots' spacing, like
+ * the shadow the HUD sets its own numbers on rather than a disc of its own. */
+const BACKING = "rgb(8 10 12)";
+/** How much of the backing's radius stays solid, enough to hide the dot. */
+const BACKING_CORE = 0.5;
 const BACKING_RADIUS = PITCH / 2 - 0.5;
 /** A digit's width as a share of its size: an ability's number shrinks to fit its disc. */
 const DIGIT_WIDTH = 0.56;
@@ -100,7 +105,8 @@ const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
 const OVERGUARD_HEIGHT = 0.8;
 /** A bar's colour while the HUD's own can't be read. */
 const UNREAD = INK;
-const EMPTY = "rgb(12 14 16 / 0.6)";
+/** A bar's spent part, light and faint as the HUD draws it. */
+const EMPTY = "rgb(255 255 255 / 0.22)";
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -140,7 +146,7 @@ function remaining(buff: BuffTimer, now: number) {
     : Math.max(0, (buff.ends_at - now) / 1000);
 }
 
-/** The number's colour: off-white, warmer when nearly out, red once gone. */
+/** The number's colour: white, warmer when nearly out, red once gone. */
 function colourOf(buff: BuffTimer, now: number, warn: number) {
   const left = remaining(buff, now);
   if (left === null || left <= 0) {
@@ -157,6 +163,11 @@ const TINTS = { [INK]: "tint-ink", [WARN]: "tint-warn", [DOWN]: "tint-down" };
 function Tints() {
   return (
     <defs>
+      <radialGradient id="backing">
+        <stop offset={0} stopColor={BACKING} />
+        <stop offset={BACKING_CORE} stopColor={BACKING} />
+        <stop offset={1} stopColor={BACKING} stopOpacity={0} />
+      </radialGradient>
       {Object.entries(TINTS).map(([colour, id]) => (
         <filter key={id} id={id}>
           <feFlood floodColor={colour} />
@@ -236,7 +247,7 @@ function Marker({
       width={size}
       height={size}
       filter={`url(#${tint})`}
-      opacity={0.92}
+      opacity={1}
     />
   );
 }
@@ -257,7 +268,7 @@ function Pips({
 }) {
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
-    <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
+    <g style={{ filter: SHADOW }}>
       {buffs.map((buff, index) => (
         <circle
           key={buff.id}
@@ -265,17 +276,11 @@ function Pips({
           cy={y + PIP_GAP / 2}
           r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
           fill={colourOf(buff, now, warn)}
-          fillOpacity={0.92}
+          fillOpacity={1}
         />
       ))}
     </g>
   );
-}
-
-/** The disc's colour under an ability's number: dark, or the number's warning colour. */
-function discOf(buff: BuffTimer, now: number, warn: number) {
-  const state = colourOf(buff, now, warn);
-  return state === INK ? BACKING : state;
 }
 
 function Buff({
@@ -286,7 +291,6 @@ function Buff({
   warn,
   fontSize,
   width,
-  onDisc,
 }: {
   buff: BuffTimer;
   x: number;
@@ -297,12 +301,9 @@ function Buff({
   fontSize: number;
   /** The most room the number may take across, if limited. */
   width?: number;
-  /** Stands on a disc of its own colour, so the number is drawn dark on it. */
-  onDisc?: boolean;
 }) {
   const left = remaining(buff, now);
-  const state = colourOf(buff, now, warn);
-  const colour = onDisc && state !== INK ? BACKING : state;
+  const colour = colourOf(buff, now, warn);
   const text = left === null || left <= 0 ? "—" : String(Math.ceil(left));
   const size =
     width === undefined
@@ -314,12 +315,12 @@ function Buff({
       x={x}
       y={y + (size * DIGIT_HEIGHT) / 2}
       fill={colour}
-      fillOpacity={0.92}
-      fontWeight={600}
+      fontFamily={FONT}
+      fontWeight={700}
       textAnchor="middle"
       dominantBaseline="alphabetic"
       fontSize={size}
-      style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
+      style={{ filter: SHADOW }}
     >
       {text}
     </text>
@@ -340,8 +341,7 @@ function Icon({ name, x }: { name: string; x: number }) {
       width={ICON_SIZE}
       height={ICON_SIZE}
       style={{
-        filter:
-          "brightness(0) invert(0.93) drop-shadow(0 0 1px rgb(0 0 0 / 0.9))",
+        filter: `brightness(0) invert(1) ${SHADOW}`,
       }}
     />
   );
@@ -387,12 +387,12 @@ function Lowest({
       x={x}
       y={y + fontSize / 2}
       fill={LOWEST}
-      fillOpacity={0.92}
-      fontWeight={600}
+      fontFamily={FONT}
+      fontWeight={700}
       textAnchor="middle"
       dominantBaseline="middle"
       fontSize={fontSize}
-      style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}
+      style={{ filter: SHADOW }}
     >
       {Math.ceil(left)}
     </text>
@@ -452,7 +452,7 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
   const energy = share(vitals.energy, vitals.max_energy);
   const lineY = HEALTH_Y - OVERGUARD_HEIGHT;
   return (
-    <g style={{ filter: "drop-shadow(0 0 1px rgb(0 0 0 / 0.9))" }}>
+    <g style={{ filter: SHADOW }}>
       {fill("empty", HEALTH_Y, BAR_HEIGHT, 0, 1, EMPTY)}
       {fill(
         "health",
@@ -549,8 +549,8 @@ export function BuffStrip({
                 key={x}
                 cx={x}
                 cy={DOT_Y}
-                r={BACKING_RADIUS}
-                fill={discOf(pick(buffs), now, warn)}
+                r={BACKING_RADIUS + 1}
+                fill="url(#backing)"
               />
             ),
         )}
@@ -572,7 +572,6 @@ export function BuffStrip({
                   warn={warn}
                   fontSize={fontSize}
                   width={BACKING_RADIUS * 2 - 1}
-                  onDisc={covers}
                 />
                 {buffs.length > 1 && (
                   <Markers
