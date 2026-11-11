@@ -11,8 +11,10 @@ import type {
 
 // Countdown seconds over the game's ability dots, which sit at the same place below the
 // screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
-// each number covering its dot; other buffs flank them, each under the game's icon for it
-// standing in for a dot. Styled like the HUD: white numbers and icons in its bold typeface,
+// each number covering its dot; other buffs sit under them on the same four columns, wrapping
+// to further rows, each the game's icon for it over its seconds. The strip is by the
+// crosshair, so it stays small and quiet: the other buffs are smaller and dimmed until they
+// are nearly out, and never wider than the ability slots. Styled like the HUD: white numbers and icons in its bold typeface,
 // set on soft shadows rather than panels, colour only as a recast hint.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
@@ -48,11 +50,14 @@ const STAGE_PITCH = 10;
 const STAGE_DROP = 0.7;
 /** Strip units are px at this screen height. */
 const UNIT_HEIGHT = 1080;
-/** Icons of the other buffs, centred on the dots' line, and their spacing. */
-const ICON_SIZE = 18;
-const ICON_PITCH = ICON_SIZE + 2;
-/** Where the other buffs' numbers' tops sit, tucked just under their icons. */
-const TOP = DOT_Y + ICON_SIZE / 2 - 1.5;
+/** The other buffs' icons, under the ability numbers on the same columns. */
+const ICON_SIZE = 7;
+/** The other buffs' seconds, as a share of the ability numbers' size. */
+const ROW_TEXT = 0.7;
+/** Room above the other buffs, and between their rows. */
+const ROW_SPACE = 2.5;
+/** The other buffs' opacity while they have time: peripheral until they need a look. */
+const QUIET = 0.6;
 /** Seconds at small text, scaled like the app's root size. */
 const FONT_SIZE = 11;
 const TEXT_SCALE: Record<TextSize, number> = {
@@ -69,8 +74,6 @@ const PIP_GAP = 3.6;
 const MARKER_SIZE = 5;
 const LEAD_MARKER_SIZE = 7;
 const MARKER_GAP = 1;
-/** Extra room between the ability slots and the other buffs, in pitches. */
-const GROUP_GAP = 0.5;
 /** The number warms once this share of the buff is left, or, for an ability's buffs, once the
  * settings' seconds are: long enough to recast. A buff's full length is only known from seeing
  * it applied, so the seconds also cover ones first seen part way through. */
@@ -327,8 +330,8 @@ function Buff({
   );
 }
 
-/** The game's icon for a buff, tinted off-white like the HUD's own buff icons. */
-function Icon({ name, x }: { name: string; x: number }) {
+/** The game's icon for a buff, its top at `y`, tinted white like the HUD's own buff icons. */
+function Icon({ name, x, y }: { name: string; x: number; y: number }) {
   const src = useItemImageSrc(name);
   if (!src) {
     return null;
@@ -337,7 +340,7 @@ function Icon({ name, x }: { name: string; x: number }) {
     <image
       href={src}
       x={x - ICON_SIZE / 2}
-      y={DOT_Y - ICON_SIZE / 2}
+      y={y}
       width={ICON_SIZE}
       height={ICON_SIZE}
       style={{
@@ -499,12 +502,44 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
   );
 }
 
-/** Where the `index`th other buff goes: alternately right then left of the ability slots. */
-function flank(index: number) {
-  const out =
-    (SLOTS / 2 + GROUP_GAP) * PITCH +
-    (0.5 + Math.floor(index / 2)) * ICON_PITCH;
-  return CENTRE + (index % 2 === 0 ? out : -out);
+/** The other buffs under the ability slots, on their columns, a row per four and the last
+ * row centred, before the strip's scale. */
+function OtherBuffs({
+  buffs,
+  top,
+  now,
+  warn,
+  fontSize,
+}: {
+  buffs: BuffTimer[];
+  /** The first row's top. */
+  top: number;
+  now: number;
+  warn: number;
+  fontSize: number;
+}) {
+  const height = ICON_SIZE + 1 + fontSize * DIGIT_HEIGHT + ROW_SPACE;
+  return buffs.map((buff, index) => {
+    const row = Math.floor(index / SLOTS);
+    const inRow = Math.min(SLOTS, buffs.length - row * SLOTS);
+    const x = slotX((index % SLOTS) - (inRow - 1) / 2);
+    const y = top + row * height;
+    const quiet = colourOf(buff, now, warn) === INK;
+    return (
+      <g key={buff.id} opacity={quiet ? QUIET : 1}>
+        {buff.icon && <Icon name={buff.icon} x={x} y={y} />}
+        <Buff
+          buff={buff}
+          x={x}
+          y={y + ICON_SIZE + 1 + (fontSize * DIGIT_HEIGHT) / 2}
+          now={now}
+          warn={warn}
+          fontSize={fontSize}
+          width={PITCH - 1}
+        />
+      </g>
+    );
+  });
 }
 
 export function BuffStrip({
@@ -536,6 +571,14 @@ export function BuffStrip({
   const others = buffs.filter(
     (buff) => buff.slot === null || buff.slot > SLOTS,
   );
+  /** The other buffs' row sits under the ability numbers, and under the markers and seconds an
+   * ability keeping several buffs up draws below its number, when one does. */
+  const stacked = slots.some(({ buffs }) => buffs.length > 1);
+  const rowTop =
+    numberY +
+    fontSize / 2 +
+    (stacked ? LEAD_MARKER_SIZE + MARKER_GAP + fontSize * LOWEST_SCALE : 0) +
+    ROW_SPACE;
 
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
@@ -595,24 +638,15 @@ export function BuffStrip({
             );
           })}
           <g
-            transform={`translate(${CENTRE} ${DOT_Y}) scale(${scale}) translate(${-CENTRE} ${-DOT_Y})`}
+            transform={`translate(${CENTRE} ${rowTop}) scale(${scale}) translate(${-CENTRE} ${-rowTop})`}
           >
-            {others.map((buff, index) => {
-              const x = flank(index);
-              return (
-                <g key={buff.id}>
-                  {buff.icon && <Icon name={buff.icon} x={x} />}
-                  <Buff
-                    buff={buff}
-                    x={x}
-                    y={TOP + fontSize / scale / 2}
-                    now={now}
-                    warn={warn}
-                    fontSize={fontSize / scale}
-                  />
-                </g>
-              );
-            })}
+            <OtherBuffs
+              buffs={others}
+              top={rowTop}
+              now={now}
+              warn={warn}
+              fontSize={(fontSize / scale) * ROW_TEXT}
+            />
           </g>
         </g>
       </g>
