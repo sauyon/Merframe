@@ -43,8 +43,6 @@ pub struct NotificationTrigger {
 pub struct BuffStyle {
     /// Seconds left at which an ability's buff turns amber.
     pub warn_seconds: u8,
-    /// Ability numbers sit on discs covering the game's dots, or else just under them.
-    pub cover_dots: bool,
     /// The strip's size, in percent.
     pub scale: u8,
     /// How far below the game's dots the strip sits, in pixels at 1080p.
@@ -55,7 +53,6 @@ impl BuffStyle {
     pub(super) fn from(settings: &crate::settings::BuffSettings) -> Self {
         Self {
             warn_seconds: settings.buffs_warn_seconds.min(60),
-            cover_dots: settings.buffs_cover_dots,
             scale: settings.buffs_scale.clamp(50, 200),
             offset: settings.buffs_offset.clamp(-60, 60),
         }

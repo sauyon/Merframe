@@ -9,10 +9,6 @@ export type BuffStyle = {
  */
 warn_seconds: number, 
 /**
- * Ability numbers sit on discs covering the game's dots, or else just under them.
- */
-cover_dots: boolean, 
-/**
  * The strip's size, in percent.
  */
 scale: number, 

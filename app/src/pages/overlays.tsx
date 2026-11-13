@@ -491,15 +491,6 @@ export function OverlaysPage() {
               disabled={!buffs}
               onChange={(checked) => saveSettings({ buffs_vitals: checked })}
             />
-            <SwitchField
-              id="buffs-cover"
-              label="Cover the game's ability dots"
-              checked={settings.buffs_cover_dots}
-              disabled={!buffs}
-              onChange={(checked) =>
-                saveSettings({ buffs_cover_dots: checked })
-              }
-            />
             <CommittedSlider
               id="buffs-warn"
               label="Warn at"

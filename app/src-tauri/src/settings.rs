@@ -388,13 +388,11 @@ pub struct BuffSettings {
     pub buffs_hidden: Vec<String>,
     /// Seconds left at which an ability's buff turns amber.
     pub buffs_warn_seconds: u8,
-    /// Ability numbers sit on discs covering the game's dots, or else just under them.
-    pub buffs_cover_dots: bool,
     /// The strip's size, in percent.
     pub buffs_scale: u8,
     /// How far below the game's dots the strip sits, in pixels at 1080p.
     pub buffs_offset: i8,
-    /// Health, shield and energy bars above the dots.
+    /// Health, shield and energy meters under the dots.
     pub buffs_vitals: bool,
 }
 
@@ -406,7 +404,6 @@ impl Default for BuffSettings {
             buffs_squad: true,
             buffs_hidden: Vec::new(),
             buffs_warn_seconds: 10,
-            buffs_cover_dots: true,
             buffs_scale: 100,
             buffs_offset: 0,
             buffs_vitals: true,

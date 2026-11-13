@@ -26,10 +26,6 @@ buffs_hidden: Array<string>,
  */
 buffs_warn_seconds: number, 
 /**
- * Ability numbers sit on discs covering the game's dots, or else just under them.
- */
-buffs_cover_dots: boolean, 
-/**
  * The strip's size, in percent.
  */
 buffs_scale: number, 
@@ -38,6 +34,6 @@ buffs_scale: number,
  */
 buffs_offset: number, 
 /**
- * Health, shield and energy bars above the dots.
+ * Health, shield and energy meters under the dots.
  */
 buffs_vitals: boolean, overlay_arbitration: boolean, overlay_arbitration_placement: OverlayPlacement, };

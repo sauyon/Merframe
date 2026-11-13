@@ -9,13 +9,21 @@ import type {
   Vitals,
 } from "@/types";
 
-// Countdown seconds over the game's ability dots, which sit at the same place below the
-// screen centre whatever the weapon, unlike its reticles. Abilities 1 to 4 keep fixed slots,
-// each number covering its dot; other buffs sit under them on the same four columns, wrapping
-// to further rows, each the game's icon for it over its seconds. The strip is by the
-// crosshair, so it stays small and quiet: the other buffs are smaller and dimmed until they
-// are nearly out, and never wider than the ability slots. Styled like the HUD: white numbers and icons in its bold typeface,
-// set on soft shadows rather than panels, colour only as a recast hint.
+// Ability buffs as thin rings round the game's ability dots, which sit at the same place below
+// the screen centre whatever the weapon, unlike its reticles. Each ring drains as its buff runs
+// out; once the settings' seconds are left it thickens and turns amber, with the seconds under
+// the dot, and when the buff ends it pulses red. An empty slot draws nothing. The game turns an
+// ability's dot cyan while it is active, so the rings stay white to read apart from it.
+//
+// Under the rings sit the player's vitals as two short meters, shields (health once they break,
+// thicker so it shows on warm scenes) on the left and energy on the right, each filling from its
+// outer end inward. They carry no warning colours, so amber and red only ever mean a timer, and
+// they fade back while both are nearly full. Of the other buffs, only the one about to run out
+// shows, its icon and seconds well right of the dots so it doesn't read as a fifth ability.
+//
+// Everything stays below the crosshair, as the game keeps its own fixed reticle parts: clear of
+// the reticle's spread, which the app can't read, and of world markers, which sit above it. It
+// is drawn soft, with a slight blur and glow, to sit with the HUD's filtered textures.
 //
 // The window is sized to the screen height alone, so 1 unit is 1 px at 1080p whatever the
 // text size; that only scales the numbers. The strip is drawn as the dots were measured at
@@ -24,23 +32,18 @@ import type {
 // it follows the HUD scale and borders. The HUD scales about the screen's middle, so the
 // dots' distance from it grows with the scale as well as their size.
 //
-// An ability keeping up several buffs at once, like Tribute, has a marker under its number
-// for each buff: the game's icon for it when it has one, else a pip. When the ability draws
-// its own widget for them, the number and markers follow it: the number is the buff the player
-// has switched to, its marker first and larger, the rest in the order switching goes through
-// them, so cycling in game cycles them. Otherwise the number is the buff that runs out first.
-// When the number is not the running buff that runs out first, that one's seconds sit smaller
-// under the markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
-//
-// Just above the dots, as wide as the ability slots, sit the player's health and energy as
-// the HUD shows them, filling from the right as its own bars do: shields covering health, so
-// it shows as they drain, overshields and overguard as lines over those, and energy on a bar
-// under them.
+// An ability keeping up several buffs at once, like Tribute, has a marker under its seconds'
+// line for each buff: the game's icon for it when it has one, else a pip. When the ability draws its own
+// widget for them, the ring and markers follow it: the ring is the buff the player has switched
+// to, its marker first and larger, the rest in the order switching goes through them, so
+// cycling in game cycles them. Otherwise the ring is the buff that runs out first. When the
+// ring is not the running buff that runs out first, that one's seconds sit smaller under the
+// markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
 const SLOTS = 4;
-/** The dots' spacing; each ability's number sits over its dot. */
+/** The dots' spacing; each ability's ring sits round its dot. */
 const PITCH = 12;
 /** The dots' centre line. */
 const DOT_Y = CENTRE + 63.25;
@@ -50,66 +53,78 @@ const STAGE_PITCH = 10;
 const STAGE_DROP = 0.7;
 /** Strip units are px at this screen height. */
 const UNIT_HEIGHT = 1080;
-/** The other buffs' icons, under the ability numbers on the same columns. */
-const ICON_SIZE = 7;
-/** The other buffs' seconds, as a share of the ability numbers' size. */
-const ROW_TEXT = 0.7;
-/** Room above the other buffs, and between their rows. */
-const ROW_SPACE = 2.5;
-/** The other buffs' opacity while they have time: peripheral until they need a look. */
-const QUIET = 0.6;
+/** The rings: clear of the game's cyan dot and its glow, of each other, and of the reticle's
+ * widest spread above. */
+const RING_RADIUS = 4.2;
+const RING_WIDTH = 1.25;
+const RING_WARN_WIDTH = 2;
+/** The red pulse of an ended buff, per second: it shows by motion where red is lost. */
+const PULSE_RATE = 4;
+/** The vitals meters: from `METER_GAP` to `METER_END` either side of the middle, `METER_DROP`
+ * below the dots, curving up `METER_CURVE` at their ends. */
+const METER_GAP = 6;
+const METER_END = 32;
+const METER_DROP = 11;
+const METER_CURVE = 1.6;
+const METER_WIDTH = 2.2;
+const HEALTH_WIDTH = 3;
+const OVER_WIDTH = 0.8;
+/** The meters' opacity while shields and energy are both above `FULL`. */
+const FULL = 0.9;
+const FULL_OPACITY = 0.45;
+/** The urgent other buff, right of the last dot. */
+const OTHER_X = CENTRE + 1.5 * PITCH + 32;
+const ICON_SIZE = 9;
+/** The urgent buff's seconds, as a share of the ability seconds' size. */
+const OTHER_TEXT = 0.85;
+const OTHER_OPACITY = 0.85;
 /** Seconds at small text, scaled like the app's root size. */
-const FONT_SIZE = 11;
+const FONT_SIZE = 13;
 const TEXT_SCALE: Record<TextSize, number> = {
   small: 1,
   medium: 1.125,
   large: 1.25,
 };
-/** Pips under a slot's number, one per buff the ability keeps up. */
-const PIP_RADIUS = 1.1;
-/** The pip of the buff the number shows, when the ability's own widget picks it. */
-const LEAD_PIP_RADIUS = 1.6;
-const PIP_GAP = 3.6;
+/** Pips under a slot's ring, one per buff the ability keeps up. */
+const PIP_RADIUS = 1.4;
+/** The pip of the buff the ring shows, when the ability's own widget picks it. */
+const LEAD_PIP_RADIUS = 1.9;
+const PIP_GAP = 4.4;
 /** Icons standing in for pips, when the game has one per buff. */
 const MARKER_SIZE = 5;
 const LEAD_MARKER_SIZE = 7;
 const MARKER_GAP = 1;
-/** The number warms once this share of the buff is left, or, for an ability's buffs, once the
- * settings' seconds are: long enough to recast. A buff's full length is only known from seeing
- * it applied, so the seconds also cover ones first seen part way through. */
+/** Room between the rows under the rings. */
+const ROW_SPACE = 2;
+/** A buff warms once this share of it is left, or, for an ability's buffs, once the settings'
+ * seconds are: long enough to recast. A buff's full length is only known from seeing it
+ * applied, so the seconds also cover ones first seen part way through. */
 const WARN_SHARE = 0.25;
-/** The HUD's typeface and ink for its numbers: white, bold, on a soft dark shadow. */
+/** The HUD's typeface for its numbers. */
 const FONT = "Roboto, sans-serif";
-const INK = "rgb(255 255 255)";
-const SHADOW = "drop-shadow(0 0 1.2px rgb(0 0 0 / 0.85))";
-const WARN = "rgb(240 190 110)";
-const DOWN = "rgb(235 110 95)";
-/** The running buff that runs out first, when the number shows another. */
+/** A slightly dimmed white, like the game's own dots. */
+const INK = "rgb(238 243 245)";
+const WARN = "rgb(255 198 64)";
+const DOWN = "rgb(255 77 94)";
+/** The running buff that runs out first, when the ring shows another. */
 const LOWEST = "rgb(130 190 245)";
 const LOWEST_SCALE = 0.75;
-/** A soft dark glow hiding the game's ability dot, which each ability's number stands on in its
- * place: solid over the dot whatever the strip's opacity, fading out by the dots' spacing, like
- * the shadow the HUD sets its own numbers on rather than a disc of its own. */
-const BACKING = "rgb(8 10 12)";
-/** How much of the backing's radius stays solid, enough to hide the dot. */
-const BACKING_CORE = 0.5;
-const BACKING_RADIUS = PITCH / 2 - 0.5;
-/** A digit's width as a share of its size: an ability's number shrinks to fit its disc. */
-const DIGIT_WIDTH = 0.56;
+/** Shields and health take the HUD's own colours; these stand in until those are read. */
+const SHIELD = "rgb(156 196 240)";
+const HEALTH = "rgb(255 140 122)";
+const ENERGY = INK;
+/** A colour the HUD draws a line in, for the overshield and overguard lines, while unread. */
+const UNREAD = INK;
 /** Digits' height above their baseline, as a share of their size: half of it drops their
  * middle onto a centre line. */
 const DIGIT_HEIGHT = 0.72;
-/** The health and energy bars, above the dots' discs. */
-const BAR_WIDTH = SLOTS * PITCH;
-const BAR_HEIGHT = 2;
-const BAR_GAP = 1.5;
-const ENERGY_Y = DOT_Y - BACKING_RADIUS - 4 - BAR_HEIGHT;
-const HEALTH_Y = ENERGY_Y - BAR_GAP - BAR_HEIGHT;
-const OVERGUARD_HEIGHT = 0.8;
-/** A bar's colour while the HUD's own can't be read. */
-const UNREAD = INK;
-/** A bar's spent part, light and faint as the HUD draws it. */
-const EMPTY = "rgb(255 255 255 / 0.22)";
+/** A dark outline under numbers, so they hold on bright scenes. */
+const TEXT_OUTLINE = {
+  stroke: "black",
+  strokeWidth: 2,
+  strokeOpacity: 0.55,
+  paintOrder: "stroke",
+} as const;
 
 function useNow() {
   const [now, setNow] = useState(Date.now);
@@ -149,7 +164,7 @@ function remaining(buff: BuffTimer, now: number) {
     : Math.max(0, (buff.ends_at - now) / 1000);
 }
 
-/** The number's colour: white, warmer when nearly out, red once gone. */
+/** A buff's colour: white, amber when nearly out, red once gone. */
 function colourOf(buff: BuffTimer, now: number, warn: number) {
   const left = remaining(buff, now);
   if (left === null || left <= 0) {
@@ -160,17 +175,37 @@ function colourOf(buff: BuffTimer, now: number, warn: number) {
   return share < WARN_SHARE || late ? WARN : INK;
 }
 
+/** Whole seconds left, or a dash once gone. */
+function seconds(buff: BuffTimer, now: number) {
+  const left = remaining(buff, now);
+  return left === null || left <= 0 ? "—" : String(Math.ceil(left));
+}
+
 /** SVG filters painting an icon's shape one flat colour, keyed by colour. */
 const TINTS = { [INK]: "tint-ink", [WARN]: "tint-warn", [DOWN]: "tint-down" };
 
-function Tints() {
+function Defs() {
   return (
     <defs>
-      <radialGradient id="backing">
-        <stop offset={0} stopColor={BACKING} />
-        <stop offset={BACKING_CORE} stopColor={BACKING} />
-        <stop offset={1} stopColor={BACKING} stopOpacity={0} />
-      </radialGradient>
+      {/* the HUD's softness: a faint glow in each mark's own colour under a slight blur */}
+      <filter
+        id="hud"
+        x="-30%"
+        y="-30%"
+        width="160%"
+        height="160%"
+        colorInterpolationFilters="sRGB"
+      >
+        <feGaussianBlur in="SourceGraphic" stdDeviation={1.2} result="glow" />
+        <feComponentTransfer in="glow" result="faint">
+          <feFuncA type="linear" slope={0.3} />
+        </feComponentTransfer>
+        <feGaussianBlur in="SourceGraphic" stdDeviation={0.4} result="soft" />
+        <feMerge>
+          <feMergeNode in="faint" />
+          <feMergeNode in="soft" />
+        </feMerge>
+      </filter>
       {Object.entries(TINTS).map(([colour, id]) => (
         <filter key={id} id={id}>
           <feFlood floodColor={colour} />
@@ -182,7 +217,69 @@ function Tints() {
   );
 }
 
-/** One ability's buffs, side by side under its number, each coloured by its own share left. */
+/** A ring round one ability's dot, lit clockwise from the top for the share of its buff left
+ * over a faint track, the lit part edged dark so it holds on bright scenes. */
+function Ring({
+  buff,
+  x,
+  now,
+  warn,
+}: {
+  buff: BuffTimer;
+  x: number;
+  now: number;
+  warn: number;
+}) {
+  const left = remaining(buff, now) ?? 0;
+  const colour = colourOf(buff, now, warn);
+  const late = colour !== INK;
+  const width = late ? RING_WARN_WIDTH : RING_WIDTH;
+  const lit = left <= 0 ? 1 : Math.min(1, left / Math.max(buff.total, 0.001));
+  const pulse =
+    left <= 0
+      ? 0.75 + 0.25 * Math.cos((now / 1000) * PULSE_RATE * 2 * Math.PI)
+      : 1;
+  const arc = {
+    cx: x,
+    cy: DOT_Y,
+    r: RING_RADIUS,
+    fill: "none",
+    pathLength: 1,
+    strokeDasharray: `${lit} 1`,
+    transform: `rotate(-90 ${x} ${DOT_Y})`,
+  };
+  return (
+    <g>
+      <circle
+        cx={x}
+        cy={DOT_Y}
+        r={RING_RADIUS}
+        fill="none"
+        stroke="black"
+        strokeWidth={width + 1.6}
+        opacity={0.15}
+      />
+      <circle
+        cx={x}
+        cy={DOT_Y}
+        r={RING_RADIUS}
+        fill="none"
+        stroke="white"
+        strokeWidth={width}
+        opacity={0.16}
+      />
+      <circle
+        {...arc}
+        stroke="black"
+        strokeWidth={width + (late ? 2 : 1.2)}
+        opacity={late ? 0.65 : 0.55}
+      />
+      <circle {...arc} stroke={colour} strokeWidth={width} opacity={pulse} />
+    </g>
+  );
+}
+
+/** One ability's buffs, side by side under its ring, each coloured by its own share left. */
 function Markers({
   buffs,
   x,
@@ -250,7 +347,6 @@ function Marker({
       width={size}
       height={size}
       filter={`url(#${tint})`}
-      opacity={1}
     />
   );
 }
@@ -271,7 +367,7 @@ function Pips({
 }) {
   const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
   return (
-    <g style={{ filter: SHADOW }}>
+    <g>
       {buffs.map((buff, index) => (
         <circle
           key={buff.id}
@@ -279,59 +375,60 @@ function Pips({
           cy={y + PIP_GAP / 2}
           r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
           fill={colourOf(buff, now, warn)}
-          fillOpacity={1}
+          stroke="black"
+          strokeOpacity={0.7}
+          strokeWidth={0.8}
         />
       ))}
     </g>
   );
 }
 
-function Buff({
-  buff,
+/** Seconds centred on `x`, their middle on `y`. */
+function Seconds({
+  text,
   x,
   y,
-  now,
-  warn,
+  colour,
   fontSize,
-  width,
+  anchor = "middle",
 }: {
-  buff: BuffTimer;
+  text: string;
   x: number;
-  /** The number's centre line. */
   y: number;
-  now: number;
-  warn: number;
+  colour: string;
   fontSize: number;
-  /** The most room the number may take across, if limited. */
-  width?: number;
+  anchor?: "middle" | "start";
 }) {
-  const left = remaining(buff, now);
-  const colour = colourOf(buff, now, warn);
-  const text = left === null || left <= 0 ? "—" : String(Math.ceil(left));
-  const size =
-    width === undefined
-      ? fontSize
-      : Math.min(fontSize, width / (text.length * DIGIT_WIDTH));
-
   return (
     <text
       x={x}
-      y={y + (size * DIGIT_HEIGHT) / 2}
+      y={y + (fontSize * DIGIT_HEIGHT) / 2}
       fill={colour}
       fontFamily={FONT}
       fontWeight={700}
-      textAnchor="middle"
+      textAnchor={anchor}
       dominantBaseline="alphabetic"
-      fontSize={size}
-      style={{ filter: SHADOW }}
+      fontSize={fontSize}
+      {...TEXT_OUTLINE}
     >
       {text}
     </text>
   );
 }
 
-/** The game's icon for a buff, its top at `y`, tinted white like the HUD's own buff icons. */
-function Icon({ name, x, y }: { name: string; x: number; y: number }) {
+/** The game's icon for a buff, centred on `x`, `y`, tinted like its seconds. */
+function Icon({
+  name,
+  x,
+  y,
+  tint,
+}: {
+  name: string;
+  x: number;
+  y: number;
+  tint: string;
+}) {
   const src = useItemImageSrc(name);
   if (!src) {
     return null;
@@ -340,12 +437,10 @@ function Icon({ name, x, y }: { name: string; x: number; y: number }) {
     <image
       href={src}
       x={x - ICON_SIZE / 2}
-      y={y}
+      y={y - ICON_SIZE / 2}
       width={ICON_SIZE}
       height={ICON_SIZE}
-      style={{
-        filter: `brightness(0) invert(1) ${SHADOW}`,
-      }}
+      filter={`url(#${tint})`}
     />
   );
 }
@@ -361,7 +456,7 @@ function pick(buffs: BuffTimer[]) {
   return buffs.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** Of several buffs from one ability, the running one that ends first. */
+/** Of several buffs, the running one that ends first. */
 function lowest(buffs: BuffTimer[], now: number) {
   const running = buffs.filter((buff) => (remaining(buff, now) ?? 0) > 0);
   const end = (buff: BuffTimer) => buff.ends_at ?? Number.POSITIVE_INFINITY;
@@ -370,78 +465,114 @@ function lowest(buffs: BuffTimer[], now: number) {
     : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** The seconds of the buff that runs out first, smaller, under one ability's markers. */
-function Lowest({
-  buff,
-  x,
-  y,
-  now,
-  fontSize,
-}: {
-  buff: BuffTimer;
-  x: number;
-  y: number;
-  now: number;
-  fontSize: number;
-}) {
-  const left = remaining(buff, now) ?? 0;
-  return (
-    <text
-      x={x}
-      y={y + fontSize / 2}
-      fill={LOWEST}
-      fontFamily={FONT}
-      fontWeight={700}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fontSize={fontSize}
-      style={{ filter: SHADOW }}
-    >
-      {Math.ceil(left)}
-    </text>
-  );
-}
-
 /** One ability's buffs in the order its widget cycles through them, when it has one. */
 function ordered(buffs: BuffTimer[]) {
   const rank = (buff: BuffTimer) => buff.rank ?? Number.POSITIVE_INFINITY;
   return [...buffs].sort((a, b) => rank(a) - rank(b));
 }
 
-/** A bar's fill, as a share of its width. */
+/** A meter's fill, as a share of its length. */
 function share(value: number, of: number) {
   return of > 0 ? Math.min(1, Math.max(0, value / of)) : 0;
 }
 
-/** A colour the HUD draws a bar in, `0xRRGGBB`, as CSS. */
-function colour(rgb: number | null) {
-  return rgb === null ? UNREAD : `#${rgb.toString(16).padStart(6, "0")}`;
+/** A colour the HUD draws a line in, `0xRRGGBB`, as CSS. */
+function colour(rgb: number | null, unread = UNREAD) {
+  return rgb === null ? unread : `#${rgb.toString(16).padStart(6, "0")}`;
 }
 
-/** Shields covering health, so the health shows as they drain, overshields and overguard as
- * lines over them, and energy under them, each against its own maximum. They fill from the
- * right, as the HUD's own bars do. */
-function VitalBars({ vitals }: { vitals: Vitals }) {
-  const right = CENTRE + BAR_WIDTH / 2;
-  /** A fill reaching `start` to `end` of the bar's width in from its right end. */
-  const fill = (
-    key: string,
-    y: number,
-    height: number,
-    start: number,
-    end: number,
-    colour: string,
-  ) =>
-    end > start && (
-      <rect
-        key={key}
-        x={right - end * BAR_WIDTH}
-        y={y}
-        width={(end - start) * BAR_WIDTH}
-        height={height}
-        fill={colour}
+/** The meters' curve: a shallow smile under the dots. */
+function meterY(x: number) {
+  return DOT_Y + METER_DROP - METER_CURVE * ((x - CENTRE) / METER_END) ** 2;
+}
+
+/** One side's meter as a path from its outer end in to the gap, so a dash from its start fills
+ * from the outer end. `side` is -1 for the left, 1 for the right; `lift` raises it. */
+function meterPath(side: number, lift = 0) {
+  const steps = 16;
+  const points = Array.from({ length: steps + 1 }, (_, index) => {
+    const x =
+      CENTRE + side * (METER_END - ((METER_END - METER_GAP) * index) / steps);
+    return `${x} ${meterY(x) - lift}`;
+  });
+  return `M${points.join("L")}`;
+}
+
+/** One meter: a faint track on a dark bed, lit from its outer end for `fill`, edged dark. */
+function Meter({
+  side,
+  fill,
+  stroke,
+  width = METER_WIDTH,
+  edge = 0.7,
+}: {
+  side: number;
+  fill: number;
+  stroke: string;
+  width?: number;
+  edge?: number;
+}) {
+  const d = meterPath(side);
+  const lit = { d, fill: "none", pathLength: 1, strokeDasharray: `${fill} 1` };
+  return (
+    <g>
+      <path
+        d={d}
+        fill="none"
+        stroke="black"
+        strokeWidth={width + 1.8}
+        opacity={0.4}
       />
-    );
+      <path
+        d={d}
+        fill="none"
+        stroke="white"
+        strokeWidth={width}
+        opacity={0.3}
+      />
+      {fill > 0 && (
+        <>
+          <path
+            {...lit}
+            stroke="black"
+            strokeWidth={width + 1.4}
+            opacity={edge}
+          />
+          <path {...lit} stroke={stroke} strokeWidth={width} opacity={0.9} />
+        </>
+      )}
+    </g>
+  );
+}
+
+/** A thin line over the left meter, for overshields or overguard, `lift` above its middle. */
+function OverLine({
+  fill,
+  stroke,
+  lift,
+}: {
+  fill: number;
+  stroke: string;
+  lift: number;
+}) {
+  return (
+    fill > 0 && (
+      <path
+        d={meterPath(-1, lift)}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={OVER_WIDTH}
+        pathLength={1}
+        strokeDasharray={`${fill} 1`}
+        opacity={0.9}
+      />
+    )
+  );
+}
+
+/** Shields on the left, or health once they break, and energy on the right, with overshields
+ * and overguard as lines over the shields. */
+function VitalMeters({ vitals }: { vitals: Vitals }) {
   const health = share(vitals.health, vitals.max_health);
   const shield = share(vitals.shield, vitals.max_shield);
   const overshield = share(
@@ -453,93 +584,75 @@ function VitalBars({ vitals }: { vitals: Vitals }) {
     Math.max(vitals.max_overguard, vitals.overguard),
   );
   const energy = share(vitals.energy, vitals.max_energy);
-  const lineY = HEALTH_Y - OVERGUARD_HEIGHT;
+  const broken = vitals.max_shield <= 0 || shield <= 0;
+  const quiet = (broken ? health : shield) > FULL && energy > FULL;
+  const lift = METER_WIDTH / 2 + 1.2;
   return (
-    <g style={{ filter: SHADOW }}>
-      {fill("empty", HEALTH_Y, BAR_HEIGHT, 0, 1, EMPTY)}
-      {fill(
-        "health",
-        HEALTH_Y,
-        BAR_HEIGHT,
-        0,
-        health,
-        colour(vitals.health_colour),
+    <g opacity={quiet && overshield <= 0 && overguard <= 0 ? FULL_OPACITY : 1}>
+      {broken ? (
+        <Meter
+          side={-1}
+          fill={health}
+          stroke={colour(vitals.health_colour, HEALTH)}
+          width={HEALTH_WIDTH}
+          edge={0.75}
+        />
+      ) : (
+        <Meter
+          side={-1}
+          fill={shield}
+          stroke={colour(vitals.shield_colour, SHIELD)}
+        />
       )}
-      {fill(
-        "shield",
-        HEALTH_Y,
-        BAR_HEIGHT,
-        0,
-        shield,
-        colour(vitals.shield_colour),
-      )}
-      {fill(
-        "overshield",
-        lineY,
-        OVERGUARD_HEIGHT,
-        0,
-        overshield,
-        colour(vitals.overshield_colour),
-      )}
-      {fill(
-        "overguard",
-        lineY - (overshield > 0 ? OVERGUARD_HEIGHT : 0),
-        OVERGUARD_HEIGHT,
-        0,
-        overguard,
-        colour(vitals.overguard_colour),
-      )}
-      {fill("energy-empty", ENERGY_Y, BAR_HEIGHT, 0, 1, EMPTY)}
-      {fill(
-        "energy",
-        ENERGY_Y,
-        BAR_HEIGHT,
-        0,
-        energy,
-        colour(vitals.energy_colour),
-      )}
+      <Meter side={1} fill={energy} stroke={ENERGY} />
+      <OverLine
+        fill={overshield}
+        stroke={colour(vitals.overshield_colour)}
+        lift={lift}
+      />
+      <OverLine
+        fill={overguard}
+        stroke={colour(vitals.overguard_colour)}
+        lift={lift + (overshield > 0 ? OVER_WIDTH + 0.6 : 0)}
+      />
     </g>
   );
 }
 
-/** The other buffs under the ability slots, on their columns, a row per four and the last
- * row centred, before the strip's scale. */
-function OtherBuffs({
+/** Of the other buffs, the one about to run out, its icon and seconds right of the dots. */
+function UrgentBuff({
   buffs,
-  top,
   now,
   warn,
   fontSize,
 }: {
   buffs: BuffTimer[];
-  /** The first row's top. */
-  top: number;
   now: number;
   warn: number;
   fontSize: number;
 }) {
-  const height = ICON_SIZE + 1 + fontSize * DIGIT_HEIGHT + ROW_SPACE;
-  return buffs.map((buff, index) => {
-    const row = Math.floor(index / SLOTS);
-    const inRow = Math.min(SLOTS, buffs.length - row * SLOTS);
-    const x = slotX((index % SLOTS) - (inRow - 1) / 2);
-    const y = top + row * height;
-    const quiet = colourOf(buff, now, warn) === INK;
-    return (
-      <g key={buff.id} opacity={quiet ? QUIET : 1}>
-        {buff.icon && <Icon name={buff.icon} x={x} y={y} />}
-        <Buff
-          buff={buff}
-          x={x}
-          y={y + ICON_SIZE + 1 + (fontSize * DIGIT_HEIGHT) / 2}
-          now={now}
-          warn={warn}
-          fontSize={fontSize}
-          width={PITCH - 1}
-        />
-      </g>
-    );
-  });
+  const buff = lowest(
+    buffs.filter((buff) => colourOf(buff, now, warn) === WARN),
+    now,
+  );
+  if (!buff) {
+    return null;
+  }
+  return (
+    <g opacity={OTHER_OPACITY}>
+      {buff.icon && (
+        <Icon name={buff.icon} x={OTHER_X} y={DOT_Y} tint={TINTS[WARN]} />
+      )}
+      <Seconds
+        text={seconds(buff, now)}
+        x={OTHER_X + ICON_SIZE / 2 + 1.5}
+        y={DOT_Y}
+        colour={WARN}
+        fontSize={fontSize}
+        anchor="start"
+      />
+    </g>
+  );
 }
 
 export function BuffStrip({
@@ -561,9 +674,6 @@ export function BuffStrip({
   const warn = style.warn_seconds;
   const scale = style.scale / 100;
   const fontSize = FONT_SIZE * TEXT_SCALE[textSize] * scale;
-  const covers = style.cover_dots;
-  /** An ability's number: on its dot, or just under it. */
-  const numberY = covers ? DOT_Y : DOT_Y + BACKING_RADIUS + fontSize / 2;
   const slots = Array.from({ length: SLOTS }, (_, index) => ({
     x: slotX(index - (SLOTS - 1) / 2),
     buffs: ordered(buffs.filter((buff) => buff.slot === index + 1)),
@@ -571,83 +681,75 @@ export function BuffStrip({
   const others = buffs.filter(
     (buff) => buff.slot === null || buff.slot > SLOTS,
   );
-  /** The other buffs' row sits under the ability numbers, and under the markers and seconds an
-   * ability keeping several buffs up draws below its number, when one does. */
-  const stacked = slots.some(({ buffs }) => buffs.length > 1);
-  const rowTop =
-    numberY +
-    fontSize / 2 +
-    (stacked ? LEAD_MARKER_SIZE + MARKER_GAP + fontSize * LOWEST_SCALE : 0) +
-    ROW_SPACE;
+  /** The first row under the rings: under the meters when they show. */
+  const below =
+    (vitals
+      ? DOT_Y + METER_DROP + HEALTH_WIDTH / 2
+      : DOT_Y + RING_RADIUS + RING_WARN_WIDTH) + ROW_SPACE;
 
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="size-full">
-      <Tints />
+      <Defs />
       <g transform={`translate(0 ${style.offset}) ${hudTransform(layout)}`}>
-        {slots.map(
-          ({ x, buffs }) =>
-            covers &&
-            buffs.length > 0 && (
-              <circle
-                key={x}
-                cx={x}
-                cy={DOT_Y}
-                r={BACKING_RADIUS + 1}
-                fill="url(#backing)"
-              />
-            ),
-        )}
-        <g opacity={opacity / 100}>
-          {vitals && <VitalBars vitals={vitals} />}
+        <g opacity={opacity / 100} filter="url(#hud)">
+          {vitals && <VitalMeters vitals={vitals} />}
           {slots.map(({ x, buffs }) => {
             if (buffs.length === 0) {
               return null;
             }
             const shown = pick(buffs);
             const first = lowest(buffs, now);
+            const colour = colourOf(shown, now, warn);
+            const left = remaining(shown, now) ?? 0;
+            /** Every slot's late seconds on one line, so two never stagger into one number;
+             * markers on a row under it, then the lapsing buff's seconds. */
+            const secondsY = below + fontSize / 2;
+            const markersY = below + fontSize + ROW_SPACE;
+            const late = colour === WARN && left > 0;
+            const lowestY =
+              markersY +
+              LEAD_MARKER_SIZE +
+              ROW_SPACE +
+              (fontSize * LOWEST_SCALE) / 2;
             return (
               <g key={x}>
-                <Buff
-                  buff={shown}
-                  x={x}
-                  y={numberY}
-                  now={now}
-                  warn={warn}
-                  fontSize={fontSize}
-                  width={BACKING_RADIUS * 2 - 1}
-                />
+                <Ring buff={shown} x={x} now={now} warn={warn} />
                 {buffs.length > 1 && (
                   <Markers
                     buffs={buffs}
                     x={x}
-                    y={numberY + fontSize / 2}
+                    y={markersY}
                     now={now}
                     warn={warn}
                   />
                 )}
-                {first && first.id !== shown.id && (
-                  <Lowest
-                    buff={first}
+                {late && (
+                  <Seconds
+                    text={seconds(shown, now)}
                     x={x}
-                    y={numberY + fontSize / 2 + LEAD_MARKER_SIZE + MARKER_GAP}
-                    now={now}
+                    y={secondsY}
+                    colour={WARN}
+                    fontSize={fontSize}
+                  />
+                )}
+                {first && first.id !== shown.id && (
+                  <Seconds
+                    text={seconds(first, now)}
+                    x={x}
+                    y={lowestY}
+                    colour={LOWEST}
                     fontSize={fontSize * LOWEST_SCALE}
                   />
                 )}
               </g>
             );
           })}
-          <g
-            transform={`translate(${CENTRE} ${rowTop}) scale(${scale}) translate(${-CENTRE} ${-rowTop})`}
-          >
-            <OtherBuffs
-              buffs={others}
-              top={rowTop}
-              now={now}
-              warn={warn}
-              fontSize={(fontSize / scale) * ROW_TEXT}
-            />
-          </g>
+          <UrgentBuff
+            buffs={others}
+            now={now}
+            warn={warn}
+            fontSize={fontSize * OTHER_TEXT}
+          />
         </g>
       </g>
     </svg>
