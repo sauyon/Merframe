@@ -254,7 +254,7 @@ export function RelicPlannerPage() {
             wanted.length > 0 && (
               <Button variant="outline" size="sm" onClick={() => setWanted([])}>
                 <Filter className="size-3.5" />
-                {wanted.length} wanted parts
+                {counted(wanted.length, "wanted part")}
                 <X className="size-3.5" />
               </Button>
             )

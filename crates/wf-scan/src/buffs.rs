@@ -77,8 +77,7 @@ pub fn status_list<R: MemoryReader + ?Sized>(reader: &R, state: &LuaState) -> Op
 pub fn status_effects<R: MemoryReader + ?Sized>(reader: &R, list: LuaTable) -> Vec<StatusEffect> {
     list.field(reader, ELEMENTS)
         .and_then(LuaValue::table)
-        .map(|elements| elements.tables(reader))
-        .unwrap_or_default()
+        .map_or_default(|elements| elements.tables(reader))
         .into_iter()
         .filter_map(|element| effect(reader, element))
         .collect()

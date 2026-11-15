@@ -91,7 +91,8 @@ function ArbitrationRunVitusField({ run }: { run: ArbitrationRun }) {
         <Button
           variant="outline"
           size="sm"
-          disabled={saving || !valid || entered === run.vitus}
+          disabled={!valid || entered === run.vitus}
+          pending={saving}
           onClick={save}
         >
           Save

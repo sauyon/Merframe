@@ -37,6 +37,8 @@ import type {
   RelicPlan,
   RelicPlannerTab,
   RelicSource,
+  ResetChecklistManualRowId,
+  ResetChecklistTab,
   ResourceQuery,
   ResourcesTab,
   RivenComparables,
@@ -157,6 +159,9 @@ export const api = {
   deleteTrade: (id: number) => call<void>("delete_trade", { id }),
   toggleFavourite: (uniqueName: string) =>
     call<boolean>("toggle_favourite", { uniqueName }),
+  resetChecklistTab: () => call<ResetChecklistTab>("reset_checklist_tab"),
+  setResetChecklistChecked: (id: ResetChecklistManualRowId, checked: boolean) =>
+    call<void>("set_reset_checklist_checked", { id, checked }),
   relicsFor: (partUniqueName: string) =>
     call<RelicSource[]>("relics_for", { partUniqueName }),
   gameStatus: () => call<GameStatus>("game_status"),
@@ -225,6 +230,7 @@ export const api = {
   appLogFile: () => call<string>("app_log_file"),
   openDataFolder: () => call<void>("open_data_folder"),
   openGameLogFolder: () => call<void>("open_game_log_folder"),
+  resetMerframe: () => call<void>("reset_merframe"),
   itemImage: (imageName: string) => call<string>("item_image", { imageName }),
   seenBuffs: () => call<SeenBuff[]>("seen_buffs"),
   prefetchImages: (names: string[]) =>

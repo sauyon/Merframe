@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { api, openExternal } from "@/lib/bridge";
-import { dateTime, num } from "@/lib/format";
+import { counted, dateTime, num } from "@/lib/format";
 import { rivenAuctionUrl } from "@/lib/rivens";
 import { capitalize } from "@/lib/world";
 import { ListingDialog, type ListingForm } from "@/pages/rivens/listing-dialog";
@@ -75,7 +75,9 @@ export function AuctionsTable({
               {auctionName(row.original, items)}
             </span>
             <Badge variant="muted">rank {row.original.item.mod_rank}</Badge>
-            <Badge variant="muted">{row.original.item.re_rolls} rolls</Badge>
+            <Badge variant="muted">
+              {counted(row.original.item.re_rolls, "roll")}
+            </Badge>
           </span>
         ),
       },
@@ -190,7 +192,7 @@ export function AuctionsTable({
         data={auctions}
         toolbar={
           <ListingToolbar
-            noun="auctions"
+            noun="auction"
             empty={auctions.length === 0}
             onSetVisibility={onSetVisibility}
             onRefresh={onRefresh}

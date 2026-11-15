@@ -9,8 +9,9 @@ use tauri_plugin_opener::OpenerExt;
 
 use super::{Shared, ask_path, game_log_path, pick_log, ready};
 use crate::error::{CommandError, CommandResult};
-use crate::event_feed::EventFeed;
+use crate::event_feed::{self, EventFeed};
 use crate::overlay;
+use crate::reset;
 use crate::runtime::{self, AppEvent};
 use crate::settings::{self, Settings};
 use crate::state::{GameStatus, LOG_FILE, lock, read};
@@ -132,6 +133,10 @@ pub async fn settings_set<R: Runtime>(
     }
     overlay::apply_from(&app, &state);
     app.state::<EventFeed>().configure(settings.event_feed);
+    if previous.event_feed != settings.event_feed {
+        event_feed::publish_reset_checklist(&app, &state);
+    }
+
     Ok(settings)
 }
 
@@ -174,6 +179,11 @@ pub async fn open_game_log_folder<R: Runtime>(
         .opener()
         .reveal_item_in_dir(game_log_path(&state)?)
         .context("Opening the EE.log folder")?)
+}
+
+#[tauri::command]
+pub async fn reset_merframe<R: Runtime>(app: AppHandle<R>) -> CommandResult<()> {
+    Ok(reset::request(&app)?)
 }
 
 #[tauri::command]

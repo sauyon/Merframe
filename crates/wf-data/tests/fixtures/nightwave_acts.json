@@ -1,0 +1,1134 @@
+{
+ "challenges": {
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyAimGlide": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyAimGlide_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyAimGlide_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyArtist": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyArtist_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyArtist_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyBuildersTouch": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyBuildersTouch_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyBuildersTouch_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyBulletJump": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyBulletJump_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyBulletJump_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCodexScan": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCodexScan_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCodexScan_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCollectCredits": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCollectCredits_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCollectCredits_Description",
+   "required": 15000
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCompleteMission": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMission_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMission_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCompleteMissionMelee": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionMelee_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionMelee_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCompleteMissionPrimary": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionPrimary_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionPrimary_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyCompleteMissionSecondary": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionSecondary_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyCompleteMissionSecondary_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyDeployAirSupport": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeployAirSupport_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeployAirSupport_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyDeployGlyph": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeployGlyph_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeployGlyph_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyDeploySpecter": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeploySpecter_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDeploySpecter_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyDonateLeverian": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDonateLeverian_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyDonateLeverian_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyInteractWithPet": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyInteractWithPet_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyInteractWithPet_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemies": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemies_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemies_Description",
+   "required": 200
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWhileOnKDrive": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWhileOnKDrive_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWhileOnKDrive_Description",
+   "required": 20
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithAbilities": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithAbilities_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithAbilities_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithBlast": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithBlast_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithBlast_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithCorrosive": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithCorrosive_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithCorrosive_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithElectricity": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithElectricity_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithElectricity_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithFinishers": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFinishers_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFinishers_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithFire": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFire_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFire_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithFreeze": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFreeze_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithFreeze_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithGas": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithGas_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithGas_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithHeadshots": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithHeadshots_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithHeadshots_Description",
+   "required": 40
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithMagnetic": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithMagnetic_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithMagnetic_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithMelee": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithMelee_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithMelee_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithPoison": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithPoison_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithPoison_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithPrimary": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithPrimary_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithPrimary_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithRadiation": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithRadiation_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithRadiation_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithSecondary": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithSecondary_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithSecondary_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyKillEnemiesWithViral": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithViral_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyKillEnemiesWithViral_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyLiquidation": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyLiquidation_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyLiquidation_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyMercyKill": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyMercyKill_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyMercyKill_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyPickUpEnergy": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPickUpEnergy_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPickUpEnergy_Description",
+   "required": 20
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyPickUpMods": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPickUpMods_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPickUpMods_Description",
+   "required": 8
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyPlaceMarker": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPlaceMarker_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPlaceMarker_Description",
+   "required": 5
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyPlayEmote": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPlayEmote_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyPlayEmote_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailySlideKills": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySlideKills_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySlideKills_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailySuspendFiveEnemies": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySuspendFiveEnemies_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySuspendFiveEnemies_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailySwatter": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySwatter_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailySwatter_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyThePersonalTouch": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyThePersonalTouch_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyThePersonalTouch_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyToppingOffTheTank": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyToppingOffTheTank_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyToppingOffTheTank_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyTransmuteMods": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyTransmuteMods_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyTransmuteMods_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyTwoForOne": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyTwoForOne_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyTwoForOne_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyVisitFeaturedDojo": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyVisitFeaturedDojo_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyVisitFeaturedDojo_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Daily/SeasonDailyWholeArsenal": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyWholeArsenal_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonDailyWholeArsenal_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyBeastSlayer": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBeastSlayer_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBeastSlayer_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyBloodthirsty": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBloodthirsty_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBloodthirsty_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyBoardingPartyNoDamage": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBoardingPartyNoDamage_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBoardingPartyNoDamage_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyBowOffense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBowOffense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyBowOffense_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCatchRarePlainsFish": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCatchRarePlainsFish_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCatchRarePlainsFish_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCatchRareVenusFish": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCatchRareVenusFish_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCatchRareVenusFish_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCollectHundredResources": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCollectHundredResources_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCollectHundredResources_Description",
+   "required": 4000
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCollector": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCollector_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCollector_Description",
+   "required": 100
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteAssassination": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteAssassination_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteAssassination_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteCapture": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteCapture_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteCapture_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteClemMission": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteClemMission_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteClemMission_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteDisruptionConduits": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteDisruptionConduits_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteDisruptionConduits_Description",
+   "required": 12
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteExterminate": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteExterminate_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteExterminate_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteInvasionMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteInvasionMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteInvasionMissions_Description",
+   "required": 6
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteKuva": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteKuva_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteKuva_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteMobileDefense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteMobileDefense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteMobileDefense_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteNightmareMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteNightmareMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteNightmareMissions_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteRace": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteRace_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteRace_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteRescue": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteRescue_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteRescue_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteSabotage": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSabotage_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSabotage_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteSortie": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSortie_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSortie_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteSpy": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSpy_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSpy_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteSyndicateMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSyndicateMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteSyndicateMissions_Description",
+   "required": 5
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteTreasures": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteTreasures_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteTreasures_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyCompleteVenusRace": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteVenusRace_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyCompleteVenusRace_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyDestroyCrewshipArtillery": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyDestroyCrewshipArtillery_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyDestroyCrewshipArtillery_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyFeedHelminth": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyFeedHelminth_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyFeedHelminth_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyFinelyTuned": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyFinelyTuned_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyFinelyTuned_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyHorsingAround": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHorsingAround_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHorsingAround_Description",
+   "required": 1500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyIDecree": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyIDecree_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyIDecree_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyIsolationBounties": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyIsolationBounties_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyIsolationBounties_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyKillArchgunEnemies": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillArchgunEnemies_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillArchgunEnemies_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyKillEnemiesInMech": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillEnemiesInMech_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillEnemiesInMech_Description",
+   "required": 100
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyKillEnemiesWithHeadshots": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillEnemiesWithHeadshots_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillEnemiesWithHeadshots_Description",
+   "required": 100
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyKillThumper": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillThumper_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyKillThumper_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyLoyalty": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyLoyalty_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyLoyalty_Description",
+   "required": 5000
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyMineRarePlainsResources": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyMineRarePlainsResources_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyMineRarePlainsResources_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyMineRareVenusResources": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyMineRareVenusResources_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyMineRareVenusResources_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyNightAndDay": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyNightAndDay_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyNightAndDay_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyOpenLockers": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyOpenLockers_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyOpenLockers_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPerfectAnimalCapture": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPerfectAnimalCapture_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPerfectAnimalCapture_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions10": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions10_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions10_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions11": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions11_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions11_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions12": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions12_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions12_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions13": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions13_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions13_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions14": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions14_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions14_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions15": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions15_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions15_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions16": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions16_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions16_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions17": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions17_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions17_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions18": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions18_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions18_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions19": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions19_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions19_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions2": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions2_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions2_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions20": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions20_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions20_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions21": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions21_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions21_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions22": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions22_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions22_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions23": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions23_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions23_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions24": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions24_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions24_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions25": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions25_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions25_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions3": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions3_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions3_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions4": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions4_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions4_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions5": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions5_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions5_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions6": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions6_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions6_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions7": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions7_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions7_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions8": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions8_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions8_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentCompleteMissions9": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions9_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentCompleteMissions9_Description",
+   "required": 15
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies10": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies10_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies10_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies11": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies11_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies11_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies12": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies12_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies12_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies13": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies13_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies13_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies14": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies14_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies14_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies15": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies15_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies15_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies16": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies16_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies16_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies17": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies17_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies17_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies18": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies18_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies18_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies19": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies19_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies19_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies2": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies2_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies2_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies20": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies20_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies20_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies21": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies21_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies21_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies22": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies22_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies22_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies23": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies23_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies23_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies24": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies24_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies24_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies25": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies25_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies25_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies3": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies3_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies3_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies4": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies4_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies4_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies5": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies5_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies5_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies6": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies6_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies6_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies7": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies7_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies7_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies8": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies8_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies8_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEnemies9": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies9_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEnemies9_Description",
+   "required": 500
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus10": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus10_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus10_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus11": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus11_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus11_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus12": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus12_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus12_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus13": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus13_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus13_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus14": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus14_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus14_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus15": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus15_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus15_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus16": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus16_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus16_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus17": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus17_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus17_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus18": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus18_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus18_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus19": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus19_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus19_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus2": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus2_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus2_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus20": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus20_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus20_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus21": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus21_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus21_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus22": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus22_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus22_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus23": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus23_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus23_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus24": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus24_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus24_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus25": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus25_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus25_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus3": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus3_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus3_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus4": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus4_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus4_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus5": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus5_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus5_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus6": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus6_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus6_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus7": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus7_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus7_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus8": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus8_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus8_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPermanentKillEximus9": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus9_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPermanentKillEximus9_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPerplexed": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPerplexed_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPerplexed_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPickUpMedallion": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPickUpMedallion_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPickUpMedallion_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyPlainsBounties": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPlainsBounties_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyPlainsBounties_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyRailjackMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRailjackMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRailjackMissions_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyRequiemTotem": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRequiemTotem_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRequiemTotem_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyRifleOffense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRifleOffense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyRifleOffense_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySabotageCaches": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySabotageCaches_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySabotageCaches_Description",
+   "required": 6
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySanctuaryOnslaught": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySanctuaryOnslaught_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySanctuaryOnslaught_Description",
+   "required": 8
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyShotgunOffense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyShotgunOffense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyShotgunOffense_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySimarisScan": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySimarisScan_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySimarisScan_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySkeletonsInTheCloset": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySkeletonsInTheCloset_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySkeletonsInTheCloset_Description",
+   "required": 50
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySniperOffense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySniperOffense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySniperOffense_Description",
+   "required": 150
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklySolveCiphers": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySolveCiphers_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklySolveCiphers_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyTheOldWays": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyTheOldWays_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyTheOldWays_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyToAshes": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyToAshes_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyToAshes_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyUnlockDragonVaults": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUnlockDragonVaults_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUnlockDragonVaults_Description",
+   "required": 4
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyUnlockRelics": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUnlockRelics_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUnlockRelics_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyUseForma": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUseForma_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyUseForma_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyVenusBounties": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyVenusBounties_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyVenusBounties_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/Weekly/SeasonWeeklyVoidNet": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyVoidNet_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyVoidNet_Description",
+   "required": 30
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardAntiquarian": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardAntiquarian_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardAntiquarian_Description",
+   "required": 4
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardBattleHardened": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardBattleHardened_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardBattleHardened_Description",
+   "required": 6
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCeremonialEvolution": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCeremonialEvolution_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCeremonialEvolution_Description",
+   "required": 5
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCollectUniqueResources": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCollectUniqueResources_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCollectUniqueResources_Description",
+   "required": 20
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCompleteArchonHunt": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteArchonHunt_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteArchonHunt_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCompleteConquest": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteConquest_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteConquest_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCompleteNightmareMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteNightmareMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteNightmareMissions_Description",
+   "required": 5
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCompleteSortie": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteSortie_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteSortie_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardCompleteSteelPathMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteSteelPathMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardCompleteSteelPathMissions_Description",
+   "required": 5
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardElementaryMyDear": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardElementaryMyDear_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardElementaryMyDear_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardEliteBeastSlayer": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEliteBeastSlayer_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEliteBeastSlayer_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardEliteSanctuaryOnslaught": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEliteSanctuaryOnslaught_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEliteSanctuaryOnslaught_Description",
+   "required": 8
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardEternalGuardian": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEternalGuardian_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardEternalGuardian_Description",
+   "required": 2
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFallenAngel": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFallenAngel_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFallenAngel_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFastCapture": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFastCapture_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFastCapture_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFriendsDefense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsDefense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsDefense_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFriendsMirrorDefense": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsMirrorDefense_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsMirrorDefense_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFriendsProfitTaker": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsProfitTaker_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsProfitTaker_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardFriendsSurvival": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsSurvival_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardFriendsSurvival_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardGoingDown": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardGoingDown_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardGoingDown_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardHighGround": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardHighGround_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardHighGround_Description",
+   "required": 12
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardHoldTheMushrooms": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardHoldTheMushrooms_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardHoldTheMushrooms_Description",
+   "required": 6
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardIndexWinStreak": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardIndexWinStreak_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardIndexWinStreak_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillEnemies": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEnemies_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEnemies_Description",
+   "required": 1500
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillEnemiesSteelPath": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEnemiesSteelPath_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEnemiesSteelPath_Description",
+   "required": 1000
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillEximus": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEximus_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillEximus_Description",
+   "required": 100
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillExploiterOrb": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillExploiterOrb_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillExploiterOrb_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillOrCaptureRainalyst": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillOrCaptureRainalyst_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillOrCaptureRainalyst_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillTank": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillTank_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillTank_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKillThumper": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillThumper_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKillThumper_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardKuvaSurvivalNoCapsules": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKuvaSurvivalNoCapsules_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardKuvaSurvivalNoCapsules_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardLuaPuzzles": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardLuaPuzzles_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardLuaPuzzles_Description",
+   "required": 4
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardRailjackMissions": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardRailjackMissions_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardRailjackMissions_Description",
+   "required": 6
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardRiseOfTheMachine": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardRiseOfTheMachine_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardRiseOfTheMachine_Description",
+   "required": 300
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardSpiderHunt": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardSpiderHunt_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardSpiderHunt_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardTerminated": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTerminated_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTerminated_Description",
+   "required": 3
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardTheManyMadeWhole": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTheManyMadeWhole_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTheManyMadeWhole_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardThePriceOfFreedom": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardThePriceOfFreedom_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardThePriceOfFreedom_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardTreasureFromThePast": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTreasureFromThePast_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardTreasureFromThePast_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardUnlockRelics": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardUnlockRelics_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardUnlockRelics_Description",
+   "required": 10
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardVitalArbiter": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardVitalArbiter_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardVitalArbiter_Description",
+   "required": 1
+  },
+  "/Lotus/Types/Challenges/Seasons/WeeklyHard/SeasonWeeklyHardZarimanBountyHunter": {
+   "name": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardZarimanBountyHunter_Name",
+   "description": "/Lotus/Language/NightwaveChallenges/Challenge_SeasonWeeklyHardZarimanBountyHunter_Description",
+   "required": 4
+  }
+ }
+}

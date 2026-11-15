@@ -3,7 +3,9 @@ mod error;
 mod game_data;
 mod helminth;
 mod item;
+mod markup;
 mod misc_item;
+mod nightwave;
 mod relic;
 mod riven;
 mod vendor;
@@ -19,6 +21,7 @@ pub use item::{
     Rarity, mastery_level_from_affinity, store_item_to_type,
 };
 pub use misc_item::{catch_grade, catch_size, misc_item_name};
+pub use nightwave::{NightwaveAct, NightwaveActs};
 pub use relic::{Refinement, Relic, RelicDrop, RelicReward, projection_family};
 pub use riven::{
     MAX_RANK, RivenData, RivenStat, RivenType, TraitMultipliers, UpgradeEntry, UpgradeValue,

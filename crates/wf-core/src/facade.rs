@@ -33,6 +33,10 @@ use crate::listings::MarketListings;
 use crate::mastery::{self, MasteryOptions, MasteryTab};
 use crate::prices::PriceSource;
 use crate::relic_planner::{self, MissingPart, RelicPlan, RelicSource, RewardScreen};
+use crate::reset_checklist::{
+    self, MISSION_WON_SETTING, ResetChecklistContext, ResetChecklistManualRowId,
+    ResetChecklistStored, ResetChecklistTab, ResetChecklistWorld,
+};
 use crate::resources::{self, ResourceQuery, ResourcesTab};
 use crate::rivens::{Grader, RivenRow, RivensTab};
 use crate::stats::{self, DailyCount, DeltaRow, OpeningRow, StatsSummary};
@@ -172,8 +176,13 @@ impl Core {
         &self.catalog
     }
 
-    pub fn ducatering(&self, filter: &DucateringFilter) -> Option<Ducatering> {
-        Some(Ducatering::new(ducatering::entries(&self.view()?, filter)))
+    pub fn ducatering(&self, now: DateTime<Utc>, filter: &DucateringFilter) -> Option<Ducatering> {
+        Some(Ducatering::new(ducatering::entries(
+            &self.view()?,
+            self.world.as_ref(),
+            now,
+            filter,
+        )))
     }
 
     pub fn inventory(&self) -> Option<&Inventory> {
@@ -268,8 +277,10 @@ impl Core {
             if let Some(previous) = previous
                 && let Some(cached) = self.store.cached_inventory()?
             {
-                let deltas = delta::compute(&Inventory::parse(&cached)?, &inventory);
+                let cached = Inventory::parse(&cached)?;
+                let deltas = delta::compute(&cached, &inventory);
                 self.store.record_deltas(previous.id, id, &deltas)?;
+                reset_checklist::record_kuva_bought(&self.store, &cached, &inventory, now)?;
                 changes = deltas.len();
                 self.synced_vitus = synced_vitus(&deltas);
             }
@@ -550,6 +561,7 @@ impl Core {
                 CoreEvent::TradeCompleted { at, partner, trade } => {
                     self.store.record_trade(*at, partner.as_deref(), trade)?;
                 }
+                CoreEvent::MissionWon => self.store.set_setting(MISSION_WON_SETTING, &now)?,
                 CoreEvent::RelicRewardScreen { relic, screen } => {
                     if let (Some(relic), Some(reward)) = (relic, &self.own_relic_reward)
                         && !relic.contains(REQUIEM_MARKER)
@@ -620,6 +632,34 @@ impl Core {
         now: DateTime<Utc>,
     ) -> Option<ResourcesTab> {
         Some(resources::tab(&self.view()?, query, include_founders, now))
+    }
+
+    pub fn reset_checklist_tab(&self, now: DateTime<Utc>) -> Result<Option<ResetChecklistTab>> {
+        let Some(inventory) = self.inventory() else {
+            return Ok(None);
+        };
+
+        let context = ResetChecklistContext::new(
+            inventory,
+            &self.catalog,
+            &self.items,
+            self.world
+                .as_ref()
+                .map(|world| ResetChecklistWorld::new(world, &self.catalog, now)),
+            now,
+            ResetChecklistStored::load(&self.store, now)?,
+        );
+
+        Ok(Some(reset_checklist::tab(&context)))
+    }
+
+    pub fn set_reset_checklist_checked(
+        &self,
+        id: ResetChecklistManualRowId,
+        checked: bool,
+        now: DateTime<Utc>,
+    ) -> Result<()> {
+        reset_checklist::set_checked(&self.store, id, checked, now)
     }
 
     pub fn relic_planner_tab(
@@ -851,6 +891,7 @@ mod tests {
     use crate::events::ScannedTradeItem;
     use crate::events::{CyclePhase, FissureFilter, InventorySummary, TimerAlerts};
     use crate::prices::FixedPrices;
+    use crate::reset_checklist::{ResetChecklistProgress, ResetChecklistRowId};
     use crate::resources::{ResourceScope, ResourceSource};
     use crate::rivens::support::{PENDING_ROLL, paid_roll, riven_table};
 
@@ -1099,6 +1140,65 @@ mod tests {
             core.relics_for(TRINITY_PRIME_SYSTEMS)
                 .is_some_and(|sources| !sources.is_empty())
         );
+    }
+
+    #[test]
+    fn reset_checklist_tab_after_ingest() {
+        let mut core = core();
+        let now = at(1_788_800_000_000);
+        let row = |core: &Core, id: ResetChecklistRowId| {
+            core.reset_checklist_tab(now)
+                .unwrap()
+                .unwrap()
+                .rows
+                .into_iter()
+                .find(|row| row.id == id)
+                .unwrap()
+        };
+
+        assert!(core.reset_checklist_tab(now).unwrap().is_none());
+
+        core.ingest_inventory(fixtures::INVENTORY, now).unwrap();
+
+        assert!(!row(&core, ResetChecklistRowId::FirstWin).done);
+        assert!(!row(&core, ResetChecklistRowId::VentkidsRaces).done);
+
+        let events = core
+            .handle_log_event(&LogEvent::MissionSucceeded, now, 1.0)
+            .unwrap();
+        core.set_reset_checklist_checked(ResetChecklistManualRowId::VentkidsRaces, true, now)
+            .unwrap();
+
+        assert_eq!(events, [CoreEvent::MissionWon]);
+        assert!(row(&core, ResetChecklistRowId::FirstWin).done);
+        assert!(row(&core, ResetChecklistRowId::VentkidsRaces).done);
+        assert_eq!(
+            row(&core, ResetChecklistRowId::Sortie).progress,
+            ResetChecklistProgress::Unknown
+        );
+    }
+
+    #[test]
+    fn kuva_bought_recorded_on_sync() {
+        let mut core = core();
+        let now = at(1_788_800_000_000);
+        core.ingest_inventory(fixtures::INVENTORY, now).unwrap();
+        let bought = synced("6a9eeb1f000000000000c002")
+            .replacen(
+                r#""NumPurchased":2,"ItemId":"6a9a2f60000000000000f201""#,
+                r#""NumPurchased":5,"ItemId":"6a9a2f60000000000000f201""#,
+                1,
+            )
+            .replacen(
+                r#""MiscItems":["#,
+                r#""MiscItems":[{"ItemCount":30000,"ItemType":"/Lotus/Types/Items/MiscItems/Kuva"},"#,
+                1,
+            );
+
+        core.ingest_inventory(&bought, now).unwrap();
+
+        let kuva = core.reset_checklist_tab(now).unwrap().unwrap().kuva;
+        assert_eq!(kuva.estimated, 30_000);
     }
 
     #[test]

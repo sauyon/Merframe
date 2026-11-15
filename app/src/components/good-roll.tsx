@@ -24,10 +24,10 @@ function StatBadge({ stat }: { stat: StatMatch }) {
       variant="outline"
       className={cn(stat.matches ? "border-accent" : "text-muted-foreground")}
     >
+      {statLabel(stat)}
       {stat.matches && (
         <Check className="text-accent" aria-label="On this roll" />
       )}
-      {statLabel(stat)}
     </Badge>
   );
 }

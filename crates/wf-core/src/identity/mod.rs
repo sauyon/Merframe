@@ -250,12 +250,14 @@ const INVASION_WEAPONS: [&str; 7] = [
     "TwinVipersWraith",
 ];
 
-pub(crate) fn is_weapon_or_part(unique_name: &str) -> bool {
+pub(crate) const OPTICOR_VANDAL: &str = "/Lotus/Weapons/Corpus/LongGuns/CrpBFG/Vandal/VandalCrpBFG";
+
+fn is_weapon_or_part(unique_name: &str) -> bool {
     unique_name.starts_with("/Lotus/Types/Recipes/Weapons/")
         || unique_name.starts_with("/Lotus/Weapons/")
 }
 
-pub(crate) fn is_invasion_weapon_part(unique_name: &str) -> bool {
+fn is_invasion_weapon_part(unique_name: &str) -> bool {
     unique_name
         .strip_prefix("/Lotus/Types/Recipes/Weapons/")
         .map(|rest| rest.strip_prefix("WeaponParts/").unwrap_or(rest))
@@ -264,6 +266,12 @@ pub(crate) fn is_invasion_weapon_part(unique_name: &str) -> bool {
                 .iter()
                 .any(|weapon| tail.starts_with(weapon))
         })
+}
+
+pub(crate) fn is_unusual_reward_weapon(unique_name: &str) -> bool {
+    is_weapon_or_part(unique_name)
+        && !is_invasion_weapon_part(unique_name)
+        && unique_name != OPTICOR_VANDAL
 }
 
 impl Index<ItemRef> for ItemTable {
@@ -585,6 +593,23 @@ mod tests {
         ));
         assert!(!is_invasion_weapon_part(
             "/Lotus/Types/Recipes/Weapons/BratonPrimeBlueprint"
+        ));
+    }
+
+    #[test]
+    fn unusual_reward_weapons() {
+        assert!(is_unusual_reward_weapon(
+            "/Lotus/Types/Recipes/Weapons/WeaponParts/ThrowingHammerHead"
+        ));
+        assert!(is_unusual_reward_weapon(
+            "/Lotus/Weapons/Tenno/Melee/Hammer/ThrowingHammer"
+        ));
+        assert!(!is_unusual_reward_weapon(
+            "/Lotus/Types/Recipes/Weapons/WeaponParts/DeraVandalBarrel"
+        ));
+        assert!(!is_unusual_reward_weapon(OPTICOR_VANDAL));
+        assert!(!is_unusual_reward_weapon(
+            "/Lotus/Types/Items/Research/EnergyComponent"
         ));
     }
     use crate::catalog::fixtures::{

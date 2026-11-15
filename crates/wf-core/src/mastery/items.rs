@@ -179,8 +179,7 @@ impl<'a> OwnedRelicDrops<'a> {
             for (chance, copies) in self
                 .by_reward
                 .get(part_identity(&component.unique_name))
-                .map(Vec::as_slice)
-                .unwrap_or_default()
+                .map_or_default(Vec::as_slice)
             {
                 none *= (1.0 - chance / 100.0).powf(*copies);
             }

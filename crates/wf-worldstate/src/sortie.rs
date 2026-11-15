@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde::Serialize;
+use wf_mongo::ObjectId;
 
 use crate::embedded::{SORTIE_BOSSES, SORTIE_MODIFIERS, SortieBoss, lookup};
 use crate::mission_types::{known_or_title_case, mission_type_name};
@@ -18,6 +19,8 @@ pub struct RawSortieVariant {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct RawSortie {
+    #[serde(rename = "_id")]
+    pub id: ObjectId,
     #[serde(flatten)]
     pub window: Window,
     pub boss: String,
@@ -38,6 +41,7 @@ pub struct SortieMission {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
 pub struct Sortie {
+    pub id: String,
     pub boss: String,
     pub boss_name: String,
     pub faction: Option<&'static str>,
@@ -65,6 +69,7 @@ pub fn current_sortie(sorties: &[RawSortie], now: DateTime<Utc>) -> Option<Sorti
         .iter()
         .find(|sortie| sortie.window.contains(now))
         .map(|sortie| Sortie {
+            id: sortie.id.as_str().to_owned(),
             boss: sortie.boss.clone(),
             boss_name: boss_name(&sortie.boss),
             faction: boss(&sortie.boss).map(|boss| boss.faction),
@@ -94,6 +99,7 @@ mod tests {
     fn active_sortie() {
         let now = at(1500);
         let sorties = vec![RawSortie {
+            id: ObjectId("6a9edbfe7915bed56981db25".to_owned()),
             window: window(1000, 2000),
             boss: "SORTIE_BOSS_KELA".to_owned(),
             variants: vec![
@@ -116,6 +122,7 @@ mod tests {
         }];
         let sortie = current_sortie(&sorties, now).unwrap();
         assert_eq!(sortie.missions.len(), 3);
+        assert_eq!(sortie.id, "6a9edbfe7915bed56981db25");
         assert_eq!(sortie.boss, "SORTIE_BOSS_KELA");
         assert_eq!(sortie.boss_name, "Kela De Thaym");
         assert_eq!(sortie.faction, Some("Grineer"));
@@ -157,6 +164,7 @@ mod tests {
     fn no_active_sortie() {
         let now = at(0);
         let sorties = vec![RawSortie {
+            id: ObjectId("6a9edbfe7915bed56981db25".to_owned()),
             window: window(1000, 2000),
             boss: "SORTIE_BOSS_KELA".to_owned(),
             variants: vec![],

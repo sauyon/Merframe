@@ -12,7 +12,7 @@ export function num(value: number | null | undefined): string {
 }
 
 export function counted(
-  count: number,
+  count: number | null | undefined,
   singular: string,
   plural = `${singular}s`,
 ): string {

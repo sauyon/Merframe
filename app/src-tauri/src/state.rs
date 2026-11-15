@@ -195,6 +195,19 @@ pub fn data_dir<R: Runtime>(app: &AppHandle<R>) -> anyhow::Result<PathBuf> {
         .join(DATA_DIR))
 }
 
+pub fn owner_only_file() -> std::fs::OpenOptions {
+    let mut options = std::fs::OpenOptions::new();
+    options.create(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+
+        options.mode(0o600);
+    }
+
+    options
+}
+
 async fn load_catalog(dir: &Path, http: &reqwest::Client) -> anyhow::Result<Catalog> {
     let started = Instant::now();
     let game_data = load_or_fetch(dir, http)

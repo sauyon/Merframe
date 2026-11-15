@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { ChartHeader, readingsTooltip } from "@/components/chart-hover";
 import { AXIS_TICK, BAR_CURSOR, COMPACT, GRID, MARGIN } from "@/lib/chart";
+import { counted } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export interface Bar {
@@ -43,7 +44,7 @@ export function BarChart({
         caption={
           bars.length === 0
             ? "no days in this window"
-            : `over ${format(bars.length)} days`
+            : `over ${counted(bars.length, "day")}`
         }
       />
       <div className="h-40">

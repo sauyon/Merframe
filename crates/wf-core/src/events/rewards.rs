@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use wf_worldstate::{WorldRewardOffer, WorldRewardSource, WorldState};
 
-use crate::identity::{ItemKind, ItemTable, is_invasion_weapon_part, is_weapon_or_part};
+use crate::identity::{ItemKind, ItemTable, is_unusual_reward_weapon};
 use crate::text::thousands;
 
 const CATALYSTS: [&str; 2] = [
@@ -66,15 +66,16 @@ fn weapon_of_reward<'a>(items: &'a ItemTable, item_type: &str) -> Option<&'a str
 
 impl WorldRewardAlertChoices {
     pub fn wants(&self, item_type: &str, items: &ItemTable, unmastered: &HashSet<&str>) -> bool {
+        let unmastered_weapon =
+            || weapon_of_reward(items, item_type).is_some_and(|weapon| unmastered.contains(weapon));
         self.weapon_parts.iter().any(|part| part == item_type)
             || self.groups.iter().any(|group| match group {
                 WorldRewardAlertGroup::Catalysts => CATALYSTS.contains(&item_type),
                 WorldRewardAlertGroup::Reactors => REACTORS.contains(&item_type),
                 WorldRewardAlertGroup::ExilusAdapters => EXILUS_ADAPTERS.contains(&item_type),
-                WorldRewardAlertGroup::UnmasteredWeapons => weapon_of_reward(items, item_type)
-                    .is_some_and(|weapon| unmastered.contains(weapon)),
+                WorldRewardAlertGroup::UnmasteredWeapons => unmastered_weapon(),
                 WorldRewardAlertGroup::UnusualWeapons => {
-                    is_weapon_or_part(item_type) && !is_invasion_weapon_part(item_type)
+                    is_unusual_reward_weapon(item_type) && unmastered_weapon()
                 }
             })
     }
@@ -208,24 +209,16 @@ mod tests {
     }
 
     #[test]
-    fn unusual_weapons_outside_the_invasion_pool() {
+    fn unusual_weapons_skip_mastered() {
+        let table = ItemTable::build(&crate::catalog::fixtures::catalog());
+        let barrel = "/Lotus/Types/Recipes/Weapons/WeaponParts/BratonPrimeBarrel";
+        let weapon = weapon_of_reward(&table, barrel).unwrap();
         let choices = WorldRewardAlertChoices {
             groups: BTreeSet::from([WorldRewardAlertGroup::UnusualWeapons]),
             ..WorldRewardAlertChoices::default()
         };
-        assert!(!wants(&choices, DERA_BARREL));
-        assert!(wants(
-            &choices,
-            "/Lotus/Types/Recipes/Weapons/WeaponParts/WolfSledgeHead"
-        ));
-        assert!(wants(
-            &choices,
-            "/Lotus/Weapons/Tenno/Melee/Hammer/WolfSledge"
-        ));
-        assert!(!wants(
-            &choices,
-            "/Lotus/Types/Items/Research/EnergyComponent"
-        ));
+        assert!(choices.wants(barrel, &table, &HashSet::from([weapon])));
+        assert!(!choices.wants(barrel, &table, &HashSet::new()));
     }
 
     #[test]

@@ -17,7 +17,7 @@ import {
 } from "@/lib/arbitrations";
 import { secondsUntil, timeOfDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { elapsedShare, endingSoon, timeLeft } from "@/lib/world";
+import { countdownTone, elapsedShare, timeLeft } from "@/lib/world";
 import type { ArbitrationSlot, ArbitrationTier } from "@/types";
 
 const TIER_VARIANT: Record<ArbitrationTier, "accent" | "secondary" | "muted"> =
@@ -173,12 +173,18 @@ function HeroCard({
   );
 }
 
-function Countdown({ label, seconds }: { label: string; seconds: number }) {
+function CountdownFigure({
+  label,
+  seconds,
+}: {
+  label: string;
+  seconds: number;
+}) {
   return (
     <Figure
       label={label}
       value={timeLeft(seconds)}
-      className={endingSoon(seconds) ? "text-warning" : "text-accent"}
+      className={countdownTone(seconds)}
     />
   );
 }
@@ -213,7 +219,7 @@ export function HeroCards({
       >
         {current && (
           <>
-            <Countdown
+            <CountdownFigure
               label="Time left to enter"
               seconds={secondsUntil(current.ends, now)}
             />
@@ -257,7 +263,7 @@ export function HeroCards({
       >
         <div className="flex items-end justify-between gap-3">
           {match ? (
-            <Countdown
+            <CountdownFigure
               label={`Starts at ${timeOfDay(match.starts)}`}
               seconds={secondsUntil(match.starts, now)}
             />

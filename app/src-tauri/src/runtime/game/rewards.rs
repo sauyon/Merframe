@@ -1,3 +1,4 @@
+use std::mem::DropGuard;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
@@ -39,7 +40,10 @@ pub(super) fn watch_relic_picker(state: &Arc<AppState>) {
     if state.watching_picker.swap(true, Ordering::SeqCst) {
         return;
     }
-    let state = Arc::clone(state);
+
+    let state = DropGuard::new(Arc::clone(state), |state| {
+        state.watching_picker.store(false, Ordering::SeqCst);
+    });
     tauri::async_runtime::spawn(async move {
         let started = Instant::now();
         let mut closed_since = None;
@@ -72,7 +76,6 @@ pub(super) fn watch_relic_picker(state: &Arc<AppState>) {
             }
             tokio::time::sleep(PICKER_TICK).await;
         }
-        state.watching_picker.store(false, Ordering::SeqCst);
     });
 }
 

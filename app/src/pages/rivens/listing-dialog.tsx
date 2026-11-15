@@ -16,6 +16,7 @@ import { SwitchField } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api, reportError } from "@/lib/bridge";
+import { counted } from "@/lib/format";
 import { notify } from "@/lib/toast";
 import type { ListingChoices, RivenRow } from "@/types";
 import { MAX_RIVEN_RANK } from "./columns";
@@ -219,7 +220,11 @@ export function ListingDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={posting || !priced(form)}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!priced(form)}
+            pending={posting}
+          >
             {submitLabel ?? (form.direct ? "List for Sale" : "Post Auction")}
           </Button>
         </DialogFooter>
@@ -253,7 +258,7 @@ export function RivenListingDialog({
       description={
         <>
           <span>
-            {`${riven.weapon} ${riven.name ?? ""}, ${riven.rerolls} rolls`}
+            {`${riven.weapon} ${riven.name ?? ""}, ${counted(riven.rerolls, "roll")}`}
           </span>
           {riven.polarity && (
             <PolarityIcon polarity={riven.polarity} size={20} />

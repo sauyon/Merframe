@@ -445,7 +445,7 @@ export function MarketPanel() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             {existing && (
-              <Button onClick={handleUpdate} disabled={busy}>
+              <Button onClick={handleUpdate} disabled={busy} pending={updating}>
                 Update Order
               </Button>
             )}
@@ -453,6 +453,7 @@ export function MarketPanel() {
               variant={existing ? "outline" : "default"}
               onClick={handlePost}
               disabled={busy}
+              pending={posting}
               className={cn(!existing && "col-span-2")}
             >
               {existing ? "Post New Order" : `Post ${sideLabel} Order`}

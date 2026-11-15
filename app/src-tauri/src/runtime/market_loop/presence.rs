@@ -9,7 +9,7 @@ use super::MARKET_SIGNED_OUT_POLL;
 use crate::market_session;
 use crate::state::{AppState, USER_AGENT, read, write};
 
-pub(crate) async fn market_presence_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(crate) async fn market_presence_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut failures: u32 = 0;
     loop {
         let token = match state.market().token() {

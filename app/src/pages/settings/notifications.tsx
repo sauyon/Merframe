@@ -2,12 +2,7 @@ import { BellRing, ChevronDown } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Section } from "@/components/page";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { CheckboxMenu } from "@/components/ui/checkbox-menu";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,40 +118,30 @@ export function NotificationChannels({
           >
             In-game notifications
           </CheckboxRow>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="self-start"
-                disabled={!draft.toasts_enabled || !draft.toasts_in_game}
-              >
+          <CheckboxMenu
+            trigger={
+              <>
                 {IN_GAME_TOASTS.length - draft.toasts_in_game_muted.length} of{" "}
                 {IN_GAME_TOASTS.length} shown in-game
                 <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {IN_GAME_TOASTS.map(({ value, label }) => (
-                <DropdownMenuCheckboxItem
-                  key={value}
-                  checked={!draft.toasts_in_game_muted.includes(value)}
-                  onCheckedChange={(checked) =>
-                    patch({
-                      toasts_in_game_muted: toggled(
-                        draft.toasts_in_game_muted,
-                        value,
-                        !checked,
-                      ),
-                    })
-                  }
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  {label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </>
+            }
+            className="self-start"
+            disabled={!draft.toasts_enabled || !draft.toasts_in_game}
+            items={IN_GAME_TOASTS.map(({ value, label }) => ({
+              key: value,
+              label,
+              checked: !draft.toasts_in_game_muted.includes(value),
+              onCheckedChange: (checked) =>
+                patch({
+                  toasts_in_game_muted: toggled(
+                    draft.toasts_in_game_muted,
+                    value,
+                    !checked,
+                  ),
+                }),
+            }))}
+          />
           <PositionSelect
             id="toast-in-game-position"
             label="In-game notification position"
@@ -195,7 +180,7 @@ export function NotificationChannels({
             size="sm"
             className="self-start"
             onClick={handleTest}
-            disabled={testing}
+            pending={testing}
           >
             <BellRing className="size-4" />
             Test Notifications

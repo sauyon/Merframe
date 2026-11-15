@@ -188,6 +188,14 @@ fn my_auctions() {
 }
 
 #[test]
+fn malformed_riven_auction_fails() {
+    let json =
+        r#"{"payload":{"auctions":[{"id":"6a9f08ab51f7f20eeeb6add2","item":{"type":"riven"}}]}}"#;
+    let error = parse_v1_auctions(json).expect_err("decode error");
+    assert!(matches!(error, wf_market::MarketError::Decode(_)));
+}
+
+#[test]
 fn empty_auction_list() {
     let auctions = parse_v1_auctions(r#"{"payload":{"auctions":[]}}"#).unwrap();
     assert!(auctions.is_empty());

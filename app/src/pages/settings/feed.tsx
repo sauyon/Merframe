@@ -1,7 +1,7 @@
 import { Section } from "@/components/page";
 import { Field } from "@/components/ui/field";
 import { Hint } from "@/components/ui/hint";
-import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import { useAppStore } from "@/stores/app-store";
 import type { EventFeedStatus, Settings } from "@/types";
 import { type Patch, SwitchRow } from "./row";
@@ -35,15 +35,12 @@ export function EventFeed({ draft, patch }: { draft: Settings; patch: Patch }) {
           Stream events for other programs on this PC
         </SwitchRow>
         <Field id="event-feed-port" label="Port" inline>
-          <Input
+          <NumberInput
             id="event-feed-port"
-            type="number"
             disabled={!draft.event_feed_enabled}
             value={draft.event_feed_port}
-            onChange={(event) =>
-              patch({ event_feed_port: Number(event.target.value) })
-            }
-            className="h-8 w-24 text-right tabular-nums"
+            onChange={(port) => patch({ event_feed_port: port })}
+            className="w-24"
           />
         </Field>
         <Hint>{feedHint(status?.event_feed)}</Hint>

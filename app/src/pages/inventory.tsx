@@ -43,7 +43,7 @@ export function InventoryPage() {
       title="Inventory"
       quote="inventory"
       actions={
-        <Button variant="outline" onClick={handleExport} disabled={exporting}>
+        <Button variant="outline" onClick={handleExport} pending={exporting}>
           <Download className="size-4" />
           Export JSON
         </Button>

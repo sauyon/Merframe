@@ -43,7 +43,7 @@ function leadLabel(minutes: number): string {
     return "1 hour before";
   }
 
-  return `${minutes} minutes before`;
+  return `${counted(minutes, "minute")} before`;
 }
 
 const LEAD_OPTIONS = ARBITRATION_LEAD_MINUTES.map((minutes) => ({

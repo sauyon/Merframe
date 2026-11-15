@@ -269,6 +269,8 @@ function ArbitrationRunTable({
   );
 }
 
+type ArbitrationRunLogSource = "refresh" | "file";
+
 export function ArbitrationRunHistory({
   runs,
   error,
@@ -278,13 +280,16 @@ export function ArbitrationRunHistory({
   error: string | null;
   onOpenReport: (run: ArbitrationRun) => void;
 }) {
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = useState<ArbitrationRunLogSource | null>(
+    null,
+  );
 
   const importRuns = async (
+    source: ArbitrationRunLogSource,
     load: () => Promise<number | null>,
     nothingNew: string,
   ) => {
-    setImporting(true);
+    setImporting(source);
     try {
       const imported = await load();
       if (imported === 0) {
@@ -295,7 +300,7 @@ export function ArbitrationRunHistory({
     } catch (error) {
       reportError(error);
     } finally {
-      setImporting(false);
+      setImporting(null);
     }
   };
 
@@ -308,9 +313,11 @@ export function ArbitrationRunHistory({
           <Button
             variant="outline"
             size="sm"
-            disabled={importing}
+            disabled={importing !== null}
+            pending={importing === "refresh"}
             onClick={() =>
               importRuns(
+                "refresh",
                 api.refreshArbitrationRuns,
                 "No new arbitration run in EE.log",
               )
@@ -322,9 +329,11 @@ export function ArbitrationRunHistory({
           <Button
             variant="outline"
             size="sm"
-            disabled={importing}
+            disabled={importing !== null}
+            pending={importing === "file"}
             onClick={() =>
               importRuns(
+                "file",
                 api.importArbitrationLog,
                 "No new arbitration run in that log",
               )

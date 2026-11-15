@@ -5,7 +5,9 @@ use wf_inventory::{EquipmentItem, Inventory};
 
 use super::{ItemIndex, ItemSummary, MiscRow, SculptureStars};
 use crate::catalog::{Catalog, RELIC_PREFIX, is_fish};
-use crate::identity::{ItemRecord, ItemTable, LEGENDARY_CORE, OUBLIETTE_KEY, Variant};
+use crate::identity::{
+    ItemRecord, ItemTable, LEGENDARY_CORE, OPTICOR_VANDAL, OUBLIETTE_KEY, Variant,
+};
 use crate::view::View;
 
 const SCULPTURE_SOCKETS: [(&str, u32, u32); 11] = [
@@ -108,7 +110,7 @@ pub(super) fn is_spare_weapon_stock(item_type: &str) -> bool {
     item_type.contains("/Prisma")
         || item_type.contains("/Lotus/Weapons/Syndicates/")
         || item_type.contains("/VoidTrader")
-        || item_type.contains("/Lotus/Weapons/Corpus/LongGuns/CrpBFG/Vandal/VandalCrpBFG")
+        || item_type.contains(OPTICOR_VANDAL)
         || item_type
             .contains("/Lotus/Weapons/Tenno/Pistols/ConclaveLeverPistol/ConclaveLeverPistol")
 }
@@ -302,8 +304,6 @@ mod tests {
     ]"#;
 
     const GAMMACOR: &str = "/Lotus/Weapons/Syndicates/CephalonSuda/Pistols/CSDroidArray";
-
-    const OPTICOR_VANDAL: &str = "/Lotus/Weapons/Corpus/LongGuns/CrpBFG/Vandal/VandalCrpBFG";
 
     const ZYLOK: &str = "/Lotus/Weapons/Tenno/Pistols/ConclaveLeverPistol/ConclaveLeverPistol";
 

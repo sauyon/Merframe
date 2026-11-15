@@ -17,12 +17,6 @@ pub struct SortieModifier {
     pub name: &'static str,
 }
 
-#[derive(Debug)]
-pub struct ChallengeText {
-    pub title: &'static str,
-    pub description: &'static str,
-}
-
 include!(concat!(env!("OUT_DIR"), "/tables.rs"));
 
 pub fn lookup<'table, T>(table: &'table [(&str, T)], key: &str) -> Option<&'table T> {

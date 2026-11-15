@@ -3,10 +3,11 @@ use tauri::{AppHandle, Runtime};
 use wf_core::{
     ComparedStat, CraftDetails, DeltaRow, FoundryTab, InventoryTab, MasteryOptions,
     MasteryOrdering, MasteryTab, OpeningRow, RelicPlan, RelicPlannerTab, RelicSource,
-    ResourceQuery, ResourcesTab, RivenComparables, RivensTab, StatsTab, StoredTrade,
+    ResetChecklistManualRowId, ResetChecklistTab, ResourceQuery, ResourcesTab, RivenComparables,
+    RivensTab, StatsTab, StoredTrade,
 };
 
-use super::{Shared, compute, ready, since};
+use super::{Shared, compute, missing_inventory, ready, since};
 use crate::error::CommandResult;
 use crate::runtime::{self, AppEvent};
 use crate::state::{lock, read};
@@ -20,7 +21,7 @@ pub async fn inventory_tab(state: Shared<'_>) -> CommandResult<InventoryTab> {
 #[tauri::command]
 pub async fn foundry_tab(state: Shared<'_>) -> CommandResult<FoundryTab> {
     let state = ready(&state).await?;
-    let include_founders = read(&state.settings).inventory.founders_choice();
+    let include_founders = read(&state.settings).inventory.include_founders_items;
     compute(state, move |core| {
         core.foundry_tab(include_founders, Utc::now())
     })
@@ -53,7 +54,7 @@ pub async fn mastery_tab(
 #[tauri::command]
 pub async fn resources_tab(state: Shared<'_>, query: ResourceQuery) -> CommandResult<ResourcesTab> {
     let state = ready(&state).await?;
-    let include_founders = read(&state.settings).inventory.founders_choice();
+    let include_founders = read(&state.settings).inventory.include_founders_items;
     compute(state, move |core| {
         core.resources_tab(&query, include_founders, Utc::now())
     })
@@ -140,6 +141,27 @@ pub async fn stats_trades(
 ) -> CommandResult<Vec<StoredTrade>> {
     let state = ready(&state).await?;
     Ok(lock(&state.core).store().trades(since(since_ms))?)
+}
+
+#[tauri::command]
+pub async fn reset_checklist_tab(state: Shared<'_>) -> CommandResult<ResetChecklistTab> {
+    let state = ready(&state).await?;
+    lock(&state.core)
+        .reset_checklist_tab(Utc::now())?
+        .ok_or_else(missing_inventory)
+}
+
+#[tauri::command]
+pub async fn set_reset_checklist_checked<R: Runtime>(
+    app: AppHandle<R>,
+    state: Shared<'_>,
+    id: ResetChecklistManualRowId,
+    checked: bool,
+) -> CommandResult<()> {
+    let state = ready(&state).await?;
+    lock(&state.core).set_reset_checklist_checked(id, checked, Utc::now())?;
+    runtime::emit_with_reset_checklist(&app, &state, AppEvent::ResetChecklistUpdated);
+    Ok(())
 }
 
 #[tauri::command]

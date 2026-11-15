@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use chrono::Utc;
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tokio::sync::watch;
@@ -95,7 +96,7 @@ async fn watch_kiosk<R: Runtime>(
     };
     let owned = Arc::clone(state);
     let run = blocking("build the ducatering run", move || {
-        lock(&owned.core).ducatering(&filter)
+        lock(&owned.core).ducatering(Utc::now(), &filter)
     })
     .await
     .flatten();

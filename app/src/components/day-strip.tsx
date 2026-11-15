@@ -14,7 +14,7 @@ import {
   tickX,
   WIDTH,
 } from "@/lib/chart";
-import { monthLabel, spansYears } from "@/lib/format";
+import { counted, monthLabel, spansYears } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const INSET = 10;
@@ -177,7 +177,7 @@ export function DayStrip({
         caption={
           days.length === 0
             ? "no days in this window"
-            : `of ${format(days.length)} days in this window`
+            : `of ${counted(days.length, "day")} in this window`
         }
       />
       <div className="relative">

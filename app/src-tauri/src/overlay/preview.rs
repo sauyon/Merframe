@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::bail;
+use chrono::Utc;
 use tauri::{AppHandle, Runtime};
 use wf_core::{Ducatering, ItemSummary};
 
@@ -79,7 +80,7 @@ fn show_sample<R: Runtime>(
 fn ducatering_run(state: &AppState) -> anyhow::Result<Ducatering> {
     let filter = read(&state.settings).overlays.ducatering.filter();
     lock(&state.core)
-        .ducatering(&filter)
+        .ducatering(Utc::now(), &filter)
         .ok_or_else(no_inventory)
 }
 

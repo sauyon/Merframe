@@ -10,7 +10,7 @@ use crate::state::{AppState, write};
 
 const PROCESS_POLL: Duration = Duration::from_secs(5);
 
-pub(crate) async fn process_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(crate) async fn process_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     loop {
         let found = match blocking("find game process", || wf_mem::find_process(GAME_PROCESS)).await
         {

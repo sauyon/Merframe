@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLoaded } from "@/hooks/use-loaded";
 import { api, reportError } from "@/lib/bridge";
-import { num, percent } from "@/lib/format";
+import { counted, percent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MissingPart } from "@/types";
 
@@ -38,7 +38,7 @@ export function WantedParts({
   return (
     <Section
       title="Wanted Parts"
-      description={`${num(missing.length)} Prime parts missing`}
+      description={`${counted(missing.length, "Prime part")} missing`}
     >
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">

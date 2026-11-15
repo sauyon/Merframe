@@ -11,7 +11,12 @@ import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import { Button } from "@/components/ui/button";
 import { usePaged } from "@/hooks/use-paged";
-import { plainOptions, withYesNo, yesNoOptions } from "@/lib/filters";
+import {
+  NO_FILTER_MATCHES,
+  plainOptions,
+  withYesNo,
+  yesNoOptions,
+} from "@/lib/filters";
 import { num } from "@/lib/format";
 import {
   ducats,
@@ -179,7 +184,7 @@ export function InventoryTabView({
       </FilterGrid>
 
       {pageEntries.length === 0 ? (
-        <EmptyPanel>Nothing matches these filters.</EmptyPanel>
+        <EmptyPanel>{NO_FILTER_MATCHES}</EmptyPanel>
       ) : (
         <CardGrid className="@sm:grid-cols-1 @2xl:grid-cols-2 @6xl:grid-cols-3 @7xl:grid-cols-3">
           {pageEntries.map((entry) => (

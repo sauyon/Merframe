@@ -81,8 +81,7 @@ mod tests {
                 order
                     .user
                     .as_ref()
-                    .map(|user| user.ingame_name.clone())
-                    .unwrap_or_default()
+                    .map_or_default(|user| user.ingame_name.clone())
             })
             .collect()
     }

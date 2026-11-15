@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { Countdown } from "@/components/countdown";
 import { GameIcon } from "@/components/game-icon";
 import { Surface } from "@/components/page";
 import { Hint } from "@/components/ui/hint";
@@ -13,8 +14,7 @@ import {
 } from "@/lib/arbitrations";
 import { api } from "@/lib/bridge";
 import { secondsUntil } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { endingSoon, timeLeft } from "@/lib/world";
+import { timeLeft } from "@/lib/world";
 import { TierBadge } from "@/pages/arbitrations/schedule";
 import { useSettings } from "@/stores/app-store";
 
@@ -73,14 +73,7 @@ export function WorldArbitrationCard({ now }: { now: number }) {
         {current && (
           <>
             <TierBadge tier={current.tier} />
-            <span
-              className={cn(
-                "font-mono text-base font-semibold",
-                endingSoon(remaining) ? "text-warning" : "text-accent",
-              )}
-            >
-              {timeLeft(remaining)}
-            </span>
+            <Countdown seconds={remaining} className="text-base" />
           </>
         )}
       </div>

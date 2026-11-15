@@ -126,6 +126,10 @@ impl Roll<'_> {
         };
         let (worst, best) = if curse { (1.1, 0.9) } else { (0.9, 1.1) };
         let rolled = base.map(|base| base * multiplier);
+        let displayed = |factor: f64| {
+            base.zip(modifier)
+                .map(|(base, modifier)| display_value(base * factor, modifier.multiplier_display()))
+        };
         let percentile = roll_share(multiplier, curse);
         AttributeGrade {
             name: riven_type.and_then(|found| grader.stat_name(found, &stat.tag)),
@@ -141,12 +145,10 @@ impl Roll<'_> {
             percentile,
             grade: letter(percentile),
             multiplier,
-            display: rolled
-                .zip(modifier)
-                .map(|(rolled, modifier)| display_value(rolled, modifier.multiplier_display())),
+            display: displayed(multiplier),
             rolled,
-            min: base.map(|base| base * worst),
-            max: base.map(|base| base * best),
+            min: displayed(worst),
+            max: displayed(best),
             tag: stat.tag.clone(),
             curse,
             spliced: modifier.is_some_and(|modifier| modifier.spliced),
@@ -392,14 +394,10 @@ mod tests {
             .iter()
             .find(|attribute| attribute.tag == "WeaponSlashDamageMod")
             .expect("slash roll");
-        let (rolled, min, max) = (
-            slash.rolled.unwrap(),
-            slash.min.unwrap(),
-            slash.max.unwrap(),
-        );
-        assert!((min - 91.12).abs() < 0.01, "{min}");
-        assert!((max - 111.37).abs() < 0.01, "{max}");
+        let rolled = slash.rolled.unwrap();
         assert!((rolled - 108.74).abs() < 0.01, "{rolled}");
+        assert_eq!(slash.min, Some(91.1));
+        assert_eq!(slash.max, Some(111.4));
         assert_eq!(slash.display, Some(108.7));
         assert_eq!(slash.slug.as_deref(), Some("slash_damage"));
         assert_eq!(slash.name.as_deref(), Some("Slash"));
@@ -423,8 +421,7 @@ mod tests {
         );
         assert!(rolled < 0.0 && min < 0.0 && max < 0.0);
         assert!(min < max, "the worst case is the more negative one");
-        assert!((min - -37.12).abs() < 0.01, "{min}");
-        assert!((max - -30.37).abs() < 0.01, "{max}");
+        assert_eq!((min, max), (-37.1, -30.4));
         assert!((reload.percentile - (1.0 - (reload.multiplier - 0.9) * 5.0)).abs() < 1e-12);
     }
 
@@ -496,8 +493,7 @@ mod tests {
         let damage = rolled_attribute(DAMAGE_TAG, WORST_ROLL, false);
         assert!(damage.percentile.abs() < 1e-9, "{}", damage.percentile);
         assert_eq!(damage.grade, "F");
-        let (rolled, min) = (damage.rolled.unwrap(), damage.min.unwrap());
-        assert!((rolled - min).abs() < 1e-9, "{rolled} {min}");
+        assert_eq!(damage.display, damage.min);
     }
 
     #[test]
@@ -509,8 +505,7 @@ mod tests {
             damage.percentile
         );
         assert_eq!(damage.grade, "S");
-        let (rolled, max) = (damage.rolled.unwrap(), damage.max.unwrap());
-        assert!((rolled - max).abs() < 1e-9, "{rolled} {max}");
+        assert_eq!(damage.display, damage.max);
     }
 
     #[test]
@@ -539,7 +534,7 @@ mod tests {
             weakest.max.unwrap(),
         );
         assert!(rolled < 0.0 && min < max);
-        assert!((rolled - max).abs() < 1e-9, "{rolled} {max}");
+        assert_eq!(weakest.display, weakest.max);
 
         let strongest = rolled_attribute(DAMAGE_TAG, BEST_ROLL, true);
         assert!(
@@ -586,7 +581,8 @@ mod tests {
         assert_eq!(scaldra.name.as_deref(), Some("Damage to Scaldra"));
         assert_eq!(scaldra.unit.as_deref(), Some("multiply"));
         assert_eq!(scaldra.prefix.as_deref(), Some("exsi"));
-        assert!(scaldra.display.unwrap() > 1.0);
+        assert!(scaldra.min.unwrap() > 1.0);
+        assert!(scaldra.min < scaldra.display && scaldra.display < scaldra.max);
         assert_eq!(scaldra.grade, "B");
 
         let gas = rolled_attribute("WeaponGasDamageMod", BEST_ROLL, false);

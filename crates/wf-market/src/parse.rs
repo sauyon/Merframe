@@ -24,7 +24,7 @@ struct V1AuctionPayload {
 
 #[derive(Debug, serde::Deserialize)]
 struct V1AuctionsPayload {
-    auctions: Vec<Auction>,
+    auctions: Vec<serde_json::Value>,
 }
 
 pub fn parse_v1_auction(json: &str) -> Result<Auction> {
@@ -32,7 +32,12 @@ pub fn parse_v1_auction(json: &str) -> Result<Auction> {
 }
 
 pub fn parse_v1_auctions(json: &str) -> Result<Vec<Auction>> {
-    Ok(v1_payload::<V1AuctionsPayload>(json)?.auctions)
+    v1_payload::<V1AuctionsPayload>(json)?
+        .auctions
+        .into_iter()
+        .filter(|auction| auction["item"]["type"] == "riven")
+        .map(|auction| Ok(serde_json::from_value(auction)?))
+        .collect()
 }
 
 #[derive(Debug, serde::Deserialize)]

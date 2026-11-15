@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 
 use super::{ArbitrationRun, ArbitrationRunStatus};
+use crate::text::counted;
 
 const SVG_WIDTH: usize = 1080;
 const SVG_LINE_HEIGHT: usize = 30;
@@ -34,7 +35,11 @@ pub fn text_report(run: &ArbitrationRun) -> String {
         run.started_at
             .map_or_else(|| String::from("unknown"), |at| at.to_rfc3339())
     );
-    let _ = writeln!(text, "Duration: {:.0} seconds", run.duration_secs);
+    let _ = writeln!(
+        text,
+        "Duration: {}",
+        counted(run.duration_secs.round_ties_even(), "second")
+    );
     let _ = writeln!(
         text,
         "Outcome: {}, capture: {}",
@@ -153,6 +158,17 @@ mod tests {
         assert!(text.contains("Vitus Essence: 4\n"));
         assert!(text.contains("Capture note: A note\n"));
         assert!(text.ends_with("Recorded with Merframe\n"));
+    }
+
+    #[test]
+    fn duration_units_follow_displayed_seconds() {
+        let mut run = run();
+        run.duration_secs = 1.4;
+        assert!(text_report(&run).contains("Duration: 1 second\n"));
+        run.duration_secs = 1.6;
+        assert!(text_report(&run).contains("Duration: 2 seconds\n"));
+        run.duration_secs = 2.5;
+        assert!(text_report(&run).contains("Duration: 2 seconds\n"));
     }
 
     #[test]

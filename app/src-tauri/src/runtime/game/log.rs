@@ -17,7 +17,7 @@ use crate::overlay;
 use crate::runtime::update_status;
 use crate::state::{AppState, lock, read};
 
-pub(crate) async fn log_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(crate) async fn log_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut missing_reported = false;
     loop {
         let (path, selection) = {

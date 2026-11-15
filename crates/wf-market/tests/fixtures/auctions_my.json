@@ -123,6 +123,46 @@
           "type": "riven"
         },
         "private": true
+      },
+      {
+        "minimal_reputation": 0,
+        "starting_price": 30,
+        "buyout_price": 30,
+        "visible": true,
+        "note": "",
+        "platform": "pc",
+        "crossplay": true,
+        "closed": false,
+        "top_bid": null,
+        "is_marked_for": null,
+        "marked_operation_at": null,
+        "created": "2026-09-01T12:00:00.000+00:00",
+        "updated": "2026-09-01T12:00:00.000+00:00",
+        "note_raw": "",
+        "is_direct_sell": true,
+        "id": "6a9f08ab51f7f20eeeb6add4",
+        "owner": {
+          "reputation": 24,
+          "platform": "pc",
+          "crossplay": true,
+          "locale": "en",
+          "avatar": "user/avatar/6a5daf0f000000000000d001.8af71272.webp",
+          "last_seen": "2026-09-07T18:50:49.465+00:00",
+          "ingame_name": "MerframeTester",
+          "slug": "merframetester",
+          "status": "offline",
+          "id": "6a5daf0f000000000000d001",
+          "region": "en"
+        },
+        "winner": null,
+        "item": {
+          "type": "lich",
+          "having_ephemera": false,
+          "element": "toxin",
+          "weapon_url_name": "kuva_kohm",
+          "damage": 41
+        },
+        "private": false
       }
     ]
   }

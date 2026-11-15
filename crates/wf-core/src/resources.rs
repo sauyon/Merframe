@@ -331,6 +331,10 @@ const SHARD_COLOURS: [(&str, &str); 6] = [
     ("Violet", "ACC_PURPLE"),
 ];
 
+pub(crate) fn archon_shard_type(tail: &str) -> String {
+    format!("/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystal{tail}")
+}
+
 fn shards(
     inventory: &Inventory,
     catalog: &Catalog,
@@ -340,7 +344,7 @@ fn shards(
     SHARD_COLOURS
         .iter()
         .filter_map(|(tail, colour)| {
-            let unique_name = format!("/Lotus/Types/Gameplay/NarmerSorties/ArchonCrystal{tail}");
+            let unique_name = archon_shard_type(tail);
             let item = catalog.item(&unique_name)?;
             let tauforged_colour = format!("{colour}_MYTHIC");
             let mut holders: Vec<ShardHolder> = inventory

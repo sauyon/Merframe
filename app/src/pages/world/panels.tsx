@@ -18,14 +18,7 @@ import { EmptyNote, Surface } from "@/components/page";
 import { Hint } from "@/components/ui/hint";
 import { num, secondsUntil } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import {
-  DAY_MS,
-  MONDAY_OFFSET_MS,
-  nextResetSeconds,
-  nodeLabel,
-  timeLeft,
-  WEEK_MS,
-} from "@/lib/world";
+import { nodeLabel, timeLeft } from "@/lib/world";
 import type {
   ArchonHunt,
   ArchonMission,
@@ -36,6 +29,7 @@ import type {
   DarvoDeal,
   NightwaveSeason,
   PrimeResurgence,
+  ResetWindow,
   Sortie,
   SortieMission,
 } from "@/types";
@@ -320,22 +314,30 @@ export function DarvoPanel({
 }
 
 export function ResetsPanel({
+  daily,
+  weekly,
   sortie,
   now,
 }: {
+  daily: ResetWindow | null;
+  weekly: ResetWindow | null;
   sortie: Sortie | null;
   now: number;
 }) {
   return (
     <Panel icon={CalendarClock} title="Reset Timers">
-      <InfoRow
-        label="Daily reset (standing, Steel Path alerts)"
-        value={timeLeft(nextResetSeconds(DAY_MS, 0, now))}
-      />
-      <InfoRow
-        label="Weekly reset (archons, Circuit, traders)"
-        value={timeLeft(nextResetSeconds(WEEK_MS, MONDAY_OFFSET_MS, now))}
-      />
+      {daily && (
+        <InfoRow
+          label="Daily reset (standing, Steel Path alerts)"
+          value={timeLeft(secondsUntil(daily.expiry, now))}
+        />
+      )}
+      {weekly && (
+        <InfoRow
+          label="Weekly reset (archons, Circuit, traders)"
+          value={timeLeft(secondsUntil(weekly.expiry, now))}
+        />
+      )}
       {sortie && (
         <InfoRow
           label="Daily sortie"

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
+use crate::markup::without_markup;
 
 const ROLL_MIN: f64 = 0.9;
 const ROLL_MAX: f64 = 1.1;
@@ -197,17 +198,8 @@ impl RivenStat {
     }
 
     pub fn name(&self) -> String {
-        let mut name = String::with_capacity(self.localization.len());
-        let mut in_markup = false;
-        for character in self.localization.chars() {
-            match character {
-                '<' => in_markup = true,
-                '>' => in_markup = false,
-                _ if !in_markup => name.push(character),
-                _ => {}
-            }
-        }
-        name.replace("|val|%", "")
+        without_markup(&self.localization)
+            .replace("|val|%", "")
             .replace("|val|", "")
             .trim()
             .to_owned()

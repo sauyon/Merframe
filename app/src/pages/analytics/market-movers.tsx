@@ -19,7 +19,7 @@ import { useFilters } from "@/hooks/use-filters";
 import { median } from "@/lib/arrays";
 import { api } from "@/lib/bridge";
 import { changeTone } from "@/lib/chart";
-import { num, plat } from "@/lib/format";
+import { counted, num, plat } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { MarketMover, MarketWindow } from "@/types";
 import {
@@ -212,7 +212,7 @@ export function MarketMovers() {
                 key: category,
                 label: CATEGORY_LABELS[category],
                 change: median(known),
-                note: `median of ${num(known.length)} items`,
+                note: `median of ${counted(known.length, "item")}`,
               },
             ];
       }).sort((a, b) => b.change - a.change),

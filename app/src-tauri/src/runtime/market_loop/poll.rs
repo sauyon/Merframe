@@ -12,7 +12,7 @@ use crate::runtime::{AppEvent, emit, update_status};
 use crate::settings::MarketAccount;
 use crate::state::{AppState, lock, read};
 
-pub(crate) async fn market_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(crate) async fn market_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut failures: u32 = 0;
     let mut verified_at: Option<Instant> = None;
     let mut emitted: Option<MarketSnapshot> = None;
@@ -89,7 +89,8 @@ async fn checked_session<R: Runtime>(
     state: &Arc<AppState>,
     was_signed_in: bool,
 ) -> Option<String> {
-    let session = match state.market().me().await {
+    let client = state.market();
+    let session = match client.me().await {
         Ok(session) => session,
         Err(MarketError::Unauthorized) => {
             info!("Warframe.market rejected the stored token");
@@ -102,11 +103,9 @@ async fn checked_session<R: Runtime>(
         }
     };
 
-    if let Some(token) = &session.rotated_token {
-        debug!("Warframe.market issued a new token");
-        if let Err(error) = market_session::store_token(app, state, token) {
-            warn!(%error, "Rotated token save failed");
-        }
+    let rotated_token = session.rotated_token.as_deref();
+    if !market_session::adopt_checked_session(app, state, &client, rotated_token) {
+        return None;
     }
 
     let account = MarketAccount::from(&session);

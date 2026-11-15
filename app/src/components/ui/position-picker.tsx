@@ -1,4 +1,4 @@
-import * as ToggleGroup from "@radix-ui/react-toggle-group";
+import { ToggleGroup } from "radix-ui";
 
 const CELLS = [
   "top_left",

@@ -1,4 +1,3 @@
-import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { Amount } from "@/components/currency";
@@ -15,13 +14,14 @@ import {
 } from "@/components/page";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
+import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAsyncData } from "@/hooks/use-async-data";
 import { useFilters } from "@/hooks/use-filters";
 import { usePaged } from "@/hooks/use-paged";
 import { useTabParam } from "@/hooks/use-tab-param";
 import { api } from "@/lib/bridge";
-import { type YesNo, yesNoOptions } from "@/lib/filters";
+import { NO_FILTER_MATCHES, type YesNo, yesNoOptions } from "@/lib/filters";
 import { num } from "@/lib/format";
 import { CATEGORIES } from "@/lib/foundry-filters";
 import {
@@ -214,16 +214,16 @@ export function ResourcesPage() {
               action={
                 <div className="flex items-center gap-3">
                   {loading && (
-                    <LoaderCircle
+                    <Spinner
                       role="status"
                       aria-label="Loading"
-                      className="text-muted-foreground size-4 animate-spin"
+                      className="text-muted-foreground"
                     />
                   )}
                   <ResultCount
                     shown={resources.length}
                     total={data?.resources.length}
-                    noun="resources"
+                    noun="resource"
                   />
                   <SearchInput
                     value={query}
@@ -284,7 +284,7 @@ export function ResourcesPage() {
                   <EmptyPanel>
                     {data?.resources.length === 0 && filters.active === 0
                       ? NO_DEMAND[source][scope]
-                      : "Nothing matches these filters."}
+                      : NO_FILTER_MATCHES}
                   </EmptyPanel>
                 ) : (
                   <CardGrid

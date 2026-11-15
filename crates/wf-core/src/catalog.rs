@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use serde::Serialize;
 
 use wf_data::{Component, GameData, Item, Refinement, Relic};
+use wf_worldstate::NightwaveActText;
 
 use crate::error::Result;
 use crate::identity::{blueprint_of, component_of};
+use crate::text::thousands;
 
 pub(crate) const RECIPE_PREFIX: &str = "/Lotus/Types/Recipes/";
 pub(crate) const ARCANE_PREFIX: &str = "/Lotus/Upgrades/CosmeticEnhancers/";
@@ -38,6 +40,16 @@ impl Catalog {
 
     pub fn item(&self, unique_name: &str) -> Option<&Item> {
         self.data.by_unique_name(unique_name)
+    }
+
+    pub fn nightwave_act_text(&self, challenge: &str) -> Option<NightwaveActText> {
+        let act = self.data.nightwave_acts().get(challenge)?;
+        let required = thousands(i64::from(act.required));
+        Some(NightwaveActText {
+            title: act.title.clone(),
+            description: act.description_template.replace("|COUNT|", &required),
+            required: act.required,
+        })
     }
 
     pub fn component(&self, unique_name: &str) -> Option<(&Item, &Component)> {
@@ -229,6 +241,7 @@ pub mod fixtures {
 
     use chrono::{DateTime, Utc};
     use serde_json::{Value, json};
+    use wf_data::{GameData, NightwaveActs};
     use wf_inventory::Inventory;
 
     use super::Catalog;
@@ -241,6 +254,10 @@ pub mod fixtures {
     pub const RIVEN_ITEMS: &str = include_str!("../../wf-data/tests/fixtures/riven_items.json");
     pub const SKINS: &str = include_str!("../../wf-data/tests/fixtures/skins.json");
     pub const COMPONENTS: &str = include_str!("../../wf-data/tests/fixtures/components.json");
+    pub const NIGHTWAVE_ACTS: &str =
+        include_str!("../../wf-data/tests/fixtures/nightwave_acts.json");
+    pub const NIGHTWAVE_DICTIONARY: &str =
+        include_str!("../../wf-data/tests/fixtures/nightwave_dictionary.json");
     pub const UPGRADE_ITEMS: &str = include_str!("../../../fixtures/upgrade_items.json");
     pub const MISC_ITEMS: &str = include_str!("../../../fixtures/misc_items.json");
     pub const WORLD_STATE: &str = include_str!("../../../fixtures/worldState.json");
@@ -364,6 +381,13 @@ pub mod fixtures {
         Catalog::from_json(MISC_ITEMS, RELICS, COMPONENTS).unwrap()
     }
 
+    pub fn nightwave_catalog() -> Catalog {
+        let acts = NightwaveActs::from_json(NIGHTWAVE_ACTS, NIGHTWAVE_DICTIONARY).unwrap();
+        let data = GameData::from_json(MISC_ITEMS, RELICS, COMPONENTS).unwrap();
+
+        Catalog::new(data.with_nightwave_acts(acts))
+    }
+
     pub fn market_item(slug: &str, name: &str, game_ref: &str, tags: &[&str]) -> wf_market::Item {
         serde_json::from_value(json!({
             "id": slug,
@@ -398,6 +422,16 @@ pub mod fixtures {
             entries(value, key)
                 .retain(|entry| entry.get("ItemType").and_then(Value::as_str) != Some(item_type));
         }
+    }
+
+    pub fn inventory_replacing(replacements: &[(&str, &str)]) -> Inventory {
+        let json = replacements
+            .iter()
+            .fold(INVENTORY.to_owned(), |json, (from, to)| {
+                json.replace(from, to)
+            });
+
+        Inventory::parse(&json).unwrap()
     }
 
     pub fn synced(oid: &str) -> String {
@@ -465,6 +499,19 @@ mod tests {
         assert_eq!(catalog.items().count(), 5);
         assert_eq!(catalog.relics().count(), 2);
         assert_eq!(catalog.skins().count(), 0);
+    }
+
+    #[test]
+    fn nightwave_act_texts() {
+        let catalog = fixtures::nightwave_catalog();
+        let horsing = catalog
+            .nightwave_act_text("SeasonWeeklyHorsingAround")
+            .unwrap();
+
+        assert_eq!(horsing.title, "Horsing Around");
+        assert_eq!(horsing.description, "Fly your Kaithe for 1,500 meters");
+        assert_eq!(horsing.required, 1500);
+        assert_eq!(catalog.nightwave_act_text("SeasonDailyUnlisted"), None);
     }
 
     #[test]

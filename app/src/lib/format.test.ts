@@ -33,7 +33,16 @@ describe("counted", () => {
   });
 
   it("irregular plural", () => {
+    expect(counted(1, "hidden entry", "hidden entries")).toBe("1 hidden entry");
+    expect(counted(2, "hidden entry", "hidden entries")).toBe(
+      "2 hidden entries",
+    );
     expect(counted(2, "item needs", "items need")).toBe("2 items need");
+  });
+
+  it("dash for missing", () => {
+    expect(counted(null, "item")).toBe("- items");
+    expect(counted(undefined, "item")).toBe("- items");
   });
 });
 

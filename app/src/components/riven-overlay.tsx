@@ -1,18 +1,20 @@
-import { Check, ExternalLink, Minus } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import { useEffect } from "react";
 import { PolarityIcon } from "@/components/game-icon";
 import { GoodRollAttribution, GoodRollBlock } from "@/components/good-roll";
 import { ItemImage, prefetchImages } from "@/components/item-image";
 import { RivenListings } from "@/components/riven-listings";
+import { RivenRollBar } from "@/components/riven-roll-bar";
 import { SplicedMark, SpliceOptions } from "@/components/spliced-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { openExternal } from "@/lib/bridge";
 import { percent } from "@/lib/format";
 import {
+  attributeAmount,
   attributeLabel,
   attributeValue,
-  gradeTone,
+  gradeClasses,
   gradeVariant,
   rivenAuctionUrl,
 } from "@/lib/rivens";
@@ -25,27 +27,35 @@ function rivenName(riven: RivenRow): string {
 
 function Attribute({ attribute }: { attribute: AttributeGrade }) {
   return (
-    <div className="grid grid-cols-subgrid col-span-4 text-sm items-center">
+    <div className="grid grid-cols-subgrid col-span-3 gap-y-0.5 text-sm items-center">
       <span
         className={cn(
-          "w-14 shrink-0 text-right tabular-nums",
-          attribute.curse && "text-warning",
+          "w-14 text-right",
+          attribute.desired ? "text-accent" : attribute.curse && "text-warning",
         )}
       >
         {attributeValue(attribute) ?? percent(attribute.percentile, 0)}
       </span>
-      <span className="flex min-w-0 items-center gap-1">
-        <span className="truncate">{attributeLabel(attribute)}</span>
+      <span className="col-span-2 flex min-w-0 items-center gap-1">
+        <span className={cn("truncate", attribute.desired && "text-accent")}>
+          {attributeLabel(attribute)}
+        </span>
         <SplicedMark attribute={attribute} />
+        {attribute.desired && (
+          <Check
+            className="text-accent size-3.5 shrink-0"
+            aria-label="Desired"
+          />
+        )}
       </span>
-      <span className={cn("w-6 shrink-0", gradeTone(attribute.grade))}>
+      <span className="text-muted-foreground text-right text-xs">
+        {attribute.max !== null &&
+          `/${attributeAmount(attribute.unit, attribute.max)}`}
+      </span>
+      <RivenRollBar attribute={attribute} />
+      <span className={cn("text-center", gradeClasses(attribute.grade).text)}>
         {attribute.grade}
       </span>
-      {attribute.desired ? (
-        <Check className="text-accent size-3.5 shrink-0" aria-label="Desired" />
-      ) : (
-        <Minus className="text-muted-foreground size-3.5 shrink-0" />
-      )}
     </div>
   );
 }
@@ -73,10 +83,10 @@ function RivenCard({ riven, compact }: { riven: RivenRow; compact: boolean }) {
           <Badge variant={gradeVariant(riven.grade_letter)}>
             {riven.grade_letter}
           </Badge>
-          <span className="text-xs tabular-nums">{percent(riven.grade)}</span>
+          <span className="text-xs">{percent(riven.grade)}</span>
         </div>
       </div>
-      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-1.5">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] gap-1.5">
         {riven.attributes.map((attribute) => (
           <Attribute key={attribute.tag} attribute={attribute} />
         ))}

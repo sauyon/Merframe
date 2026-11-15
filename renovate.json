@@ -1,33 +1,56 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommitsDisabled"],
-  "schedule": ["before 6am on monday"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommitsDisabled"
+  ],
+  "dependencyDashboard": false,
+  "schedule": [
+    "before 6am on monday"
+  ],
   "minimumReleaseAge": "3 days",
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on the first day of the month"]
+    "schedule": [
+      "before 6am on the first day of the month"
+    ]
   },
   "packageRules": [
     {
       "groupName": "tauri",
-      "matchPackageNames": ["/^tauri/", "/^@tauri-apps//"]
+      "matchPackageNames": [
+        "/^tauri/",
+        "/^@tauri-apps//"
+      ]
     },
     {
       "groupName": "radix",
-      "matchPackageNames": ["/^@radix-ui//"]
+      "matchPackageNames": [
+        "/^@radix-ui//"
+      ]
     },
     {
       "groupName": "github actions",
-      "matchManagers": ["github-actions"]
+      "matchManagers": [
+        "github-actions"
+      ]
     },
     {
-      "matchDatasources": ["github-runners"],
+      "matchDatasources": [
+        "github-runners"
+      ],
       "enabled": false
     },
     {
       "groupName": "minor and patch updates",
-      "matchManagers": ["cargo", "npm"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": [
+        "cargo",
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "matchCurrentVersion": ">=1.0.0"
     }
   ]

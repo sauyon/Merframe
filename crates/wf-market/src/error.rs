@@ -28,7 +28,11 @@ pub enum MarketError {
 impl MarketError {
     pub fn brief(&self) -> String {
         match self {
-            Self::Http(status, body) => format!("Warframe.market {status}, {} bytes", body.len()),
+            Self::Http(status, body) => format!(
+                "Warframe.market {status}, {} {}",
+                body.len(),
+                if body.len() == 1 { "byte" } else { "bytes" }
+            ),
             error => error.to_string(),
         }
     }
@@ -98,6 +102,14 @@ mod tests {
             "<html>upstream is down</html>".to_owned(),
         );
         assert_eq!(error.brief(), "Warframe.market 502 Bad Gateway, 29 bytes");
+        assert_eq!(
+            MarketError::Http(StatusCode::BAD_GATEWAY, "?".to_owned()).brief(),
+            "Warframe.market 502 Bad Gateway, 1 byte"
+        );
+        assert_eq!(
+            MarketError::Http(StatusCode::BAD_GATEWAY, String::new()).brief(),
+            "Warframe.market 502 Bad Gateway, 0 bytes"
+        );
         assert_eq!(
             error.to_string(),
             "Warframe.market 502 Bad Gateway: <html>upstream is down</html>"

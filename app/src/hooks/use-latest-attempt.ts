@@ -6,6 +6,7 @@ export interface Outcome<T> {
   loaded: (value: T) => void;
   failed: (message: string) => void;
   settled?: () => void;
+  quiet?: boolean;
 }
 
 export function useLatestAttempt() {
@@ -32,7 +33,9 @@ export function useLatestAttempt() {
         }
         const message = errorMessage(error);
         outcome.failed(message);
-        toast.error(message);
+        if (!outcome.quiet) {
+          toast.error(message);
+        }
       } finally {
         if (!stale()) {
           outcome.settled?.();

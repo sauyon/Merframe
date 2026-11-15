@@ -55,7 +55,11 @@ export function LoginCard({ onDone }: { onDone: () => void }) {
           />
         </Field>
         {failure && <ErrorNote message={failure} />}
-        <Button onClick={handleSubmit} disabled={busy || !email || !password}>
+        <Button
+          onClick={handleSubmit}
+          disabled={!email || !password}
+          pending={busy}
+        >
           Sign In
         </Button>
       </div>
