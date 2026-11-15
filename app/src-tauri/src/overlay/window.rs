@@ -72,53 +72,101 @@ pub(super) fn logical(bounds: Bounds, scale: f64) -> Bounds {
     }
 }
 
-pub(super) fn window_bounds(screen: Screen, kind: Kind, settings: &Settings) -> Bounds {
-    let rows = settings.overlays.overlay_recommendation_count;
-    logical(
-        bounds_for(
-            kind,
-            placement_of(settings, kind),
-            rows,
-            settings.text_size,
-            screen,
-        ),
-        screen.scale,
-    )
+/// The zoom range the overlay webviews accept.
+const ZOOM_RANGE: (f64, f64) = (0.25, 5.0);
+
+/// Where an overlay window goes, in logical pixels, and the webview zoom that draws its
+/// content at the size it has at 1080p, magnified to the screen.
+pub(super) fn window_bounds(screen: Screen, kind: Kind, settings: &Settings) -> (Bounds, f64) {
+    let (physical, magnify) = layout(
+        kind,
+        placement_of(settings, kind),
+        settings.overlays.overlay_recommendation_count,
+        settings.text_size,
+        settings.overlays.overlay_size,
+        screen,
+    );
+    (logical(physical, screen.scale), magnify / screen.scale)
 }
 
+#[cfg(test)]
 pub(super) fn bounds_for(
     kind: Kind,
     placement: OverlayPlacement,
     rows: u8,
     text_size: TextSize,
+    size: u8,
     screen: Screen,
 ) -> Bounds {
+    layout(kind, placement, rows, text_size, size, screen).0
+}
+
+/// An overlay's window in physical pixels, and how many times bigger than at 1080p its
+/// content is drawn.
+fn layout(
+    kind: Kind,
+    placement: OverlayPlacement,
+    rows: u8,
+    text_size: TextSize,
+    size: u8,
+    screen: Screen,
+) -> (Bounds, f64) {
     let scale = screen.height / 1080.0;
     let text = text_size.factor();
+    let margin = (MARGIN * scale.max(1.0)).round();
+    let (base_width, base_height) = match kind {
+        Kind::RelicReward => (1000.0, 295.0),
+        Kind::RelicRecommendation => (480.0, 60.0 + 30.0 * f64::from(rows)),
+        Kind::Riven => (700.0, 900.0),
+        Kind::Ducatering => (420.0, 460.0),
+        Kind::Notification => (380.0, 100.0),
+        Kind::Buffs => (440.0, 440.0),
+        Kind::ArbitrationLive => (420.0, 190.0),
+    };
+    let magnify = match kind {
+        // Laid out in the game's own pixels, against its HUD, with a size of its own.
+        Kind::Buffs => 1.0,
+        // Lined up under the game's reward cards, which follow the screen alone.
+        Kind::RelicReward => scale,
+        Kind::RelicRecommendation
+        | Kind::Riven
+        | Kind::Ducatering
+        | Kind::Notification
+        | Kind::ArbitrationLive => {
+            // Screens below 1080p keep the game's pixels rather than shrinking the text.
+            let follow = scale.max(1.0);
+            let wanted = f64::from(size.clamp(50, 200)) / 100.0;
+            // Overlays ignore the cursor and cannot scroll, so the size setting stops
+            // growing a window once it would no longer fit on the screen.
+            let fits = ((screen.width - 2.0 * margin) / (base_width * text * follow))
+                .min((screen.height - 2.0 * margin) / (base_height * text * follow));
+            follow * wanted.min(fits.max(1.0))
+        }
+    };
+    let magnify = if kind == Kind::Buffs {
+        magnify
+    } else {
+        magnify.clamp(ZOOM_RANGE.0 * screen.scale, ZOOM_RANGE.1 * screen.scale)
+    };
     let (width, height) = match kind {
-        Kind::RelicReward => (1000.0 * scale * text, 295.0 * text),
-        Kind::RelicRecommendation => (480.0 * text, (60.0 + 30.0 * f64::from(rows)) * text),
-        Kind::Riven => (700.0 * text, 900.0 * scale * text),
-        Kind::Ducatering => (420.0 * text, 460.0 * text),
-        Kind::Notification => (380.0 * text, 100.0 * text),
         // Drawn against the game's ability dots, so it follows the screen, never the text size.
         Kind::Buffs => (440.0 * scale, 440.0 * scale),
-        Kind::ArbitrationLive => (420.0 * text, 190.0 * text),
+        _ => (base_width * text * magnify, base_height * text * magnify),
     };
-    let width = width.round();
-    let height = height.min(screen.height - 2.0 * MARGIN).round();
+    let width = width.min(screen.width - 2.0 * margin).round();
+    let height = height.min(screen.height - 2.0 * margin).round();
     let middle = (screen.width / 2.0 - width / 2.0).round();
-    let right = (screen.width - width - MARGIN).round();
-    let bottom = (screen.height - height - MARGIN).round();
+    let right = (screen.width - width - margin).round();
+    let bottom = (screen.height - height - margin).round();
     let (x, y) = match placement {
-        OverlayPlacement::TopLeft => (MARGIN, MARGIN),
-        OverlayPlacement::TopCentre => (middle, MARGIN),
-        OverlayPlacement::TopRight => (right, MARGIN),
-        OverlayPlacement::BottomLeft => (MARGIN, bottom),
+        OverlayPlacement::TopLeft => (margin, margin),
+        OverlayPlacement::TopCentre => (middle, margin),
+        OverlayPlacement::TopRight => (right, margin),
+        OverlayPlacement::BottomLeft => (margin, bottom),
         OverlayPlacement::BottomCentre => (middle, bottom),
         OverlayPlacement::BottomRight => (right, bottom),
         OverlayPlacement::Centre => match kind {
-            Kind::RelicReward => (middle - 15.0, (630.0 * scale).round()),
+            Kind::RelicReward => (middle - (15.0 * scale).round(), (630.0 * scale).round()),
             Kind::RelicRecommendation
             | Kind::Riven
             | Kind::Ducatering
@@ -127,19 +175,22 @@ pub(super) fn bounds_for(
             | Kind::ArbitrationLive => (middle, (screen.height / 2.0 - height / 2.0).round()),
         },
     };
-    Bounds {
-        width,
-        height,
-        x: x + screen.x,
-        y: y + screen.y,
-    }
+    (
+        Bounds {
+            width,
+            height,
+            x: x + screen.x,
+            y: y + screen.y,
+        },
+        magnify,
+    )
 }
 
-pub(super) fn place<R: Runtime>(window: &WebviewWindow<R>, bounds: Bounds, scale: f64) {
+pub(super) fn place<R: Runtime>(window: &WebviewWindow<R>, bounds: Bounds, zoom: f64) {
     let placed = window
         .set_size(LogicalSize::new(bounds.width, bounds.height))
         .and_then(|()| window.set_position(LogicalPosition::new(bounds.x, bounds.y)))
-        .and_then(|()| window.set_zoom(1.0 / scale));
+        .and_then(|()| window.set_zoom(zoom));
     if let Err(error) = placed {
         warn!(label = window.label(), %error, "Overlay window resize failed");
     }
@@ -292,7 +343,7 @@ pub(super) fn screen_of<R: Runtime>(app: &AppHandle<R>, game: Option<MonitorRect
     Screen { scale, ..screen }
 }
 
-pub(super) fn open<R: Runtime>(app: &AppHandle<R>, kind: Kind, bounds: Bounds, scale: f64) {
+pub(super) fn open<R: Runtime>(app: &AppHandle<R>, kind: Kind, bounds: Bounds, zoom: f64) {
     let built = WebviewWindowBuilder::new(
         app,
         kind.label(),
@@ -314,12 +365,12 @@ pub(super) fn open<R: Runtime>(app: &AppHandle<R>, kind: Kind, bounds: Bounds, s
     .build();
     match built {
         Ok(window) => {
-            if let Err(error) = window.set_zoom(1.0 / scale) {
+            if let Err(error) = window.set_zoom(zoom) {
                 warn!(
                     label = kind.label(),
-                    scale,
+                    zoom,
                     %error,
-                    "Webview zoom to game pixels failed",
+                    "Overlay webview zoom failed",
                 );
             }
 
@@ -392,6 +443,7 @@ mod tests {
                 OverlayPlacement::Centre,
                 RECOMMENDATION_COUNT_DEFAULT,
                 text_size,
+                100,
                 uhd,
             );
             assert_eq!(
@@ -413,6 +465,7 @@ mod tests {
             OverlayPlacement::BottomRight,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Medium,
+            100,
             FULL_HD,
         );
         assert_eq!(
@@ -430,6 +483,7 @@ mod tests {
             OverlayPlacement::Centre,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Large,
+            100,
             FULL_HD,
         );
         assert_eq!(large.width, 875.0);
@@ -445,6 +499,7 @@ mod tests {
                 OverlayPlacement::TopRight,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 screen,
             );
             assert_eq!(
@@ -467,6 +522,7 @@ mod tests {
                     OverlayPlacement::TopRight,
                     RECOMMENDATION_COUNT_DEFAULT,
                     TextSize::Small,
+                    100,
                     Screen {
                         scale: 1.25,
                         ..FULL_HD
@@ -481,7 +537,10 @@ mod tests {
                 y: 16.0,
             }
         );
+    }
 
+    #[test]
+    fn xwayland_screens() {
         let compositor_upscales_xwayland = Screen {
             x: 0.0,
             y: 0.0,
@@ -494,15 +553,16 @@ mod tests {
             OverlayPlacement::TopRight,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             compositor_upscales_xwayland,
         );
         assert_eq!(
             physical,
             Bounds {
-                width: 480.0,
-                height: 240.0,
-                x: 2060.0,
-                y: 20.0,
+                width: 640.0,
+                height: 320.0,
+                x: 1893.0,
+                y: 27.0,
             }
         );
         assert_eq!(super::logical(physical, 1.0), physical);
@@ -519,24 +579,25 @@ mod tests {
             OverlayPlacement::TopRight,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             xwayland_carries_the_scaling_factor,
         );
         assert_eq!(
             physical,
             Bounds {
-                width: 480.0,
-                height: 240.0,
-                x: 3340.0,
-                y: 20.0,
+                width: 960.0,
+                height: 480.0,
+                x: 2840.0,
+                y: 40.0,
             }
         );
         assert_eq!(
             super::logical(physical, 2.0),
             Bounds {
-                width: 240.0,
-                height: 120.0,
-                x: 1670.0,
-                y: 10.0,
+                width: 480.0,
+                height: 240.0,
+                x: 1420.0,
+                y: 20.0,
             }
         );
     }
@@ -548,6 +609,7 @@ mod tests {
             OverlayPlacement::Centre,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             FULL_HD,
         );
         assert_eq!(
@@ -565,6 +627,7 @@ mod tests {
             OverlayPlacement::Centre,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             Screen {
                 x: 0.0,
                 y: 0.0,
@@ -574,8 +637,9 @@ mod tests {
             },
         );
         assert_eq!(tall.width, 1333.0);
+        assert_eq!(tall.height, 393.0);
         assert_eq!(tall.y, 840.0);
-        assert_eq!(tall.x, 599.0);
+        assert_eq!(tall.x, 594.0);
     }
 
     #[test]
@@ -589,6 +653,7 @@ mod tests {
                 placement_of(&settings, Kind::Notification),
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD,
             );
             assert_eq!((bounds.width, bounds.height), (380.0, 100.0));
@@ -623,6 +688,7 @@ mod tests {
                 OverlayPlacement::TopRight,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD
             ),
             Bounds {
@@ -638,6 +704,7 @@ mod tests {
                 OverlayPlacement::TopLeft,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD
             ),
             Bounds {
@@ -653,6 +720,7 @@ mod tests {
                 OverlayPlacement::TopLeft,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 Screen {
                     x: 0.0,
                     y: 0.0,
@@ -662,7 +730,7 @@ mod tests {
                 }
             )
             .height,
-            667.0
+            760.0
         );
     }
 
@@ -674,6 +742,7 @@ mod tests {
                 placement,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD,
             );
             assert_eq!(bounds.width, 480.0);
@@ -692,6 +761,7 @@ mod tests {
                 placement,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD,
             );
             assert_eq!(bounds.width, 700.0);
@@ -710,6 +780,7 @@ mod tests {
                 placement,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 FULL_HD,
             );
             assert_eq!(bounds.width, 1000.0);
@@ -738,13 +809,14 @@ mod tests {
                 OverlayPlacement::BottomRight,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 screen
             ),
             Bounds {
-                width: 480.0,
-                height: 240.0,
-                x: 2060.0,
-                y: 1180.0,
+                width: 640.0,
+                height: 320.0,
+                x: 1893.0,
+                y: 1093.0,
             }
         );
         assert_eq!(
@@ -753,15 +825,116 @@ mod tests {
                 OverlayPlacement::TopRight,
                 RECOMMENDATION_COUNT_DEFAULT,
                 TextSize::Small,
+                100,
                 screen
             ),
             Bounds {
-                width: 700.0,
+                width: 933.0,
                 height: 1200.0,
-                x: 1840.0,
+                x: 1600.0,
+                y: 27.0,
+            }
+        );
+    }
+
+    #[test]
+    fn uhd_draws_the_1080p_layout_twice_as_big() {
+        let uhd = Screen {
+            x: 0.0,
+            y: 0.0,
+            width: 3840.0,
+            height: 2160.0,
+            scale: 1.5,
+        };
+        let settings = Settings::default();
+        for kind in [
+            Kind::RelicRecommendation,
+            Kind::Riven,
+            Kind::Ducatering,
+            Kind::Notification,
+            Kind::ArbitrationLive,
+            Kind::RelicReward,
+        ] {
+            let (big, zoom) = window_bounds(uhd, kind, &settings);
+            let (full, one) = window_bounds(FULL_HD, kind, &settings);
+            assert_eq!(one, 1.0, "{kind:?}");
+            // The content sees the same CSS viewport as at 1080p, drawn at twice the size.
+            assert_eq!((zoom * 1.5 * 100.0).round(), 200.0, "{kind:?}");
+            assert_eq!((big.width * 1.5 / 2.0).round(), full.width, "{kind:?}");
+            assert_eq!((big.height * 1.5 / 2.0).round(), full.height, "{kind:?}");
+        }
+
+        let (strip, zoom) = window_bounds(uhd, Kind::Buffs, &settings);
+        assert_eq!((zoom * 1.5 * 100.0).round(), 100.0);
+        assert_eq!(strip.width * 1.5, 880.0);
+    }
+
+    #[test]
+    fn overlay_size_grows_all_but_the_reward_band_and_strip() {
+        let at = |kind, size| {
+            bounds_for(
+                kind,
+                OverlayPlacement::TopRight,
+                RECOMMENDATION_COUNT_DEFAULT,
+                TextSize::Small,
+                size,
+                FULL_HD,
+            )
+        };
+        assert_eq!(
+            at(Kind::RelicRecommendation, 150),
+            Bounds {
+                width: 720.0,
+                height: 360.0,
+                x: 1180.0,
                 y: 20.0,
             }
         );
+        assert_eq!(at(Kind::RelicReward, 150).width, 1000.0);
+        assert_eq!(at(Kind::Buffs, 150).width, 440.0);
+        // Out-of-range sizes are held to 50% to 200%.
+        assert_eq!(at(Kind::Ducatering, 0).width, 210.0);
+        assert_eq!(at(Kind::Ducatering, 255).width, 840.0);
+        // The size setting stops where the window would no longer fit on the screen.
+        let riven = at(Kind::Riven, 200);
+        assert_eq!(riven.height, FULL_HD.height - 2.0 * MARGIN);
+        assert_eq!(riven.width, 809.0);
+        assert_eq!(at(Kind::RelicReward, 100).width, 1000.0);
+    }
+
+    #[test]
+    fn small_screens_keep_the_games_pixels() {
+        let deck = Screen {
+            x: 0.0,
+            y: 0.0,
+            width: 1280.0,
+            height: 800.0,
+            scale: 1.0,
+        };
+        let settings = Settings::default();
+        let (ducatering, zoom) = window_bounds(deck, Kind::Ducatering, &settings);
+        assert_eq!(zoom, 1.0);
+        assert_eq!((ducatering.width, ducatering.height), (420.0, 460.0));
+        // The reward band still lines up with the game's smaller cards.
+        let (reward, zoom) = window_bounds(deck, Kind::RelicReward, &settings);
+        assert_eq!(reward.width, 741.0);
+        assert!((zoom - 800.0 / 1080.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn zoom_stays_in_the_webview_range() {
+        let eight_k = Screen {
+            x: 0.0,
+            y: 0.0,
+            width: 7680.0,
+            height: 4320.0,
+            scale: 1.0,
+        };
+        let mut settings = Settings::default();
+        settings.overlays.overlay_size = 200;
+        let (notification, zoom) = window_bounds(eight_k, Kind::Notification, &settings);
+        assert_eq!(zoom, 5.0);
+        assert_eq!(notification.width, 1900.0);
     }
 
     #[test]
@@ -778,28 +951,31 @@ mod tests {
             OverlayPlacement::TopLeft,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             second_monitor,
         );
-        assert_eq!((top_left.x, top_left.y), (1940.0, -340.0));
+        assert_eq!((top_left.x, top_left.y), (1947.0, -333.0));
         let bottom_right = bounds_for(
             Kind::Riven,
             OverlayPlacement::BottomRight,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             second_monitor,
         );
-        assert_eq!((bottom_right.width, bottom_right.height), (700.0, 1200.0));
-        assert_eq!((bottom_right.x, bottom_right.y), (3760.0, -140.0));
+        assert_eq!((bottom_right.width, bottom_right.height), (933.0, 1200.0));
+        assert_eq!((bottom_right.x, bottom_right.y), (3520.0, -147.0));
         let centre = bounds_for(
             Kind::RelicReward,
             OverlayPlacement::Centre,
             RECOMMENDATION_COUNT_DEFAULT,
             TextSize::Small,
+            100,
             second_monitor,
         );
-        assert_eq!((centre.x, centre.y), (2519.0, 480.0));
+        assert_eq!((centre.x, centre.y), (2514.0, 480.0));
         let scaled = super::logical(top_left, 2.0);
-        assert_eq!((scaled.x, scaled.y), (970.0, -170.0));
+        assert_eq!((scaled.x, scaled.y), (973.5, -166.5));
     }
 
     #[test]

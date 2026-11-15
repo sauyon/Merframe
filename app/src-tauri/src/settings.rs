@@ -28,6 +28,8 @@ const PRESENCE_KEY: &str = "market_presence";
 pub const DISCORD_TEMPLATE: &str = "{tenno} started a conversation with you in Warframe.";
 
 pub const OVERLAY_OPACITY_DEFAULT: u8 = 100;
+/// The overlays' size on top of following the screen, in percent.
+pub const OVERLAY_SIZE_DEFAULT: u8 = 100;
 pub const RECOMMENDATION_COUNT_DEFAULT: u8 = 6;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -374,6 +376,8 @@ pub struct OverlaySettings {
     pub placements: OverlayPlacements,
     pub overlay_recommendation_refinement: RecommendationRefinement,
     pub overlay_opacity: u8,
+    /// How big the overlays are, in percent of their size at 1080p scaled to the screen.
+    pub overlay_size: u8,
     pub overlay_recommendation_count: u8,
     pub overlay_mode: OverlayMode,
     pub overlay_only_while_game_active: bool,
@@ -588,6 +592,7 @@ impl Default for OverlaySettings {
             placements: OverlayPlacements::default(),
             overlay_recommendation_refinement: RecommendationRefinement::Radiant,
             overlay_opacity: OVERLAY_OPACITY_DEFAULT,
+            overlay_size: OVERLAY_SIZE_DEFAULT,
             overlay_recommendation_count: RECOMMENDATION_COUNT_DEFAULT,
             overlay_mode: OverlayMode::Auto,
             overlay_only_while_game_active: true,

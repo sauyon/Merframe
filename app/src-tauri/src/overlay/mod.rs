@@ -439,14 +439,14 @@ pub fn apply_from<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>) {
         )
     };
 
-    for (kind, (on, bounds)) in KINDS.into_iter().zip(wanted) {
+    for (kind, (on, (bounds, zoom))) in KINDS.into_iter().zip(wanted) {
         let keep = windowed && on;
         match (app.get_webview_window(kind.label()), keep) {
             (Some(_), false) => {
                 lock(&state.overlays.windows).remove(kind.label());
                 retire(app, kind);
             }
-            (Some(window), true) => place(&window, bounds, screen.scale),
+            (Some(window), true) => place(&window, bounds, zoom),
             (None, _) => {}
         }
 
@@ -517,7 +517,7 @@ fn load<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, kind: Kind) {
     }
 
     let screen = screen_of(app, *lock(&state.overlays.game_monitor));
-    let bounds = window_bounds(screen, kind, &read(&state.settings));
+    let (bounds, zoom) = window_bounds(screen, kind, &read(&state.settings));
     lock(&state.overlays.windows).insert(
         kind.label(),
         WindowLife {
@@ -526,7 +526,7 @@ fn load<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, kind: Kind) {
             idle_since: None,
         },
     );
-    open(app, kind, bounds, screen.scale);
+    open(app, kind, bounds, zoom);
 }
 
 fn surface<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, kind: Kind) {
