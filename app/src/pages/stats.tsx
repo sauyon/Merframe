@@ -10,6 +10,7 @@ import { TradesSection } from "@/components/trades-section";
 import { api } from "@/lib/bridge";
 import { changeTone, signed } from "@/lib/chart";
 import {
+  counted,
   dateTime,
   dayLabel,
   fullDate,
@@ -177,7 +178,7 @@ export function StatsPage() {
           value={summary ? percent(summary.prime_percent / 100, 0) : "-"}
           hint={
             summary
-              ? `${num(summary.prime_owned)} of ${num(summary.prime_total)} Prime items owned or mastered`
+              ? `${num(summary.prime_owned)} of ${counted(summary.prime_total, "Prime item")} owned or mastered`
               : "Waiting for an inventory read"
           }
         />
@@ -204,7 +205,7 @@ export function StatsPage() {
 
       <Section
         title="History"
-        description={`One point per UTC day. ${num(playedDays)} of ${num(days.length)} days have data, ${windowLabel}.`}
+        description={`One point per UTC day. ${counted(playedDays, "day has", "days have")} data out of ${counted(days.length, "day")}, ${windowLabel}.`}
         action={<TimeframeTabs card="history" />}
       >
         <div className="grid gap-6 @lg:grid-cols-2 @5xl:grid-cols-3">

@@ -71,7 +71,7 @@ export function EquippedDialog({
                   </span>
                   {holder.archon_shards > 0 && (
                     <span
-                      title={`${num(holder.archon_shards)} Archon Shards installed`}
+                      title={`${counted(holder.archon_shards, "Archon Shard")} installed`}
                       className="flex items-center gap-1"
                     >
                       <GameIcon

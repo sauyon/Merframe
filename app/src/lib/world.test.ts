@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   capitalize,
-  DAY_MS,
   elapsedShare,
-  nextResetSeconds,
   nodeLabel,
   splitNode,
   timeLeft,
@@ -87,15 +85,5 @@ describe("elapsedShare", () => {
     expect(
       elapsedShare("2026-09-15T00:00:00Z", "2026-09-15T00:00:00Z", 0),
     ).toBe(100);
-  });
-});
-
-describe("nextResetSeconds", () => {
-  it("seconds until the next period boundary", () => {
-    expect(nextResetSeconds(DAY_MS, 0, DAY_MS - 1000)).toBe(1);
-  });
-
-  it("full period at the boundary", () => {
-    expect(nextResetSeconds(DAY_MS, 0, 2 * DAY_MS)).toBe(86400);
   });
 });

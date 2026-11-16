@@ -6,6 +6,7 @@ import {
   GraduationCap,
   Hammer,
   Info,
+  ListChecks,
   Monitor,
   Package,
   Settings,
@@ -22,6 +23,7 @@ import { useSettings } from "@/stores/app-store";
 
 const NAV = [
   { to: "/world", label: "World", icon: Globe },
+  { to: "/reset-checklist", label: "Reset Checklist", icon: ListChecks },
   { to: "/arbitrations", label: "Arbitrations", icon: "arbitration" },
   { to: "/foundry", label: "Foundry", icon: Hammer },
   { to: "/inventory", label: "Inventory", icon: Boxes },

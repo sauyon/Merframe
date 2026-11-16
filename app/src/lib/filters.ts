@@ -2,6 +2,8 @@ export type YesNo = "yes" | "no";
 
 export const ANY = "any";
 
+export const NO_FILTER_MATCHES = "Nothing matches these filters.";
+
 export function failsYesNo(mode: YesNo, flag: boolean | null): boolean {
   return (mode === "yes") !== flag;
 }

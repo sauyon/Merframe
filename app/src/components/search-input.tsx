@@ -34,6 +34,7 @@ export function SearchInput({
           aria-label="Clear"
           title="Clear"
           onMouseDown={(e) => e.preventDefault()}
+          onKeyDown={(e) => e.stopPropagation()}
           onClick={() => onValueChange("")}
           className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-sm p-1"
         >

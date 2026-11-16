@@ -16,6 +16,11 @@ import { api, logError } from "@/lib/bridge";
 import { useAppStore, useSettings } from "@/stores/app-store";
 import { useMarketItemsStore } from "@/stores/market-items-store";
 
+const ResetChecklistPage = lazy(() =>
+  import("@/pages/reset-checklist/reset-checklist").then((m) => ({
+    default: m.ResetChecklistPage,
+  })),
+);
 const AboutPage = lazy(() =>
   import("@/pages/about").then((m) => ({ default: m.AboutPage })),
 );
@@ -89,6 +94,7 @@ function useBoot() {
         setReady(true);
       },
       failed: setBootError,
+      quiet: true,
     });
   }, [attempt, setBootError, setReady, setSettings, setStatus]);
 
@@ -156,6 +162,10 @@ function Shell() {
               <Routes>
                 <Route path="/" element={<Navigate to="/world" replace />} />
                 <Route path="/world" element={<WorldPage />} />
+                <Route
+                  path="/reset-checklist"
+                  element={<ResetChecklistPage />}
+                />
                 <Route path="/arbitrations" element={<ArbitrationsPage />} />
                 <Route path="/foundry" element={<FoundryPage />} />
                 <Route path="/inventory" element={<InventoryPage />} />

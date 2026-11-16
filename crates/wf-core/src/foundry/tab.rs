@@ -1,13 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Utc};
-use wf_data::{Component, Item, base_warframe_name, helminth_ability, store_item_to_type};
+use wf_data::{Component, Item, base_warframe_name, helminth_ability};
 use wf_inventory::Inventory;
 use wf_worldstate::WorldState;
 
 use crate::catalog::{Catalog, is_umbra, names_a_prime, part_name};
 use crate::identity::ItemTable;
 use crate::mastery::{includes_founders, kind_of, masterable};
+use crate::resurgence::prime_resurgence;
 use crate::view::View;
 
 use super::acquisition::{owned_relics, wiki_url};
@@ -28,7 +29,7 @@ pub(crate) fn tab(
     FoundryTab {
         pending: pending(&view.account.inventory, view.items, now),
         items: items(view, world, include_founders, now),
-        timers: world.map(|state| timers(state, now)).unwrap_or_default(),
+        timers: world.map_or_default(|state| timers(state, now)),
     }
 }
 
@@ -182,17 +183,6 @@ fn foundry_components(view: &View, item: &Item) -> Vec<FoundryComponent> {
                 component.drops.as_deref().unwrap_or_default(),
             ),
         })
-        .collect()
-}
-
-fn prime_resurgence(world: Option<&WorldState>, now: DateTime<Utc>) -> HashSet<String> {
-    let Some(varzia) = world.and_then(|world| world.varzia(now)) else {
-        return HashSet::new();
-    };
-    varzia
-        .items
-        .iter()
-        .map(|offer| store_item_to_type(&offer.item_type))
         .collect()
 }
 

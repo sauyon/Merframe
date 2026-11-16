@@ -193,7 +193,9 @@ pub(crate) mod tests {
 
     pub(crate) const FIXTURE: &str = include_str!("../../../fixtures/inventory.json");
 
-    fn fixture() -> Inventory {
+    pub(crate) const MINIMAL: &str = r#"{"PlayerLevel":0,"PremiumCredits":0,"PremiumCreditsFree":0,"RegularCredits":0,"FusionPoints":0,"TradesRemaining":0,"Created":{"$date":{"$numberLong":"0"}},"LastInventorySync":{"$oid":"000000000000000000000000"},"RewardSeed":0}"#;
+
+    pub(crate) fn fixture() -> Inventory {
         Inventory::parse(FIXTURE).unwrap()
     }
 
@@ -237,10 +239,7 @@ pub(crate) mod tests {
 
     #[test]
     fn missing_player_skills() {
-        let inv = Inventory::parse(
-            r#"{"PlayerLevel":0,"PremiumCredits":0,"PremiumCreditsFree":0,"RegularCredits":0,"FusionPoints":0,"TradesRemaining":0,"Created":{"$date":{"$numberLong":"0"}},"LastInventorySync":{"$oid":"000000000000000000000000"},"RewardSeed":0}"#,
-        )
-        .unwrap();
+        let inv = Inventory::parse(MINIMAL).unwrap();
         assert_eq!(inv.player_skills.railjack(), 0);
         assert_eq!(inv.player_skills.duviri(), 0);
     }

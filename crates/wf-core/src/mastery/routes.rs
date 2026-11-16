@@ -7,6 +7,7 @@ use super::{LevelUpRoute, MasteryItem, RouteMember, intrinsics, star_chart};
 use crate::account::Account;
 use crate::catalog::Catalog;
 use crate::identity::ItemTable;
+use crate::text::counted;
 
 pub(super) fn route(
     kind: &'static str,
@@ -45,11 +46,7 @@ pub(super) fn member_route(
 }
 
 fn ranks_phrase(ranks: u32) -> String {
-    if ranks == 1 {
-        "1 rank left".to_owned()
-    } else {
-        format!("{ranks} ranks left")
-    }
+    format!("{} left", counted(ranks, "rank"))
 }
 
 fn item_routes(items: &[MasteryItem]) -> [LevelUpRoute; 2] {

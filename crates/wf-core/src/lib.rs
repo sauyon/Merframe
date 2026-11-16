@@ -17,7 +17,9 @@ mod market_holdings;
 mod mastery;
 mod prices;
 mod relic_planner;
+mod reset_checklist;
 mod resources;
+mod resurgence;
 mod rivens;
 mod stats;
 mod store;
@@ -33,8 +35,8 @@ pub use catalog::{Catalog, VaultStatus};
 pub use comparables::{ComparableAttribute, ComparableListing, ComparedStat, RivenComparables};
 pub use delta::ItemDelta;
 pub use ducatering::{
-    Ducatering, DucateringEntry, DucateringFilter, DucateringHidden, DucateringProgress,
-    DucateringState, DucateringStep, ScannedKiosk, ScannedKioskItem,
+    Ducatering, DucateringCompleteSets, DucateringEntry, DucateringFilter, DucateringHidden,
+    DucateringProgress, DucateringState, DucateringStep, ScannedKiosk, ScannedKioskItem,
 };
 pub use error::{CoreError, Result};
 pub use events::{
@@ -66,6 +68,12 @@ pub use relic_planner::{
     OwnedRefinement, Ownership, PerTrace, RankedComponent, RankedReward, RefinementValue,
     RelicMarket, RelicPlan, RelicSource, RewardBreakdown, RewardOwnership, RewardScreen,
 };
+pub use reset_checklist::{
+    ArchonShardColour, KuvaWeeklySummary, ResetChecklistGroup, ResetChecklistManualRowId,
+    ResetChecklistProgress, ResetChecklistRow, ResetChecklistRowId, ResetChecklistRowPart,
+    ResetChecklistStandingPool, ResetChecklistTab, ResetChecklistVendor, VendorKuvaCertainty,
+    VendorWeeklyOffer,
+};
 pub use resources::{
     CurrencyOffer, CurrencyVendor, HeldResource, OfferCost, ResourceQuery, ResourceRow,
     ResourceScope, ResourceSource, ResourceUse, ResourcesTab, ShardHolder, ShardRow,
@@ -83,5 +91,5 @@ pub use stats::{
 pub use store::{
     RelicOpening, Snapshot, SnapshotId, StatPoint, Store, StoredDelta, StoredTrade, TimeRange,
 };
-pub use text::thousands;
+pub use text::{counted, thousands};
 pub use trade::{Trade, TradeItem, relic_refinement, traded_set};

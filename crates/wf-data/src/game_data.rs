@@ -2,8 +2,25 @@ use std::collections::{HashMap, HashSet};
 
 use crate::error::{DataError, Result};
 use crate::item::{Component, Item, ItemRecord, Rarity};
+use crate::nightwave::NightwaveActs;
 use crate::relic::{Refinement, Relic, parse_relics};
 use crate::riven::RivenData;
+
+type RelicNameIndex = HashMap<String, usize>;
+type RelicUniqueNameIndex = HashMap<String, (usize, Refinement)>;
+
+fn relic_indices(relics: &[Relic]) -> (RelicNameIndex, RelicUniqueNameIndex) {
+    let mut by_name = HashMap::with_capacity(relics.len());
+    let mut by_unique_name = HashMap::new();
+    for (relic_index, relic) in relics.iter().enumerate() {
+        by_name.insert(relic.name.clone(), relic_index);
+        for (&refinement, relic_unique_name) in &relic.unique_names {
+            by_unique_name.insert(relic_unique_name.clone(), (relic_index, refinement));
+        }
+    }
+
+    (by_name, by_unique_name)
+}
 
 pub struct GameData {
     items: Vec<Item>,
@@ -11,9 +28,10 @@ pub struct GameData {
     unique_name_index: HashMap<String, usize>,
     name_index: HashMap<String, usize>,
     component_index: HashMap<String, (usize, usize)>,
-    relic_name_index: HashMap<String, usize>,
-    relic_unique_name_index: HashMap<String, (usize, Refinement)>,
+    relic_name_index: RelicNameIndex,
+    relic_unique_name_index: RelicUniqueNameIndex,
     riven_data: RivenData,
+    nightwave_acts: NightwaveActs,
 }
 
 impl GameData {
@@ -94,15 +112,7 @@ impl GameData {
             }
         }
 
-        let mut relic_name_index = HashMap::with_capacity(relics.len());
-        let mut relic_unique_name_index = HashMap::new();
-        for (relic_index, relic) in relics.iter().enumerate() {
-            relic_name_index.insert(relic.name.clone(), relic_index);
-            for (&refinement, relic_unique_name) in &relic.unique_names {
-                relic_unique_name_index
-                    .insert(relic_unique_name.clone(), (relic_index, refinement));
-            }
-        }
+        let (relic_name_index, relic_unique_name_index) = relic_indices(&relics);
 
         let riven_data = RivenData::from_items(&items);
 
@@ -115,7 +125,18 @@ impl GameData {
             relic_name_index,
             relic_unique_name_index,
             riven_data,
+            nightwave_acts: NightwaveActs::default(),
         })
+    }
+
+    #[must_use]
+    pub fn with_nightwave_acts(mut self, acts: NightwaveActs) -> Self {
+        self.nightwave_acts = acts;
+        self
+    }
+
+    pub fn nightwave_acts(&self) -> &NightwaveActs {
+        &self.nightwave_acts
     }
 
     pub fn riven_data(&self) -> &RivenData {

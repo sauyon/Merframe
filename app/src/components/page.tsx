@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Hint } from "@/components/ui/hint";
 import { Skeleton } from "@/components/ui/skeleton";
-import { num } from "@/lib/format";
+import { counted, num } from "@/lib/format";
 import { type PageQuoteKey, usePageQuote } from "@/lib/quotes";
 import { cn } from "@/lib/utils";
 
@@ -168,14 +168,16 @@ export function ResultCount({
   shown,
   total,
   noun,
+  plural,
 }: {
   shown: number;
   total: number | undefined;
   noun: string;
+  plural?: string;
 }) {
   return (
     <span className="text-muted-foreground text-sm">
-      {num(shown)} of {num(total)} {noun}
+      {num(shown)} of {counted(total, noun, plural)}
     </span>
   );
 }
@@ -217,8 +219,8 @@ export function EmptyPanel({ children }: { children: ReactNode }) {
 export function ErrorNote({ message }: { message: string }) {
   return (
     <div className="text-destructive flex items-center gap-2 text-sm">
-      <AlertCircle className="size-4" />
-      {message}
+      <AlertCircle className="size-4 shrink-0" />
+      <span className="min-w-0 wrap-anywhere">{message}</span>
     </div>
   );
 }

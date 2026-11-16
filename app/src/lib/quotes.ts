@@ -50,6 +50,28 @@ export const QUOTES = {
       speaker: "Grandmother",
     },
   ],
+  resetChecklist: [
+    {
+      line: "And whose business are you about today, Drifter?",
+      speaker: "Acrithis",
+    },
+    {
+      line: "Busy day in the garden. Lots of jobs. You finish one, come back, I got more.",
+      speaker: "Nightcap",
+    },
+    {
+      line: "Another day, another relay.",
+      speaker: "Aspirant Zorba",
+    },
+    {
+      line: "Sorry, Pal. No new leads today. But listen, I've got my ear to the ground on Ayatans, don't worry.",
+      speaker: "Maroo",
+    },
+    {
+      line: "Ah well. Same time tomorrow?",
+      speaker: "Ticker",
+    },
+  ],
   arbitrations: [
     {
       line: "Fight this Arbitration as any mortal creature would. There are no second chances.",

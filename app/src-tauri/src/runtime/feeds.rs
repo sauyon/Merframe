@@ -15,6 +15,7 @@ use wf_worldstate::{
 };
 
 use super::{AppEvent, RIVEN_DATA_KEY, dispatch, emit, emit_status, try_blocking};
+use crate::event_feed;
 use crate::market;
 use crate::state::{AppState, lock, read, write};
 
@@ -33,7 +34,7 @@ struct StoredRivenData {
     data: RivenData,
 }
 
-pub(super) async fn world_state_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(super) async fn world_state_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut fetched_at: Option<Instant> = None;
     loop {
         let interval = read(&state.settings).world_state_interval();
@@ -47,6 +48,8 @@ pub(super) async fn world_state_task<R: Runtime>(app: AppHandle<R>, state: Arc<A
             let events = lock(&state.core).evaluate_world_state(Utc::now());
             dispatch(&app, &state, events).await;
         }
+
+        event_feed::publish_reset_checklist(&app, &state);
         tokio::time::sleep(Duration::from_secs(15)).await;
     }
 }
@@ -97,7 +100,7 @@ impl StoredArbitrationForecast {
     }
 }
 
-pub(super) async fn arbitration_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(super) async fn arbitration_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut stored = stored_arbitration_forecast(&state).await;
     let mut failures: u32 = 0;
     loop {
@@ -211,7 +214,7 @@ async fn refresh_arbitration_forecast<R: Runtime>(
     Ok(stored)
 }
 
-pub(super) async fn price_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) {
+pub(super) async fn price_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppState>) -> ! {
     let mut client = bulk_prices(state.http.clone());
 
     let mut rivens = bulk_riven_data(state.http.clone());

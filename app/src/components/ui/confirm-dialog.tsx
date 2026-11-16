@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
 
 function ConfirmDialog({
   open,
@@ -18,7 +18,9 @@ function ConfirmDialog({
   confirmLabel,
   busy = false,
   destructive = false,
+  confirmDisabled = false,
   onConfirm,
+  children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,29 +29,31 @@ function ConfirmDialog({
   confirmLabel: string;
   busy?: boolean;
   destructive?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
+  children?: ReactNode;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
         </DialogHeader>
+        {children}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <Button
             variant={destructive ? "destructive" : "default"}
-            disabled={busy}
+            pending={busy}
+            disabled={confirmDisabled}
             onClick={onConfirm}
           >
             {confirmLabel}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

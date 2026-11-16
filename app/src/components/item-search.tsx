@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { ItemImage } from "@/components/item-image";
 import { SearchInput } from "@/components/search-input";
+import {
+  Command,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 interface Searchable {
   name: string;
@@ -34,51 +40,62 @@ export function ItemSearch<T extends Searchable>({
       .slice(0, 20);
   }, [items, query]);
 
+  const listed = open && matches.length > 0;
   return (
-    <div className="relative">
-      <SearchInput
-        value={query}
-        onValueChange={(next) => {
-          setQuery(next);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(query.trim().length > 0)}
-        onBlur={() => setOpen(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            setOpen(false);
-          }
-        }}
-        placeholder={placeholder}
-        className="w-full"
-      />
-      {open && matches.length > 0 && (
-        <ul
+    <Command
+      shouldFilter={false}
+      vimBindings={false}
+      label={placeholder}
+      className="relative"
+    >
+      <CommandInput value={query}>
+        <SearchInput
+          value={query}
+          onValueChange={(next) => {
+            setQuery(next);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(query.trim().length > 0)}
+          onBlur={() => setOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setOpen(false);
+            }
+
+            if (e.key === "Home" || e.key === "End") {
+              e.stopPropagation();
+            }
+          }}
+          aria-expanded={listed}
+          placeholder={placeholder}
+          className="w-full"
+        />
+      </CommandInput>
+      {listed && (
+        <CommandList
           onMouseDown={(e) => e.preventDefault()}
-          className="bg-popover absolute top-full z-20 mt-1 max-h-80 w-full overflow-y-auto rounded-md border shadow-md"
+          className="bg-popover absolute top-full z-20 mt-1 w-full rounded-md border shadow-md"
         >
           {matches.map((item) => (
-            <li key={item.name}>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  setOpen(false);
-                  onPick(item);
-                }}
-                className="hover:bg-secondary flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm"
-              >
-                <ItemImage
-                  imageName={item.image_name}
-                  size={24}
-                  alt={item.name}
-                />
-                <span className="truncate">{item.name}</span>
-              </button>
-            </li>
+            <CommandItem
+              key={item.name}
+              value={item.name}
+              onSelect={() => {
+                setQuery("");
+                setOpen(false);
+                onPick(item);
+              }}
+            >
+              <ItemImage
+                imageName={item.image_name}
+                size={24}
+                alt={item.name}
+              />
+              <span className="truncate">{item.name}</span>
+            </CommandItem>
           ))}
-        </ul>
+        </CommandList>
       )}
-    </div>
+    </Command>
   );
 }

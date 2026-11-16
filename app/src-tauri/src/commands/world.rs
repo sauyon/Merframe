@@ -8,8 +8,8 @@ use wf_core::{
 };
 use wf_data::store_item_to_type;
 use wf_worldstate::{
-    ArchonHunt, BaroStatus, Circuit, DailyDeal, Fissure, MarketSale, NightwaveSeason, Sortie,
-    Timer, Varzia,
+    ArchonHunt, BaroStatus, Circuit, DailyDeal, Fissure, MarketSale, NightwaveSeason, ResetWindow,
+    Sortie, Timer, Varzia, daily_reset_window, weekly_reset_window,
 };
 
 use super::{Shared, ready};
@@ -32,6 +32,8 @@ pub struct WorldStateView {
     pub prime_resurgence: Option<PrimeResurgence>,
     pub nightwave: Option<NightwaveSeason>,
     pub world_reward_alerts: Vec<WorldRewardAlert>,
+    pub daily_reset: ResetWindow,
+    pub weekly_reset: ResetWindow,
     pub fetched_at: Option<DateTime<Utc>>,
 }
 
@@ -330,6 +332,8 @@ impl WorldStateView {
                 prime_resurgence: None,
                 nightwave: None,
                 world_reward_alerts: Vec::new(),
+                daily_reset: daily_reset_window(now),
+                weekly_reset: weekly_reset_window(now),
                 fetched_at,
             };
         };
@@ -350,8 +354,12 @@ impl WorldStateView {
             prime_resurgence: world
                 .varzia(now)
                 .map(|varzia| prime_resurgence(core, varzia)),
-            nightwave: world.season(now),
+            nightwave: world.season(now, |challenge| {
+                core.catalog().nightwave_act_text(challenge)
+            }),
             world_reward_alerts: core.world_reward_alerts(now),
+            daily_reset: daily_reset_window(now),
+            weekly_reset: weekly_reset_window(now),
             fetched_at,
         }
     }
@@ -695,5 +703,13 @@ mod tests {
         assert!(view.market_sales.is_empty());
         assert!(view.nightwave.is_none());
         assert!(view.fetched_at.is_none());
+        assert_eq!(
+            view.daily_reset.expiry.timestamp_millis(),
+            1_788_825_600_000
+        );
+        assert_eq!(
+            view.weekly_reset.expiry.timestamp_millis(),
+            1_789_344_000_000
+        );
     }
 }

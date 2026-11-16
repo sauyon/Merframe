@@ -104,7 +104,7 @@ export function FoundryPage() {
             <ResultCount
               shown={visible.length}
               total={data?.items.length}
-              noun="items"
+              noun="item"
             />
             <SearchInput
               value={query}

@@ -16,7 +16,7 @@ import { useFilters } from "@/hooks/use-filters";
 import { itemAt } from "@/lib/arrays";
 import { api } from "@/lib/bridge";
 import type { FilterOption, YesNo } from "@/lib/filters";
-import { dateTime, num } from "@/lib/format";
+import { counted, dateTime, num } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/stores/app-store";
 import type {
@@ -383,8 +383,8 @@ export function OrdersTable({
         }
         description={
           confirming === "remove"
-            ? `All ${num(rows.length)} orders on your warframe.market profile are deleted, buy orders included. This cannot be undone.`
-            : `${num(missingCount)} sell orders offer more than the account holds. Each one drops to the number owned, and an order for an item you no longer own is deleted.`
+            ? `${counted(rows.length, "order")} on your warframe.market profile will be deleted, buy orders included. This cannot be undone.`
+            : `${counted(missingCount, "sell order offers", "sell orders offer")} more than the account holds. Each one drops to the number owned, and an order for an item you no longer own is deleted.`
         }
         confirmLabel={
           confirming === "remove" ? "Delete All Orders" : "Fix Missing Items"
@@ -404,7 +404,7 @@ export function OrdersTable({
         emptyMessage="No order matches these filters."
         toolbar={
           <ListingToolbar
-            noun="orders"
+            noun="order"
             empty={rows.length === 0}
             onSetVisibility={onSetVisibility}
             onRefresh={onRefresh}

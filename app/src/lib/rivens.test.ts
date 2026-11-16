@@ -2,10 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   attributeAmount,
   attributeLabel,
-  attributeRange,
   attributeText,
   attributeValue,
-  gradeTone,
+  gradeClasses,
   gradeVariant,
   rivenAuctionUrl,
 } from "@/lib/rivens";
@@ -61,15 +60,15 @@ describe("gradeVariant", () => {
   });
 });
 
-describe("gradeTone", () => {
-  it("primary for S and A grades", () => {
-    expect(gradeTone("S")).toBe("text-primary");
-    expect(gradeTone("A-")).toBe("text-primary");
+describe("gradeClasses", () => {
+  it("primary for S and A", () => {
+    expect(gradeClasses("S").text).toBe("text-primary");
+    expect(gradeClasses("A-").fill).toBe("bg-primary");
   });
 
-  it("warning for F, muted otherwise", () => {
-    expect(gradeTone("F")).toBe("text-warning");
-    expect(gradeTone("B+")).toBe("text-muted-foreground");
+  it("muted otherwise", () => {
+    expect(gradeClasses("B+").text).toBe("text-muted-foreground");
+    expect(gradeClasses("F").fill).toBe("bg-muted-foreground");
   });
 });
 
@@ -90,6 +89,11 @@ describe("attributeAmount", () => {
   it("plain number", () => {
     expect(attributeAmount(null, 2.2)).toBe("+2.2");
   });
+
+  it("no sign on a rounded zero", () => {
+    expect(attributeAmount("percent", 0.04)).toBe("0.0%");
+    expect(attributeAmount("percent", -0.04)).toBe("0.0%");
+  });
 });
 
 describe("attributeValue", () => {
@@ -99,22 +103,6 @@ describe("attributeValue", () => {
 
   it("null without a display value", () => {
     expect(attributeValue({ ...attackSpeed, display: null })).toBeNull();
-  });
-});
-
-describe("attributeRange", () => {
-  it("low to high", () => {
-    expect(attributeRange(attackSpeed)).toBe("4.1 to 5.0");
-  });
-
-  it("orders a negative range", () => {
-    expect(attributeRange({ ...attackSpeed, min: -1.5, max: -3 })).toBe(
-      "-3.0 to -1.5",
-    );
-  });
-
-  it("null without bounds", () => {
-    expect(attributeRange({ ...attackSpeed, min: null })).toBeNull();
   });
 });
 

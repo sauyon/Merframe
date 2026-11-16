@@ -208,13 +208,11 @@ mod tests {
     use chrono::{DateTime, Utc};
 
     use super::*;
+    use crate::syndicate::fixtures::syndicate_mission;
     use crate::window::fixtures::at;
 
     fn syndicate(tag: &str, expiry_ms: i64) -> SyndicateMission {
-        SyndicateMission {
-            expiry: at(expiry_ms).into(),
-            tag: tag.to_owned(),
-        }
+        syndicate_mission(tag, 0, expiry_ms, &[])
     }
 
     fn timer(missions: &[SyndicateMission], now: DateTime<Utc>, name: &str) -> Timer {

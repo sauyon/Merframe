@@ -6,6 +6,7 @@ Merframe is an open-source alternative to AlecaFrame that runs natively on Linux
 
 Merframe displays information about:
  - World timers, fissures, alerts, invasions and events
+ - Daily and weekly reset trackers
  - Arbitrations
  - Foundry
  - Inventory
@@ -107,7 +108,7 @@ App data holds the SQLite store, the last inventory as `inventory.json.gz`, WFCD
 
 ## Privacy
 
-The warframe.market session token (allows acting as you) is stored in Windows Credential Manager or the desktop Secret Service on Linux (for example GNOME Keyring or KDE Wallet). Merframe does not write new plaintext token files. Existing `market_token` files and legacy JSON tokens migrate on the next successful credential-store access; plaintext copies are removed only after the secure write is verified. Logging out removes both secure and legacy copies.
+The warframe.market session token (allows acting as you) is stored in Windows Credential Manager or the desktop Secret Service on Linux (for example GNOME Keyring or KDE Wallet). Merframe does not write new plaintext token files. Existing `market_token` files and legacy JSON tokens migrate on the next successful credential-store access; plaintext copies are removed only after the secure write is verified. Logging out removes both secure and legacy copies. You can also use **Forget Login** in the **Danger Zone** at the bottom of Settings.
 
 Linux needs an unlocked Secret Service. If the credential store is unavailable, inventory and world-state features remain usable anonymously; saving a market login reports an error instead of falling back to plaintext. Other programs running as your user may still be able to access your OS credentials. The token does not contain your password.
 
@@ -118,7 +119,7 @@ Services Merframe talks to:
 - `api.warframe.market`: orders and riven auctions. Prices work without a login, only listing items needs one. While you are logged in, your unread message count is retrieved alongside your orders.
 - `browse.wf`: the Arbitration forecast and the community tiers, fetched every 6 hours.
 - `api.merframe.net`: a price cache run by me, so that Merframe does not ask warframe.market for every item separately. The app fetches this every 15 minutes by default and only downloads it when it changed. The cache itself checks Prime parts and sets every 30 minutes, other items with orders every 4 hours, the rest daily, and refreshes trade volumes and the 90-day history once a day. A price in Merframe is for Prime items at most about half an hour old, for anything else likely a couple hours.
-- `raw.githubusercontent.com`: item data from WFCD's `warframe-items`.
+- `raw.githubusercontent.com`: item data from WFCD's `warframe-items` and the Nightwave acts from `warframe-public-export-plus`.
 - `cdn.warframestat.us`: item images, downloaded once and kept in the app data directory.
 - `browse.wf`: icons for vendor offers the item data has no image for, downloaded once and kept with the item images.
 - A Discord webhook, only if you set one up under notifications. It receives the alert types you pick there.
@@ -147,8 +148,8 @@ If Merframe has an error at the tope saying `Reading process <pid> is not permit
 Merframe stands on the work of others. Thank you to:
 - [AlecaFrame](https://alecaframe.com/), whose feature set Merframe re-creates for Linux and Windows. No AlecaFrame code is used.
 - [warframe.market](https://warframe.market) for the trading platform and its public API.
-- The [Warframe Community Developers](https://github.com/WFCD): item data from [`warframe-items`](https://github.com/WFCD/warframe-items), the node, sortie and Nightwave tables from [`warframe-worldstate-data`](https://github.com/WFCD/warframe-worldstate-data), the world cycle arithmetic documented by [`warframe-worldstate-parser`](https://github.com/WFCD/warframe-worldstate-parser), and the item images served from `cdn.warframestat.us`.
-- [calamity-inc](https://github.com/calamity-inc) for [`warframe-public-export-plus`](https://github.com/calamity-inc/warframe-public-export-plus), the source of the vendor offers, and the icons served from `browse.wf`.
+- The [Warframe Community Developers](https://github.com/WFCD): item data from [`warframe-items`](https://github.com/WFCD/warframe-items), the node and sortie tables from [`warframe-worldstate-data`](https://github.com/WFCD/warframe-worldstate-data), the world cycle arithmetic documented by [`warframe-worldstate-parser`](https://github.com/WFCD/warframe-worldstate-parser), and the item images served from `cdn.warframestat.us`.
+- [calamity-inc](https://github.com/calamity-inc) for [`warframe-public-export-plus`](https://github.com/calamity-inc/warframe-public-export-plus), the source of the Nightwave acts and their required counts and of the vendor offers, and the icons served from `browse.wf`.
 - The editors of the [Warframe wiki](https://wiki.warframe.com), the source of the Helminth ability table and of the items the exports do not carry.
 - Digital Extremes for Warframe, its public worldState and a content policy that lets fan projects exist.
 - [ChickenDrawsDogs](https://x.com/ChickenDraws) for their awesome `Dog Days "Hang Loose" Poster` drawing, which is the header image.

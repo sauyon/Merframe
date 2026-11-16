@@ -5,7 +5,7 @@ import { Hint } from "@/components/ui/hint";
 import { counted, secondsUntil } from "@/lib/format";
 import { isRelicTier, RELIC_TIERS } from "@/lib/relics";
 import { cn } from "@/lib/utils";
-import { endingSoon, nodeLabel, timeLeft } from "@/lib/world";
+import { countdownTone, nodeLabel, timeLeft } from "@/lib/world";
 import type { Fissure } from "@/types";
 
 function FissureRow({ fissure, now }: { fissure: Fissure; now: number }) {
@@ -24,7 +24,7 @@ function FissureRow({ fissure, now }: { fissure: Fissure; now: number }) {
       <span
         className={cn(
           "w-20 shrink-0 text-right font-mono text-sm",
-          endingSoon(remaining) ? "text-warning" : "text-accent",
+          countdownTone(remaining),
         )}
       >
         {timeLeft(remaining)}

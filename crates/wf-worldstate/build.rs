@@ -34,12 +34,6 @@ struct SortieModifier {
     name: String,
 }
 
-#[derive(Deserialize)]
-struct ChallengeText {
-    title: String,
-    description: String,
-}
-
 fn table<T: for<'de> Deserialize<'de>>(path: &str) -> Result<BTreeMap<String, T>, String> {
     println!("cargo:rerun-if-changed={path}");
     let json = std::fs::read_to_string(path).map_err(|error| format!("{path}: {error}"))?;
@@ -119,39 +113,6 @@ fn emit_sorties(source: &mut String) -> Result<(), String> {
     Ok(())
 }
 
-fn emit_challenges(source: &mut String) -> Result<(), String> {
-    let challenges: BTreeMap<String, ChallengeText> = table("data/nightwave_challenges.json")?;
-    if let Some(path) = challenges.keys().find(|path| {
-        !path.starts_with("/lotus/types/challenges/seasons/") || **path != path.to_lowercase()
-    }) {
-        return Err(format!(
-            "data/nightwave_challenges.json: {path} is not a lowercase season challenge path"
-        ));
-    }
-    if challenges
-        .values()
-        .any(|challenge| challenge.title.is_empty() || challenge.description.is_empty())
-    {
-        return Err(
-            "data/nightwave_challenges.json: a challenge has an empty title or description"
-                .to_owned(),
-        );
-    }
-    emit(
-        source,
-        "NIGHTWAVE_CHALLENGES",
-        "ChallengeText",
-        &challenges,
-        |challenge| {
-            format!(
-                "ChallengeText {{ title: {:?}, description: {:?} }}",
-                challenge.title, challenge.description
-            )
-        },
-    );
-    Ok(())
-}
-
 fn emit_packages(source: &mut String) -> Result<(), String> {
     let packages: BTreeMap<String, String> = table("data/store_packages.json")?;
     if let Some(path) = packages
@@ -175,7 +136,6 @@ fn generate() -> Result<String, String> {
     let mut source = String::new();
     emit_nodes(&mut source)?;
     emit_sorties(&mut source)?;
-    emit_challenges(&mut source)?;
     emit_packages(&mut source)?;
     Ok(source)
 }

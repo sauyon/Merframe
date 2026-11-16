@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Amount } from "@/components/currency";
 import { ItemImage } from "@/components/item-image";
 import { Progress } from "@/components/ui/progress";
-import { num } from "@/lib/format";
+import { counted, num } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DucateringEntry, DucateringProgress } from "@/types";
 
@@ -139,7 +139,7 @@ export function DucateringOverlay({
       </ul>
       {soldCount > 0 && (
         <div className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
-          <span>Sold {num(soldCount)}</span> items for
+          <span>Sold {counted(soldCount, "item")}</span> for
           <Amount currency="ducats" size={14}>
             {num(ducats)}
           </Amount>

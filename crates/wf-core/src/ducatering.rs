@@ -1,9 +1,13 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use wf_market::OrderType;
+use wf_worldstate::WorldState;
 
 use crate::ItemSummary;
+use crate::catalog::VaultStatus;
 use crate::inventory_view::PartRow;
 use crate::inventory_view::{ItemIndex, parts, sets};
+use crate::resurgence::prime_resurgence;
 use crate::view::View;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -11,15 +15,32 @@ use crate::view::View;
 #[serde(rename_all = "snake_case")]
 pub enum DucateringHidden {
     Listed,
-    CompleteSets,
+    Unmastered,
+    Vaulted,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS), ts(export))]
+#[serde(rename_all = "snake_case")]
+pub enum DucateringCompleteSets {
+    Sell,
+    Keep,
+    KeepAbove { plat: u32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DucateringFilter {
     pub most_ducats_first: bool,
     pub max_plat: u32,
+    pub min_ducats_per_plat: u32,
     pub hidden: Vec<DucateringHidden>,
-    pub hidden_set_plat: u32,
+    pub complete_sets: DucateringCompleteSets,
+}
+
+impl DucateringFilter {
+    fn hides(&self, kind: DucateringHidden) -> bool {
+        self.hidden.contains(&kind)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -80,31 +101,55 @@ pub struct Ducatering {
     sold: Vec<ScannedKioskItem>,
 }
 
-pub(crate) fn entries(view: &View, filter: &DucateringFilter) -> Vec<DucateringEntry> {
+pub(crate) fn entries(
+    view: &View,
+    world: Option<&WorldState>,
+    now: DateTime<Utc>,
+    filter: &DucateringFilter,
+) -> Vec<DucateringEntry> {
     let mut index = ItemIndex::default();
     let rows = parts(view, &mut index);
     let listed = view.listings.listed_slugs(OrderType::Sell, view.items);
-    let hide_listed = filter.hidden.contains(&DucateringHidden::Listed);
-    let hide_complete = filter.hidden.contains(&DucateringHidden::CompleteSets);
-    let expensive_sets: Vec<usize> = if hide_complete && filter.hidden_set_plat > 0 {
-        sets(view, &mut index)
+    let hide_listed = filter.hides(DucateringHidden::Listed);
+    let hide_unmastered = filter.hides(DucateringHidden::Unmastered);
+    let resurgence = filter
+        .hides(DucateringHidden::Vaulted)
+        .then(|| prime_resurgence(world, now));
+    let expensive_sets: Vec<usize> = match filter.complete_sets {
+        DucateringCompleteSets::KeepAbove { plat } => sets(view, &mut index)
             .iter()
-            .filter(|set| set.prices.sell.unwrap_or(0.0) > f64::from(filter.hidden_set_plat))
+            .filter(|set| set.prices.sell.unwrap_or(0.0) > f64::from(plat))
             .map(|set| set.item)
-            .collect()
-    } else {
-        Vec::new()
+            .collect(),
+        DucateringCompleteSets::Sell | DucateringCompleteSets::Keep => Vec::new(),
     };
+
     let hidden_set = |row: &PartRow| {
-        hide_complete
-            && row.set.complete
-            && (filter.hidden_set_plat == 0 || expensive_sets.contains(&row.set.item))
+        row.set.complete
+            && match filter.complete_sets {
+                DucateringCompleteSets::Sell => false,
+                DucateringCompleteSets::Keep => true,
+                DucateringCompleteSets::KeepAbove { .. } => expensive_sets.contains(&row.set.item),
+            }
+    };
+    let hidden_vaulted = |row: &PartRow| {
+        resurgence.as_ref().is_some_and(|resurgence| {
+            let set = &index[row.set.item];
+            set.vault == Some(VaultStatus::Vaulted) && !resurgence.contains(&set.unique_name)
+        })
+    };
+    let below_ducats_per_plat = |row: &PartRow, ducats: u32| {
+        row.prices.sell.is_some_and(|plat| {
+            plat > 0.0 && f64::from(ducats) / plat < f64::from(filter.min_ducats_per_plat)
+        })
     };
     let mut entries: Vec<DucateringEntry> = rows
         .iter()
         .filter(|row| row.count > 0)
         .filter(|row| row.prices.sell.unwrap_or(0.0) <= f64::from(filter.max_plat))
         .filter(|row| !hidden_set(row))
+        .filter(|row| !hide_unmastered || row.status.mastered)
+        .filter(|row| !hidden_vaulted(row))
         .filter(|row| {
             !(hide_listed
                 && index[row.item]
@@ -115,6 +160,10 @@ pub(crate) fn entries(view: &View, filter: &DucateringFilter) -> Vec<DucateringE
         .filter_map(|row| {
             let item = &index[row.item];
             let ducats = item.ducats.filter(|ducats| *ducats > 0)?;
+            if below_ducats_per_plat(row, ducats) {
+                return None;
+            }
+
             Some(DucateringEntry {
                 item: item.clone(),
                 count: u32::try_from(row.count).ok()?,
@@ -230,6 +279,41 @@ mod tests {
 
     const LINK: &str = "/Lotus/Types/Recipes/Weapons/WeaponParts/AkboltoPrimeLink";
     const EPITAPH_BARREL: &str = "/Lotus/Types/Recipes/Weapons/WeaponParts/EpitaphPrimeBarrel";
+    const BRATON_PRIME: &str = "/Lotus/Weapons/Tenno/Rifle/BratonPrime";
+    const BANSHEE_PRIME_SYSTEMS_BLUEPRINT: &str =
+        "/Lotus/Types/Recipes/WarframeRecipes/BansheePrimeSystemsBlueprint";
+    const NOW: DateTime<Utc> = DateTime::from_timestamp_millis(1_788_807_069_000).unwrap();
+
+    fn nothing_hidden() -> DucateringFilter {
+        DucateringFilter {
+            most_ducats_first: true,
+            max_plat: 100,
+            min_ducats_per_plat: 0,
+            hidden: Vec::new(),
+            complete_sets: DucateringCompleteSets::Sell,
+        }
+    }
+
+    fn hiding(kind: DucateringHidden) -> DucateringFilter {
+        DucateringFilter {
+            most_ducats_first: false,
+            hidden: vec![kind],
+            ..nothing_hidden()
+        }
+    }
+
+    fn names(
+        fixture: &Fixture,
+        world: Option<&WorldState>,
+        filter: &DucateringFilter,
+    ) -> Vec<String> {
+        let mut names: Vec<String> = entries(&fixture.view(), world, NOW, filter)
+            .into_iter()
+            .map(|entry| entry.item.name)
+            .collect();
+        names.sort();
+        names
+    }
 
     fn scanned(items: &[(&str, &str, u32)]) -> Vec<ScannedKioskItem> {
         items
@@ -388,25 +472,17 @@ mod tests {
             ("braton_prime_barrel", 8.0),
         ]));
         let filter = DucateringFilter {
-            most_ducats_first: true,
             max_plat: 10,
-            hidden: Vec::new(),
-            hidden_set_plat: 0,
+            ..nothing_hidden()
         };
-        let cheap = entries(&fixture.view(), &filter);
+        let cheap = entries(&fixture.view(), None, NOW, &filter);
         assert_eq!(cheap.len(), 1);
         assert_eq!(cheap[0].item.name, "Braton Prime Barrel");
         assert_eq!(cheap[0].count, 3);
         assert!(cheap[0].ducats > 0);
         assert_eq!(cheap[0].plat, Some(8.0));
 
-        let all = entries(
-            &fixture.view(),
-            &DucateringFilter {
-                max_plat: 100,
-                ..filter.clone()
-            },
-        );
+        let all = entries(&fixture.view(), None, NOW, &nothing_hidden());
         assert_eq!(all.len(), 2);
         assert!(all[0].ducats >= all[1].ducats);
     }
@@ -426,14 +502,106 @@ mod tests {
             ]),
         )
         .with_prices(FixedPrices::new([("braton_prime_set", 45.0)]));
-        let hiding = |hidden_set_plat| DucateringFilter {
-            most_ducats_first: false,
-            max_plat: 100,
-            hidden: vec![DucateringHidden::CompleteSets],
-            hidden_set_plat,
+        let sets = |complete_sets| DucateringFilter {
+            complete_sets,
+            ..nothing_hidden()
         };
-        assert!(entries(&fixture.view(), &hiding(0)).is_empty());
-        assert!(entries(&fixture.view(), &hiding(10)).is_empty());
-        assert_eq!(entries(&fixture.view(), &hiding(50)).len(), 4);
+        let shown = |complete_sets| entries(&fixture.view(), None, NOW, &sets(complete_sets)).len();
+        assert_eq!(shown(DucateringCompleteSets::Sell), 4);
+        assert_eq!(shown(DucateringCompleteSets::Keep), 0);
+        assert_eq!(shown(DucateringCompleteSets::KeepAbove { plat: 10 }), 0);
+        assert_eq!(shown(DucateringCompleteSets::KeepAbove { plat: 50 }), 4);
+    }
+
+    #[test]
+    fn unmastered_parts_hide() {
+        let owned = &[
+            (BRATON_PRIME_BARREL, 1),
+            (TRINITY_PRIME_SYSTEMS_BLUEPRINT, 1),
+        ];
+        let mastered = Fixture::new(fixtures::catalog(), fixtures::inventory_owning(owned));
+        assert_eq!(
+            names(&mastered, None, &hiding(DucateringHidden::Unmastered)).len(),
+            2
+        );
+
+        let unmastered = Fixture::new(
+            fixtures::catalog(),
+            fixtures::inventory_with(|value| {
+                fixtures::drop_entries(value, &["LongGuns", "XPInfo"], BRATON_PRIME);
+                for (item_type, count) in owned {
+                    fixtures::push_counted(value, "MiscItems", item_type, *count);
+                }
+            }),
+        );
+        let shown = names(&unmastered, None, &hiding(DucateringHidden::Unmastered));
+        assert_eq!(shown, vec!["Trinity Prime Systems"]);
+    }
+
+    #[test]
+    fn vaulted_parts_hide_unless_resurgent() {
+        let fixture = Fixture::new(
+            fixtures::catalog_with(fixtures::ITEMS, fixtures::FOUNDRY_ITEMS),
+            fixtures::inventory_owning(&[
+                (BANSHEE_PRIME_SYSTEMS_BLUEPRINT, 1),
+                (BRATON_PRIME_BARREL, 1),
+            ]),
+        );
+        let world = WorldState::parse(fixtures::WORLD_STATE).unwrap();
+        let hiding = hiding(DucateringHidden::Vaulted);
+        assert_eq!(names(&fixture, None, &hiding), vec!["Braton Prime Barrel"]);
+        assert_eq!(
+            names(&fixture, Some(&world), &hiding),
+            vec!["Banshee Prime Systems", "Braton Prime Barrel"]
+        );
+        assert_eq!(names(&fixture, None, &nothing_hidden()).len(), 2);
+    }
+
+    #[test]
+    fn low_ducats_per_plat_hide() {
+        let fixture = Fixture::new(
+            fixtures::catalog(),
+            fixtures::inventory_owning(&[(BRATON_PRIME_BARREL, 1), (BRATON_PRIME_STOCK, 1)]),
+        )
+        .with_prices(FixedPrices::new([
+            ("braton_prime_barrel", 5.0),
+            ("braton_prime_stock", 20.0),
+        ]));
+        let floor = |min_ducats_per_plat| DucateringFilter {
+            min_ducats_per_plat,
+            ..nothing_hidden()
+        };
+        let all = entries(&fixture.view(), None, NOW, &floor(0));
+        let ducats: Vec<(&str, u32)> = all
+            .iter()
+            .map(|entry| (entry.item.name.as_str(), entry.ducats))
+            .collect();
+        assert_eq!(
+            ducats,
+            vec![("Braton Prime Stock", 25), ("Braton Prime Barrel", 15)]
+        );
+
+        assert_eq!(
+            names(&fixture, None, &floor(1)),
+            names(&fixture, None, &floor(0))
+        );
+        assert_eq!(
+            names(&fixture, None, &floor(2)),
+            vec!["Braton Prime Barrel"]
+        );
+        assert!(names(&fixture, None, &floor(4)).is_empty());
+    }
+
+    #[test]
+    fn unpriced_parts_pass_the_floor() {
+        let fixture = Fixture::new(
+            fixtures::catalog(),
+            fixtures::inventory_owning(&[(BRATON_PRIME_BARREL, 1)]),
+        );
+        let filter = DucateringFilter {
+            min_ducats_per_plat: 1_000,
+            ..nothing_hidden()
+        };
+        assert_eq!(names(&fixture, None, &filter), vec!["Braton Prime Barrel"]);
     }
 }

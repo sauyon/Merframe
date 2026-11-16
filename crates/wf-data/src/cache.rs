@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use futures_util::future::{try_join_all, try_join3};
+use futures_util::future::{try_join, try_join_all, try_join3};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use crate::error::{DataError, Result};
 use crate::game_data::GameData;
+use crate::nightwave::NightwaveActs;
 
 const ITEM_CATEGORIES: &[&str] = &[
     "Warframes",
@@ -32,6 +33,12 @@ const ITEM_CATEGORIES: &[&str] = &[
 
 const RELICS_FILE: &str = "Relics.json";
 const COMPONENTS_FILE: &str = "Components.json";
+const NIGHTWAVE_ACTS_FILE: &str = "ExportNightwave.json";
+const DICTIONARY_FILE: &str = "dict.en.json";
+
+const WFCD_ITEMS: &str = "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json";
+const PUBLIC_EXPORT_PLUS: &str =
+    "https://raw.githubusercontent.com/calamity-inc/warframe-public-export-plus/senpai";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct CacheMeta {
@@ -42,6 +49,14 @@ struct CacheMeta {
 struct CacheEntry {
     etag: Option<String>,
     last_modified: Option<String>,
+}
+
+impl CacheMeta {
+    fn record(&mut self, file_name: &str, fresh: Option<CacheEntry>) {
+        if let Some(entry) = fresh {
+            self.entries.insert(file_name.to_owned(), entry);
+        }
+    }
 }
 
 pub async fn load_or_fetch(dir: &Path, client: &reqwest::Client) -> Result<GameData> {
@@ -59,29 +74,50 @@ pub async fn load_or_fetch(dir: &Path, client: &reqwest::Client) -> Result<GameD
         try_join_all(
             item_files
                 .iter()
-                .map(|file_name| fetch_or_use_cache(dir, file_name, client, &meta)),
+                .map(|file_name| fetch_or_use_cache(dir, WFCD_ITEMS, file_name, client, &meta)),
         ),
-        fetch_or_use_cache(dir, RELICS_FILE, client, &meta),
-        fetch_or_use_cache(dir, COMPONENTS_FILE, client, &meta),
+        fetch_or_use_cache(dir, WFCD_ITEMS, RELICS_FILE, client, &meta),
+        fetch_or_use_cache(dir, WFCD_ITEMS, COMPONENTS_FILE, client, &meta),
     )
     .await?;
 
     let mut item_bodies = Vec::with_capacity(items.len());
-    for (file_name, (body, entry)) in item_files.into_iter().zip(items) {
+    for (file_name, (body, entry)) in item_files.iter().zip(items) {
         item_bodies.push(body);
-        if let Some(entry) = entry {
-            meta.entries.insert(file_name, entry);
-        }
+        meta.record(file_name, entry);
     }
-    if let Some(entry) = relics_entry {
-        meta.entries.insert(RELICS_FILE.to_owned(), entry);
-    }
-    if let Some(entry) = components_entry {
-        meta.entries.insert(COMPONENTS_FILE.to_owned(), entry);
-    }
+    meta.record(RELICS_FILE, relics_entry);
+    meta.record(COMPONENTS_FILE, components_entry);
+
+    let nightwave_acts = load_nightwave_acts(dir, client, &mut meta)
+        .await
+        .unwrap_or_else(|error| {
+            warn!(%error, "Loading the Nightwave acts failed, their names are derived from their type names");
+            NightwaveActs::default()
+        });
     write_meta(&meta_path, &meta).await?;
 
-    GameData::from_json_parts(&item_bodies, &relics_body, &components_body)
+    Ok(
+        GameData::from_json_parts(&item_bodies, &relics_body, &components_body)?
+            .with_nightwave_acts(nightwave_acts),
+    )
+}
+
+async fn load_nightwave_acts(
+    dir: &Path,
+    client: &reqwest::Client,
+    meta: &mut CacheMeta,
+) -> Result<NightwaveActs> {
+    let ((acts_body, acts_entry), (dictionary_body, dictionary_entry)) = try_join(
+        fetch_or_use_cache(dir, PUBLIC_EXPORT_PLUS, NIGHTWAVE_ACTS_FILE, client, meta),
+        fetch_or_use_cache(dir, PUBLIC_EXPORT_PLUS, DICTIONARY_FILE, client, meta),
+    )
+    .await?;
+    let acts = NightwaveActs::from_json(&acts_body, &dictionary_body)?;
+
+    meta.record(NIGHTWAVE_ACTS_FILE, acts_entry);
+    meta.record(DICTIONARY_FILE, dictionary_entry);
+    Ok(acts)
 }
 
 async fn read_meta(path: &Path) -> CacheMeta {
@@ -108,12 +144,13 @@ async fn write_meta(path: &Path, meta: &CacheMeta) -> Result<()> {
 
 async fn fetch_or_use_cache(
     dir: &Path,
+    source: &str,
     file_name: &str,
     client: &reqwest::Client,
     meta: &CacheMeta,
 ) -> Result<(String, Option<CacheEntry>)> {
     let file_path: PathBuf = dir.join(file_name);
-    match download_fresh(&file_path, file_name, client, meta).await {
+    match download_fresh(&file_path, source, file_name, client, meta).await {
         Ok(Some((body, entry))) => Ok((body, Some(entry))),
         Ok(None) => Ok((read_cached_file(&file_path).await?, None)),
         Err(error) => {
@@ -132,14 +169,12 @@ async fn fetch_or_use_cache(
 
 async fn download_fresh(
     file_path: &Path,
+    source: &str,
     file_name: &str,
     client: &reqwest::Client,
     meta: &CacheMeta,
 ) -> Result<Option<(String, CacheEntry)>> {
-    let url = format!(
-        "https://raw.githubusercontent.com/WFCD/warframe-items/master/data/json/{file_name}"
-    );
-    let mut request = client.get(&url);
+    let mut request = client.get(format!("{source}/{file_name}"));
     if let Some(entry) = meta.entries.get(file_name) {
         if let Some(etag) = &entry.etag {
             request = request.header(reqwest::header::IF_NONE_MATCH, etag);

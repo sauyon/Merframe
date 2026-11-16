@@ -328,7 +328,7 @@ pub(crate) mod support {
                 .collect::<Vec<String>>()
                 .join(",")
         };
-        let curses = curse.map(|tag| stats(&[tag])).unwrap_or_default();
+        let curses = curse.map_or_default(|tag| stats(&[tag]));
         format!(
             r#"{{"compat":"{compat}","lvlReq":16,"lvl":8,"rerolls":1,"pol":"AP_DEFENSE","buffs":[{}],"curses":[{curses}]}}"#,
             stats(buffs)

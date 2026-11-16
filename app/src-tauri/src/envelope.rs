@@ -41,6 +41,7 @@ fn kind(event: &CoreEvent) -> &'static str {
         CoreEvent::ArbitrationRunUpdated { .. } => "arbitration-run-updated",
         CoreEvent::ArbitrationRunRecorded { .. } => "arbitration-run-recorded",
         CoreEvent::TimerAlert { .. } => "timer-alert",
+        CoreEvent::MissionWon => "mission-won",
     }
 }
 
@@ -93,11 +94,19 @@ mod tests {
     }
 
     #[test]
+    fn mission_won_is_silent() {
+        let envelope = CoreEventEnvelope::wrap(CoreEvent::MissionWon);
+
+        assert!(envelope.id.starts_with("mission-won-"));
+        assert_eq!(envelope.notice, None);
+    }
+
+    #[test]
     fn nested_event_json() {
         let envelope = CoreEventEnvelope::wrap(summary());
         let json = serde_json::to_value(&envelope).unwrap();
         assert!(json["id"].is_string());
         assert!(json["event"]["InventoryUpdated"].is_object());
-        assert_eq!(json["notice"]["title"], "1 inventory changes");
+        assert_eq!(json["notice"]["title"], "1 inventory change");
     }
 }

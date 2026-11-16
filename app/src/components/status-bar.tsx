@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useNow } from "@/hooks/use-now";
-import { ago, countdown, secondsUntil } from "@/lib/format";
+import { ago, countdown, counted, secondsUntil } from "@/lib/format";
 import { nodeLabel } from "@/lib/world";
 import { useAppStore } from "@/stores/app-store";
 
@@ -75,7 +75,7 @@ export function StatusBar() {
           <TooltipTrigger asChild>
             <span className="text-muted-foreground hidden items-center gap-2 text-sm lg:flex">
               <Globe className="size-4" />
-              {fissures.length} fissures
+              {counted(fissures.length, "fissure")}
               {nextTimer && (
                 <>
                   <span className="text-muted-foreground/50">|</span>

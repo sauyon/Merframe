@@ -101,6 +101,7 @@ impl Engine {
                 Vec::new()
             }
             LogEvent::ChatTabAdded { channel } => self.new_conversation(channel, now),
+            LogEvent::MissionSucceeded => vec![CoreEvent::MissionWon],
             _ => Vec::new(),
         }
     }

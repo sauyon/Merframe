@@ -17,14 +17,10 @@ export function gradeVariant(grade: string) {
   return "warning";
 }
 
-export function gradeTone(grade: string): string {
-  if (grade === "S" || grade.startsWith("A")) {
-    return "text-primary";
-  }
-  if (grade === "F") {
-    return "text-warning";
-  }
-  return "text-muted-foreground";
+export function gradeClasses(grade: string): { text: string; fill: string } {
+  return grade === "S" || grade.startsWith("A")
+    ? { text: "text-primary", fill: "bg-primary" }
+    : { text: "text-muted-foreground", fill: "bg-muted-foreground" };
 }
 
 export function attributeAmount(unit: string | null, value: number): string {
@@ -32,23 +28,15 @@ export function attributeAmount(unit: string | null, value: number): string {
     return `x${value.toFixed(2)}`;
   }
   const suffix = unit === "percent" ? "%" : unit === "seconds" ? "s" : "";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}${suffix}`;
+  const shown = Number(value.toFixed(1));
+  const sign = shown > 0 ? "+" : "";
+  return `${sign}${shown.toFixed(1)}${suffix}`;
 }
 
 export function attributeValue(attribute: AttributeGrade): string | null {
   return attribute.display === null
     ? null
     : attributeAmount(attribute.unit, attribute.display);
-}
-
-export function attributeRange(attribute: AttributeGrade): string | null {
-  if (attribute.min === null || attribute.max === null) {
-    return null;
-  }
-  const low = Math.min(attribute.min, attribute.max);
-  const high = Math.max(attribute.min, attribute.max);
-  return `${low.toFixed(1)} to ${high.toFixed(1)}`;
 }
 
 export function attributeLabel(attribute: AttributeGrade): string {

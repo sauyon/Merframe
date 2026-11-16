@@ -48,6 +48,7 @@ pub enum AppEvent {
     RivenDataUpdated,
     PricesUpdated,
     FavouriteUpdated,
+    ResetChecklistUpdated,
     MarketUpdated(MarketSnapshot),
     MarketAutoClosed(MarketAutoClose),
     MarketSessionRejected,
@@ -115,7 +116,11 @@ async fn load_cached_inventory<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppSt
                 status.remember_snapshot(&snapshot);
                 status.trades_remaining = trades_remaining;
             });
-            emit(app, AppEvent::InventoryUpdated(state.status_snapshot()));
+            emit_with_reset_checklist(
+                app,
+                state,
+                AppEvent::InventoryUpdated(state.status_snapshot()),
+            );
             state.prices_wake.notify_one();
         }
         Ok(None) => debug!("No stored inventory snapshot yet"),
@@ -211,6 +216,9 @@ async fn deliver<R: Runtime>(app: &AppHandle<R>, state: &Arc<AppState>, event: &
         } => {
             let notice = Notice::timer(name, next_state, *remaining_secs);
             world_alert(app, state, &settings, &notice, DiscordMirroredAlert::Timer).await;
+        }
+        CoreEvent::MissionWon => {
+            emit_with_reset_checklist(app, state, AppEvent::ResetChecklistUpdated);
         }
         CoreEvent::InventoryUpdated(_) => {}
     }
@@ -438,6 +446,15 @@ pub fn emit<R: Runtime>(app: &AppHandle<R>, event: AppEvent) {
     if let Err(error) = app.emit("app-event", event) {
         warn!(%error, "Webview emit failed");
     }
+}
+
+pub(crate) fn emit_with_reset_checklist<R: Runtime>(
+    app: &AppHandle<R>,
+    state: &AppState,
+    event: AppEvent,
+) {
+    emit(app, event);
+    event_feed::publish_reset_checklist(app, state);
 }
 
 pub(crate) fn update_status<R: Runtime, T>(

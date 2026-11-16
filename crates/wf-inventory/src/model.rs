@@ -1,8 +1,13 @@
-use serde::de::{DeserializeOwned, Error as _};
+use serde::de::{DeserializeOwned, Error as _, IgnoredAny};
 use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use wf_mongo::{MongoDate, ObjectId};
 
+use crate::resets::{
+    CalendarProgress, CircuitProgress, ClanVaultBonusProgress, DescendiaProgress, DialogueHistory,
+    GivenNightwaveAct, IcebindRewardChoices, PeriodicMissionCompletion, QuestKey,
+    SortieRewardClaim, SyndicateWeeklyMission, VendorPurchaseHistory,
+};
 use crate::riven::RivenFingerprint;
 use crate::{InventoryError, Result};
 
@@ -59,6 +64,7 @@ pub struct EquipmentItem {
     pub configs: Vec<LoadoutConfig>,
     #[serde(default)]
     pub archon_crystal_upgrades: Vec<ArchonCrystalSlot>,
+    pub(crate) upgrades_expiry: Option<MongoDate>,
 }
 
 const OROKIN_UPGRADE: u32 = 1;
@@ -208,6 +214,8 @@ pub struct Affiliation {
     pub standing: i64,
     #[serde(default)]
     pub title: i32,
+    #[serde(default)]
+    pub weekly_missions: Vec<SyndicateWeeklyMission>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -379,6 +387,60 @@ pub struct Inventory {
     pub accolades: Accolades,
     #[serde(default)]
     pub infested_foundry: InfestedFoundry,
+    #[serde(default)]
+    pub(crate) periodic_mission_completions: Vec<PeriodicMissionCompletion>,
+    #[serde(default)]
+    pub recent_vendor_purchases: Vec<VendorPurchaseHistory>,
+    #[serde(default)]
+    pub(crate) last_sortie_reward: Vec<SortieRewardClaim>,
+    #[serde(default)]
+    pub(crate) last_lite_sortie_reward: Vec<SortieRewardClaim>,
+    #[serde(default)]
+    pub(crate) completed_sorties: Vec<String>,
+    #[serde(default)]
+    pub(crate) completed_syndicates: Vec<String>,
+    pub(crate) entrati_vault_count_last_period: Option<u32>,
+    pub(crate) entrati_vault_count_reset_date: Option<MongoDate>,
+    #[serde(default)]
+    pub entrati_lab_conquest_cache_score_mission: u32,
+    #[serde(default)]
+    pub echoes_hex_conquest_cache_score_mission: u32,
+    #[serde(default)]
+    pub(crate) entrati_lab_conquest_hard_mode_status: i64,
+    #[serde(default)]
+    pub(crate) echoes_hex_conquest_hard_mode_status: i64,
+    #[serde(default, rename = "EndlessXP")]
+    pub(crate) endless_xp: Vec<CircuitProgress>,
+    #[serde(default)]
+    pub(crate) descent_rewards: Vec<DescendiaProgress>,
+    #[serde(default, deserialize_with = "typed_entries")]
+    pub(crate) kuva_keys: Vec<IgnoredAny>,
+    pub kuva_keys_rewards: Option<IcebindRewardChoices>,
+    #[serde(default)]
+    pub weekly_guild_vault_bonus_progress: Vec<ClanVaultBonusProgress>,
+    pub(crate) daily_affiliation: Option<u32>,
+    pub(crate) daily_affiliation_cetus: Option<u32>,
+    pub(crate) daily_affiliation_quills: Option<u32>,
+    pub(crate) daily_affiliation_solaris: Option<u32>,
+    pub(crate) daily_affiliation_ventkids: Option<u32>,
+    pub(crate) daily_affiliation_vox: Option<u32>,
+    pub(crate) daily_affiliation_entrati: Option<u32>,
+    pub(crate) daily_affiliation_necraloid: Option<u32>,
+    pub(crate) daily_affiliation_zariman: Option<u32>,
+    pub(crate) daily_affiliation_kahl: Option<u32>,
+    pub(crate) daily_affiliation_cavia: Option<u32>,
+    pub(crate) daily_affiliation_hex: Option<u32>,
+    pub(crate) daily_affiliation_library: Option<u32>,
+    pub(crate) daily_affiliation_pvp: Option<u32>,
+    pub daily_focus: Option<u32>,
+    pub gifts_remaining: Option<u32>,
+    pub calendar_progress: Option<CalendarProgress>,
+    #[serde(default)]
+    pub season_challenge_history: Vec<GivenNightwaveAct>,
+    #[serde(default, deserialize_with = "typed_entries")]
+    pub(crate) quest_keys: Vec<QuestKey>,
+    #[serde(default)]
+    pub(crate) dialogue_history: DialogueHistory,
 }
 
 impl Inventory {

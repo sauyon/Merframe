@@ -299,7 +299,7 @@ export function TradeDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} disabled={saving || !entry}>
+          <Button onClick={submit} disabled={!entry} pending={saving}>
             {stored ? "Save Trade" : "Record Trade"}
           </Button>
         </DialogFooter>

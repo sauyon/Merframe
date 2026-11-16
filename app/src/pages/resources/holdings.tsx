@@ -205,7 +205,8 @@ export function Holdings({
             <ResultCount
               shown={rows.length}
               total={total}
-              noun={view === "held" ? "resources" : "currencies"}
+              noun={view === "held" ? "resource" : "currency"}
+              plural={view === "held" ? undefined : "currencies"}
             />
             <SearchInput
               value={query}

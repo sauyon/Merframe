@@ -111,6 +111,7 @@ pub enum CoreEvent {
         ends_at: DateTime<Utc>,
         remaining_secs: i64,
     },
+    MissionWon,
 }
 
 impl CoreEvent {
@@ -126,6 +127,7 @@ impl CoreEvent {
             Self::ArbitrationRunUpdated { .. } => "ArbitrationRunUpdated",
             Self::ArbitrationRunRecorded { .. } => "ArbitrationRunRecorded",
             Self::TimerAlert { .. } => "TimerAlert",
+            Self::MissionWon => "MissionWon",
         }
     }
 }

@@ -36,6 +36,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --locked --workspace --all-targets
       - run: cargo test --locked --workspace
+      - run: rustup target add x86_64-pc-windows-gnu
+      - run: cargo clippy --locked --target x86_64-pc-windows-gnu -p wf-log -p wf-mem -p wf-scan --all-targets
       - run: pnpm types:check
         working-directory: app
       - run: pnpm test

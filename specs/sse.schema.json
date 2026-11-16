@@ -38,6 +38,22 @@
       "type": "object",
       "properties": {
         "data": {
+          "$ref": "#/$defs/FeedResetChecklistRow"
+        },
+        "event": {
+          "type": "string",
+          "const": "reset_checklist_row_changed"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "data": {
           "type": "object",
           "properties": {
             "relic": {
@@ -379,6 +395,15 @@
             "$ref": "#/$defs/ArbitrationRunResourceBooster"
           }
         },
+        "collected_vitus": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
+        },
         "complete_capture": {
           "type": "boolean"
         },
@@ -410,6 +435,15 @@
         },
         "id": {
           "type": "string"
+        },
+        "manual_vitus": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
         },
         "mission_type": {
           "type": [
@@ -457,6 +491,16 @@
           "format": "uint",
           "minimum": 0
         },
+        "rewards": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": null,
+          "items": {
+            "$ref": "#/$defs/ArbitrationRunReward"
+          }
+        },
         "rotations": {
           "type": "array",
           "items": {
@@ -481,6 +525,15 @@
         },
         "status": {
           "$ref": "#/$defs/ArbitrationRunStatus"
+        },
+        "vitus": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "default": null,
+          "minimum": 0
         },
         "waves": {
           "type": "array",
@@ -524,6 +577,27 @@
         "amount",
         "drop_chance",
         "drop_chance_blessing"
+      ]
+    },
+    "ArbitrationRunReward": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "item_type": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_type",
+        "name",
+        "count"
       ]
     },
     "ArbitrationRunRotation": {
@@ -729,6 +803,33 @@
         "endo",
         "ducats",
         "changes"
+      ]
+    },
+    "FeedResetChecklistRow": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean"
+        },
+        "group": {
+          "$ref": "#/$defs/ResetChecklistGroup"
+        },
+        "id": {
+          "$ref": "#/$defs/ResetChecklistRowId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "progress": {
+          "$ref": "#/$defs/ResetChecklistProgress"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "group",
+        "done",
+        "progress"
       ]
     },
     "FeedStatus": {
@@ -1005,6 +1106,153 @@
         "favourite",
         "best",
         "components"
+      ]
+    },
+    "ResetChecklistGroup": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "sortie"
+      ]
+    },
+    "ResetChecklistManualRowId": {
+      "type": "string",
+      "enum": [
+        "simaris_synthesis",
+        "ventkids_races",
+        "conclave_challenges"
+      ]
+    },
+    "ResetChecklistProgress": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "done": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "counted"
+            },
+            "total": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "done",
+            "total"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "cap": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "kind": {
+              "type": "string",
+              "const": "remaining"
+            },
+            "left": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "kind",
+            "left",
+            "cap"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "yes_no"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            },
+            "id": {
+              "$ref": "#/$defs/ResetChecklistManualRowId"
+            },
+            "kind": {
+              "type": "string",
+              "const": "manual"
+            }
+          },
+          "required": [
+            "kind",
+            "id",
+            "checked"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ResetChecklistRowId": {
+      "type": "string",
+      "enum": [
+        "sortie",
+        "archon_hunt",
+        "search_pulses",
+        "deep_archimedea",
+        "temporal_archimedea",
+        "circuit",
+        "circuit_steel_path",
+        "descendia",
+        "descendia_steel_path",
+        "icebind",
+        "help_clem",
+        "maroos_treasure_hunt",
+        "steel_path_incursions",
+        "kahls_garrison",
+        "clan_weekly_initiatives",
+        "helminth_invigorations",
+        "daily_tribute",
+        "first_win",
+        "simaris_synthesis",
+        "calendar",
+        "nightwave_daily_acts",
+        "nightwave_weekly_acts",
+        "nightwave_recovered_acts",
+        "syndicate_missions",
+        "trades",
+        "gifts",
+        "focus",
+        "ventkids_races",
+        "oops_all_eximus",
+        "conclave_challenges"
       ]
     },
     "RewardOwnership": {

@@ -4,7 +4,7 @@ use serde::Serialize;
 use wf_mongo::MongoDate;
 
 use crate::embedded::{STORE_PACKAGES, lookup};
-use crate::season::split_words;
+use crate::season::{last_path_segment, split_words};
 use crate::window::Window;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -49,11 +49,10 @@ impl RawFlashSale {
 
 fn package_name(type_name: &str) -> Option<String> {
     let (_, path) = type_name.split_once("/StoreItems/Packages/")?;
-    let leaf = path.rsplit_once('/').map_or(path, |(_, leaf)| leaf);
-    Some(
-        lookup(STORE_PACKAGES, &path.to_lowercase())
-            .map_or_else(|| split_words(leaf), |name| (*name).to_owned()),
-    )
+    Some(lookup(STORE_PACKAGES, &path.to_lowercase()).map_or_else(
+        || split_words(last_path_segment(path)),
+        |name| (*name).to_owned(),
+    ))
 }
 
 pub fn market_sales(raw: &[RawFlashSale], now: DateTime<Utc>) -> Vec<MarketSale> {

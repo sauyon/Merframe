@@ -272,11 +272,30 @@ export function OverlaysPage() {
               readoutClassName="w-10"
               onCommit={(value) => saveSettings({ overlay_opacity: value })}
             />
+            <CommittedSlider
+              id="overlay-size"
+              label="Overlay size"
+              value={settings.overlay_size}
+              min={50}
+              max={200}
+              step={5}
+              unit="%"
+              disabled={!master}
+              className="w-40"
+              readoutClassName="w-10"
+              onCommit={(value) => saveSettings({ overlay_size: value })}
+            />
           </div>
           <div className="text-muted-foreground flex flex-col gap-1 text-sm">
             <p>
               &quot;Only while the game is active&quot; hides the overlay
               windows while Warframe is not the focused window.
+            </p>
+            <p>
+              Overlays already grow with the game&apos;s resolution, so 100%
+              looks the same at 1080p and 4K. The relic reward band always
+              matches the game&apos;s reward cards, and the buff strip has its
+              own size below.
             </p>
             <p>
               {status?.overlay_support.detail ??

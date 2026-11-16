@@ -1,10 +1,10 @@
+import { Countdown } from "@/components/countdown";
 import { cycleIcon, GameIcon } from "@/components/game-icon";
 import { Surface } from "@/components/page";
 import { Hint } from "@/components/ui/hint";
 import { Progress } from "@/components/ui/progress";
 import { secondsUntil } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { capitalize, elapsedShare, endingSoon, timeLeft } from "@/lib/world";
+import { capitalize, elapsedShare } from "@/lib/world";
 import type { Timer } from "@/types";
 
 export function TimerChip({ timer, now }: { timer: Timer; now: number }) {
@@ -23,14 +23,7 @@ export function TimerChip({ timer, now }: { timer: Timer; now: number }) {
           </span>
           <Hint as="span">then {timer.next_state}</Hint>
         </div>
-        <span
-          className={cn(
-            "font-mono text-base font-semibold",
-            endingSoon(remaining) ? "text-warning" : "text-accent",
-          )}
-        >
-          {timeLeft(remaining)}
-        </span>
+        <Countdown seconds={remaining} className="text-base" />
       </div>
       <Progress value={elapsedShare(timer.starts, timer.ends, now)} />
     </Surface>

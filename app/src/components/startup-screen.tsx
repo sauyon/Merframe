@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
 import { BrandBar } from "@/components/brand-bar";
 import Merframe from "@/components/icons/merframe";
+import { ErrorNote } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/ui/hint";
 import { usePageQuote } from "@/lib/quotes";
@@ -34,10 +35,13 @@ export function StartupScreen({
           </div>
 
           {error && (
-            <Button className="mt-8" variant="outline" onClick={onRetry}>
-              <RotateCcw />
-              Try Again
-            </Button>
+            <div className="mt-8 flex flex-col gap-4">
+              <ErrorNote message={error} />
+              <Button variant="outline" onClick={onRetry}>
+                <RotateCcw />
+                Try Again
+              </Button>
+            </div>
           )}
 
           <div className="flex flex-col gap-2">

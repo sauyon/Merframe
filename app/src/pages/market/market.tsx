@@ -18,6 +18,7 @@ import { useListen } from "@/hooks/use-listen";
 import { useTabParam } from "@/hooks/use-tab-param";
 import { api, logError, openExternal, reportError } from "@/lib/bridge";
 import { ago, MARKET_CHATS_URL, num } from "@/lib/format";
+import { signOutOfMarket } from "@/lib/market-session";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/app-store";
@@ -35,16 +36,14 @@ const ACTIVE_POLL_MS = 60_000;
 export function MarketPage() {
   const status = useAppStore((state) => state.status);
   const setStatus = useAppStore((state) => state.setStatus);
-  const { orders, auctions, refreshedAt, setListings, clearListings } =
-    useMarketListingsStore(
-      useShallow((state) => ({
-        orders: state.orders,
-        auctions: state.auctions,
-        refreshedAt: state.at,
-        setListings: state.setListings,
-        clearListings: state.clear,
-      })),
-    );
+  const { orders, auctions, refreshedAt, setListings } = useMarketListingsStore(
+    useShallow((state) => ({
+      orders: state.orders,
+      auctions: state.auctions,
+      refreshedAt: state.at,
+      setListings: state.setListings,
+    })),
+  );
   const openListing = useMarketPanelStore((state) => state.openListing);
   const showPanel = useMarketPanelStore((state) => state.show);
   const [tab, setTab] = useTabParam<MarketTab>("orders");
@@ -148,14 +147,11 @@ export function MarketPage() {
 
   const handleSignOut = useCallback(async () => {
     try {
-      await api.marketLogout();
-      cancel();
-      clearListings();
-      setStatus(await api.gameStatus());
+      await signOutOfMarket(cancel);
     } catch (error) {
       reportError(error);
     }
-  }, [cancel, clearListings, setStatus]);
+  }, [cancel]);
 
   const totals = useMemo(() => {
     const sell = orders.rows.filter((order) => order.order_type === "sell");

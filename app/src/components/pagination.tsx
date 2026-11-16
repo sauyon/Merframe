@@ -4,7 +4,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Hint } from "@/components/ui/hint";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { num } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { usePreferencesStore } from "@/stores/preferences-store";
 
 export const TABLE_PAGE_SIZES = [10, 25, 50, 100];
@@ -30,6 +32,7 @@ export function Pagination({
   pageSizes = TABLE_PAGE_SIZES,
   onPageSizeChange,
   onPageChange,
+  className,
 }: {
   page: number;
   pageCount: number;
@@ -39,26 +42,38 @@ export function Pagination({
   pageSizes?: number[];
   onPageSizeChange?: (pageSize: number) => void;
   onPageChange: (page: number) => void;
+  className?: string;
 }) {
   const storedPageSize = usePreferencesStore((state) => state.pageSize);
   const setStoredPageSize = usePreferencesStore((state) => state.setPageSize);
   const pageSize = ownPageSize ?? storedPageSize;
   const setPageSize = onPageSizeChange ?? setStoredPageSize;
   const [typed, setTyped] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const changePage = (next: number) => {
+    flushSync(() => onPageChange(next));
+    root.current?.parentElement?.scrollIntoView({ block: "start" });
+  };
 
   const commitTyped = () => {
-    const wanted = Number.parseInt(typed ?? "", 10);
-    if (!Number.isNaN(wanted)) {
-      onPageChange(Math.min(Math.max(wanted, 1), pageCount) - 1);
+    const wanted =
+      Math.min(Math.max(Number.parseInt(typed ?? "", 10), 1), pageCount) - 1;
+    if (!Number.isNaN(wanted) && wanted !== page) {
+      changePage(wanted);
     }
+
     setTyped(null);
   };
 
   if (total <= (fixedPageSize ?? Math.min(...pageSizes))) {
     return null;
   }
+
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div
+      ref={root}
+      className={cn("flex flex-wrap items-center justify-end gap-2", className)}
+    >
       {fixedPageSize === undefined && (
         <>
           <Hint as="span">Per page</Hint>
@@ -66,7 +81,7 @@ export function Pagination({
             value={String(pageSize)}
             onValueChange={(value) => {
               setPageSize(Number(value));
-              onPageChange(0);
+              changePage(0);
             }}
           >
             <SelectTrigger size="sm" aria-label="Per page" className="text-xs">
@@ -88,7 +103,7 @@ export function Pagination({
         className="ml-2"
         aria-label="First page"
         title="First page"
-        onClick={() => onPageChange(0)}
+        onClick={() => changePage(0)}
         disabled={page === 0}
       >
         <ChevronsLeft className="size-4" />
@@ -98,7 +113,7 @@ export function Pagination({
         size="icon"
         aria-label="Previous page"
         title="Previous page"
-        onClick={() => onPageChange(page - 1)}
+        onClick={() => changePage(page - 1)}
         disabled={page === 0}
       >
         <ChevronLeft className="size-4" />
@@ -107,7 +122,7 @@ export function Pagination({
       <Input
         inputMode="numeric"
         aria-label="Page"
-        className="h-8 w-14 text-center text-xs tabular-nums"
+        className="h-8 w-14 text-center text-xs"
         value={typed ?? String(page + 1)}
         onChange={(e) => setTyped(e.target.value)}
         onFocus={(e) => e.target.select()}
@@ -118,15 +133,13 @@ export function Pagination({
           }
         }}
       />
-      <Hint as="span" className="tabular-nums">
-        of {num(pageCount)}
-      </Hint>
+      <Hint as="span">of {num(pageCount)}</Hint>
       <Button
         variant="outline"
         size="icon"
         aria-label="Next page"
         title="Next page"
-        onClick={() => onPageChange(page + 1)}
+        onClick={() => changePage(page + 1)}
         disabled={page >= pageCount - 1}
       >
         <ChevronRight className="size-4" />
@@ -136,7 +149,7 @@ export function Pagination({
         size="icon"
         aria-label="Last page"
         title="Last page"
-        onClick={() => onPageChange(pageCount - 1)}
+        onClick={() => changePage(pageCount - 1)}
         disabled={page >= pageCount - 1}
       >
         <ChevronsRight className="size-4" />

@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { num, percent } from "@/lib/format";
+import { counted, num, percent } from "@/lib/format";
 import { occurrenceKeys } from "@/lib/keys";
 import { cn } from "@/lib/utils";
 import type { FoundryItem } from "@/types";
@@ -107,7 +107,7 @@ function FoundryCardInner({
           )}
           {item.archon_shards !== null && item.archon_shards > 0 && (
             <span
-              title={`${num(item.archon_shards)} Archon Shards installed`}
+              title={`${counted(item.archon_shards, "Archon Shard")} installed`}
               className="text-muted-foreground flex items-center gap-1 text-xs tabular-nums"
             >
               <GameIcon name="archon-shard" size={16} alt="Archon Shards" />

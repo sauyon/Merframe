@@ -536,8 +536,7 @@ impl Tray {
     fn read(&mut self, reader: &dyn MemoryReader, lua: &LuaState) -> Vec<StatusEffect> {
         let mut effects = self
             .list
-            .map(|list| status_effects(reader, list))
-            .unwrap_or_default();
+            .map_or_default(|list| status_effects(reader, list));
         let every = if effects.is_empty() {
             SEARCH_EVERY
         } else {
@@ -548,8 +547,7 @@ impl Tray {
             self.list = status_list(reader, lua);
             effects = self
                 .list
-                .map(|list| status_effects(reader, list))
-                .unwrap_or_default();
+                .map_or_default(|list| status_effects(reader, list));
         }
         effects
     }

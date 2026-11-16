@@ -32,8 +32,12 @@ const CREDIT_LINKS: AboutLink[] = [
   { label: "AlecaFrame", url: "https://alecaframe.com" },
   { label: "warframe.market", url: "https://warframe.market" },
   {
-    label: "WFCD warframe-items",
-    url: "https://github.com/WFCD/warframe-items",
+    label: "WFCD",
+    url: "https://github.com/WFCD",
+  },
+  {
+    label: "Public Export Plus",
+    url: "https://github.com/calamity-inc/warframe-public-export-plus",
   },
   { label: "Warframe wiki", url: "https://wiki.warframe.com" },
 ];
@@ -129,7 +133,7 @@ export function AboutPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={checking}
+                  pending={checking}
                   onClick={handleCheck}
                 >
                   <RefreshCw className="size-3.5" />
