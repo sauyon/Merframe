@@ -32,13 +32,13 @@ import type {
 // it follows the HUD scale and borders. The HUD scales about the screen's middle, so the
 // dots' distance from it grows with the scale as well as their size.
 //
-// An ability keeping up several buffs at once, like Tribute, has a marker under its seconds'
-// line for each buff: the game's icon for it when it has one, else a pip. When the ability draws its own
-// widget for them, the ring and markers follow it: the ring is the buff the player has switched
-// to, its marker first and larger, the rest in the order switching goes through them, so
-// cycling in game cycles them. Otherwise the ring is the buff that runs out first. When the
-// ring is not the running buff that runs out first, that one's seconds sit smaller under the
-// markers in a colour of their own, so a lapsing buff is never hidden by the cycle.
+// An ability keeping up several buffs at once, like Tribute, gets a tray on its own side of the
+// dots, out past the meters: a row per running buff, its icon and seconds, each coloured by its
+// own time left so a lapsing buff is never hidden. The rows keep their places, in the order the
+// ability's widget cycles through them; the buff the player has switched to is marked larger,
+// lit and ticked on the side facing the dots, and is the one the ring shows, so cycling in game
+// moves the mark, not the rows. Without such a widget the mark is the buff that ends first. A
+// tray on the right puts the urgent other buff under it.
 const SIZE = 440;
 const CENTRE = SIZE / 2;
 /** Ability slots in the strip. */
@@ -85,15 +85,25 @@ const TEXT_SCALE: Record<TextSize, number> = {
   medium: 1.125,
   large: 1.25,
 };
-/** Pips under a slot's ring, one per buff the ability keeps up. */
-const PIP_RADIUS = 1.4;
-/** The pip of the buff the ring shows, when the ability's own widget picks it. */
-const LEAD_PIP_RADIUS = 1.9;
-const PIP_GAP = 4.4;
-/** Icons standing in for pips, when the game has one per buff. */
-const MARKER_SIZE = 5;
-const LEAD_MARKER_SIZE = 7;
-const MARKER_GAP = 1;
+/** The tray of an ability's several buffs: its icons' column this far either side of the
+ * middle, clear of the meters' ends; rows from just above the dots' line down. */
+const TRAY_OUT = 56;
+/** A second tray on the same side, this much further out. */
+const TRAY_STEP = 46;
+/** The urgent other buff's extra room under a tray, so it doesn't read as one more row. */
+const URGENT_BREAK = 6;
+const TRAY_TOP = DOT_Y - 2;
+const TRAY_ROW = 12;
+const TRAY_ICON = 10;
+const TRAY_LEAD_ICON = 13;
+/** Unmarked rows, set back and smaller. */
+const TRAY_REST_OPACITY = 0.75;
+const TRAY_REST_TEXT = 0.85;
+/** A dot for a buff the game has no icon for. */
+const TRAY_DOT = 2.2;
+/** The mark's tick, on the side facing the dots. */
+const TICK_HEIGHT = 7;
+const TICK_WIDTH = 1.5;
 /** Room between the rows under the rings. */
 const ROW_SPACE = 2;
 /** A buff warms once this share of it is left, or, for an ability's buffs, once the settings'
@@ -106,9 +116,6 @@ const FONT = "Roboto, sans-serif";
 const INK = "rgb(238 243 245)";
 const WARN = "rgb(255 198 64)";
 const DOWN = "rgb(255 77 94)";
-/** The running buff that runs out first, when the ring shows another. */
-const LOWEST = "rgb(130 190 245)";
-const LOWEST_SCALE = 0.75;
 /** Shields and health take the HUD's own colours; these stand in until those are read. */
 const SHIELD = "rgb(156 196 240)";
 const HEALTH = "rgb(255 140 122)";
@@ -279,111 +286,6 @@ function Ring({
   );
 }
 
-/** One ability's buffs, side by side under its ring, each coloured by its own share left. */
-function Markers({
-  buffs,
-  x,
-  y,
-  now,
-  warn,
-}: {
-  buffs: BuffTimer[];
-  x: number;
-  y: number;
-  now: number;
-  warn: number;
-}) {
-  if (!buffs.every((buff) => buff.icon)) {
-    return <Pips buffs={buffs} x={x} y={y} now={now} warn={warn} />;
-  }
-  const size = (buff: BuffTimer) =>
-    buff.rank === 0 ? LEAD_MARKER_SIZE : MARKER_SIZE;
-  const width =
-    buffs.reduce((sum, buff) => sum + size(buff), 0) +
-    (buffs.length - 1) * MARKER_GAP;
-  let left = x - width / 2;
-  return (
-    <g>
-      {buffs.map((buff) => {
-        const at = left;
-        left += size(buff) + MARKER_GAP;
-        return (
-          <Marker
-            key={buff.id}
-            name={buff.icon ?? ""}
-            x={at}
-            y={y - size(buff) / 2 + MARKER_SIZE / 2}
-            size={size(buff)}
-            tint={TINTS[colourOf(buff, now, warn)]}
-          />
-        );
-      })}
-    </g>
-  );
-}
-
-function Marker({
-  name,
-  x,
-  y,
-  size,
-  tint,
-}: {
-  name: string;
-  x: number;
-  y: number;
-  size: number;
-  tint: string;
-}) {
-  const src = useItemImageSrc(name);
-  if (!src) {
-    return null;
-  }
-  return (
-    <image
-      href={src}
-      x={x}
-      y={y}
-      width={size}
-      height={size}
-      filter={`url(#${tint})`}
-    />
-  );
-}
-
-/** A dot per buff of one ability, each coloured by its own share left. */
-function Pips({
-  buffs,
-  x,
-  y,
-  now,
-  warn,
-}: {
-  buffs: BuffTimer[];
-  x: number;
-  y: number;
-  now: number;
-  warn: number;
-}) {
-  const start = x - ((buffs.length - 1) * PIP_GAP) / 2;
-  return (
-    <g>
-      {buffs.map((buff, index) => (
-        <circle
-          key={buff.id}
-          cx={start + index * PIP_GAP}
-          cy={y + PIP_GAP / 2}
-          r={buff.rank === 0 ? LEAD_PIP_RADIUS : PIP_RADIUS}
-          fill={colourOf(buff, now, warn)}
-          stroke="black"
-          strokeOpacity={0.7}
-          strokeWidth={0.8}
-        />
-      ))}
-    </g>
-  );
-}
-
 /** Seconds centred on `x`, their middle on `y`. */
 function Seconds({
   text,
@@ -398,7 +300,7 @@ function Seconds({
   y: number;
   colour: string;
   fontSize: number;
-  anchor?: "middle" | "start";
+  anchor?: "middle" | "start" | "end";
 }) {
   return (
     <text
@@ -423,11 +325,13 @@ function Icon({
   x,
   y,
   tint,
+  size = ICON_SIZE,
 }: {
   name: string;
   x: number;
   y: number;
   tint: string;
+  size?: number;
 }) {
   const src = useItemImageSrc(name);
   if (!src) {
@@ -436,24 +340,87 @@ function Icon({
   return (
     <image
       href={src}
-      x={x - ICON_SIZE / 2}
-      y={y - ICON_SIZE / 2}
-      width={ICON_SIZE}
-      height={ICON_SIZE}
+      x={x - size / 2}
+      y={y - size / 2}
+      width={size}
+      height={size}
       filter={`url(#${tint})`}
     />
   );
 }
 
-/** Of several buffs from one ability, the one the player has switched to in its widget, else
- * the running one that ends first. */
-function pick(buffs: BuffTimer[]) {
-  const lead = buffs.find((buff) => buff.rank === 0);
-  if (lead) {
-    return lead;
-  }
-  const end = (buff: BuffTimer) => buff.ends_at ?? Number.POSITIVE_INFINITY;
-  return buffs.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
+/** One ability's several buffs as rows down from `TRAY_TOP`, icons in a column at `x` and
+ * seconds beyond them on `side` (-1 left, 1 right), the marked buff larger, lit and ticked. */
+function Tray({
+  buffs,
+  lead,
+  x,
+  side,
+  now,
+  warn,
+  fontSize,
+}: {
+  buffs: BuffTimer[];
+  lead: BuffTimer;
+  x: number;
+  side: number;
+  now: number;
+  warn: number;
+  fontSize: number;
+}) {
+  return (
+    <g>
+      {buffs.map((buff, index) => {
+        const marked = buff.id === lead.id;
+        const y = TRAY_TOP + index * TRAY_ROW;
+        const size = marked ? TRAY_LEAD_ICON : TRAY_ICON;
+        const colour = colourOf(buff, now, warn);
+        const tickX = x - side * (TRAY_LEAD_ICON / 2 + 2.5);
+        return (
+          <g key={buff.id} opacity={marked ? 1 : TRAY_REST_OPACITY}>
+            {marked && (
+              <line
+                x1={tickX}
+                x2={tickX}
+                y1={y - TICK_HEIGHT / 2}
+                y2={y + TICK_HEIGHT / 2}
+                stroke={INK}
+                strokeWidth={TICK_WIDTH}
+                strokeLinecap="round"
+              />
+            )}
+            {buff.icon ? (
+              <Icon
+                name={buff.icon}
+                x={x}
+                y={y}
+                tint={TINTS[colour]}
+                size={size}
+              />
+            ) : (
+              <circle
+                cx={x}
+                cy={y}
+                r={TRAY_DOT * (size / TRAY_ICON)}
+                fill={colour}
+                stroke="black"
+                strokeOpacity={0.7}
+                strokeWidth={0.8}
+              />
+            )}
+            <Seconds
+              text={seconds(buff, now)}
+              x={x + side * (TRAY_LEAD_ICON / 2 + 2)}
+              y={y}
+              colour={colour}
+              fontSize={fontSize * (marked ? 1 : TRAY_REST_TEXT)}
+              anchor={side < 0 ? "end" : "start"}
+            />
+          </g>
+        );
+      })}
+    </g>
+  );
 }
 
 /** Of several buffs, the running one that ends first. */
@@ -465,10 +432,21 @@ function lowest(buffs: BuffTimer[], now: number) {
     : running.reduce((best, buff) => (end(buff) < end(best) ? buff : best));
 }
 
-/** One ability's buffs in the order its widget cycles through them, when it has one. */
-function ordered(buffs: BuffTimer[]) {
-  const rank = (buff: BuffTimer) => buff.rank ?? Number.POSITIVE_INFINITY;
-  return [...buffs].sort((a, b) => rank(a) - rank(b));
+/** The buff an ability's ring shows: the one its widget shows largest, else the running one
+ * that ends first, else any. */
+function marked(buffs: BuffTimer[], now: number) {
+  return (
+    buffs.find((buff) => buff.rank === 0) ?? lowest(buffs, now) ?? buffs[0]
+  );
+}
+
+/** One ability's buffs in fixed places. The game names an ability's own widget's buffs by
+ * their place in it, which is the order cycling goes through them, so sorting by name keeps
+ * that order whichever is shown largest. */
+function trayOrder(buffs: BuffTimer[]) {
+  return [...buffs].sort((a, b) =>
+    a.id.localeCompare(b.id, undefined, { numeric: true }),
+  );
 }
 
 /** A meter's fill, as a share of its length. */
@@ -622,11 +600,15 @@ function VitalMeters({ vitals }: { vitals: Vitals }) {
 /** Of the other buffs, the one about to run out, its icon and seconds right of the dots. */
 function UrgentBuff({
   buffs,
+  x = OTHER_X,
+  y = DOT_Y,
   now,
   warn,
   fontSize,
 }: {
   buffs: BuffTimer[];
+  x?: number;
+  y?: number;
   now: number;
   warn: number;
   fontSize: number;
@@ -640,13 +622,11 @@ function UrgentBuff({
   }
   return (
     <g opacity={OTHER_OPACITY}>
-      {buff.icon && (
-        <Icon name={buff.icon} x={OTHER_X} y={DOT_Y} tint={TINTS[WARN]} />
-      )}
+      {buff.icon && <Icon name={buff.icon} x={x} y={y} tint={TINTS[WARN]} />}
       <Seconds
         text={seconds(buff, now)}
-        x={OTHER_X + ICON_SIZE / 2 + 1.5}
-        y={DOT_Y}
+        x={x + ICON_SIZE / 2 + 1.5}
+        y={y}
         colour={WARN}
         fontSize={fontSize}
         anchor="start"
@@ -676,8 +656,40 @@ export function BuffStrip({
   const fontSize = FONT_SIZE * TEXT_SCALE[textSize] * scale;
   const slots = Array.from({ length: SLOTS }, (_, index) => ({
     x: slotX(index - (SLOTS - 1) / 2),
-    buffs: ordered(buffs.filter((buff) => buff.slot === index + 1)),
+    side: index < SLOTS / 2 ? -1 : 1,
+    buffs: buffs.filter((buff) => buff.slot === index + 1),
   }));
+  /** Trays, for abilities with several buffs: the running ones, and the marked one even once
+   * it has ended, in fixed places, stepping outward on their side. */
+  const outward = new Map<number, number>();
+  const trays = slots.flatMap(({ x, side, buffs }) => {
+    if (buffs.length < 2) {
+      return [];
+    }
+    const lead = marked(buffs, now);
+    if (!lead) {
+      return [];
+    }
+    const rows = trayOrder(buffs).filter(
+      (buff) => buff.id === lead.id || (remaining(buff, now) ?? 0) > 0,
+    );
+    if (rows.length < 2) {
+      return [];
+    }
+    const step = outward.get(side) ?? 0;
+    outward.set(side, step + 1);
+    return [
+      {
+        key: x,
+        lead,
+        rows,
+        side,
+        x: CENTRE + side * (TRAY_OUT + step * TRAY_STEP),
+      },
+    ];
+  });
+  /** The urgent other buff goes under the innermost tray on the right, if there is one. */
+  const right = trays.find((tray) => tray.side > 0);
   const others = buffs.filter(
     (buff) => buff.slot === null || buff.slot > SLOTS,
   );
@@ -694,58 +706,52 @@ export function BuffStrip({
         <g opacity={opacity / 100} filter="url(#hud)">
           {vitals && <VitalMeters vitals={vitals} />}
           {slots.map(({ x, buffs }) => {
-            if (buffs.length === 0) {
+            const shown = marked(buffs, now);
+            if (!shown) {
               return null;
             }
-            const shown = pick(buffs);
-            const first = lowest(buffs, now);
-            const colour = colourOf(shown, now, warn);
             const left = remaining(shown, now) ?? 0;
             /** Every slot's late seconds on one line, so two never stagger into one number;
-             * markers on a row under it, then the lapsing buff's seconds. */
-            const secondsY = below + fontSize / 2;
-            const markersY = below + fontSize + ROW_SPACE;
-            const late = colour === WARN && left > 0;
-            const lowestY =
-              markersY +
-              LEAD_MARKER_SIZE +
-              ROW_SPACE +
-              (fontSize * LOWEST_SCALE) / 2;
+             * a tray shows its own. */
+            const late =
+              !trays.some((tray) => tray.key === x) &&
+              colourOf(shown, now, warn) === WARN &&
+              left > 0;
             return (
               <g key={x}>
                 <Ring buff={shown} x={x} now={now} warn={warn} />
-                {buffs.length > 1 && (
-                  <Markers
-                    buffs={buffs}
-                    x={x}
-                    y={markersY}
-                    now={now}
-                    warn={warn}
-                  />
-                )}
                 {late && (
                   <Seconds
                     text={seconds(shown, now)}
                     x={x}
-                    y={secondsY}
+                    y={below + fontSize / 2}
                     colour={WARN}
                     fontSize={fontSize}
-                  />
-                )}
-                {first && first.id !== shown.id && (
-                  <Seconds
-                    text={seconds(first, now)}
-                    x={x}
-                    y={lowestY}
-                    colour={LOWEST}
-                    fontSize={fontSize * LOWEST_SCALE}
                   />
                 )}
               </g>
             );
           })}
+          {trays.map((tray) => (
+            <Tray
+              key={tray.key}
+              buffs={tray.rows}
+              lead={tray.lead}
+              x={tray.x}
+              side={tray.side}
+              now={now}
+              warn={warn}
+              fontSize={fontSize}
+            />
+          ))}
           <UrgentBuff
             buffs={others}
+            x={right ? right.x : OTHER_X}
+            y={
+              right
+                ? TRAY_TOP + right.rows.length * TRAY_ROW + URGENT_BREAK
+                : DOT_Y
+            }
             now={now}
             warn={warn}
             fontSize={fontSize * OTHER_TEXT}
