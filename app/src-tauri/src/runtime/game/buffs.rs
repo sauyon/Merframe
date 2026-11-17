@@ -65,6 +65,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut seen: Option<Vec<usize>> = None;
     let mut abilities: Vec<String> = Vec::new();
     let mut icons: Vec<(String, String)> = Vec::new();
+    let mut names: Vec<(String, String)> = Vec::new();
     let mut hud_icons: HashMap<hud_icons::Wanted, Option<String>> = HashMap::new();
     let mut loadout_read: Option<Instant> = None;
     // The abilities the HUD names, which follow a warframe switch at once: the inventory's
@@ -74,7 +75,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
         tick.tick().await;
         if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
             loadout_read = Some(Instant::now());
-            read_loadout(&state, &mut abilities, &mut icons).await;
+            read_loadout(&state, &mut abilities, &mut icons, &mut names).await;
         }
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
@@ -140,7 +141,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             debug!(wanted, ?counts, ?read, "Buffs read");
         }
         tracker.update(&readings, now);
-        let timers = timers(&tracker.shown(), unix_ms(), &icons);
+        let timers = timers(&tracker.shown(), unix_ms(), &icons, slots, &names);
         let timers = shown_by(
             timers,
             &read(&state.settings).overlays.buffs,
@@ -158,19 +159,27 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
 }
 
 /// Looks up the equipped warframe's abilities, which give the ability slots, and the game's
-/// icons for buffs, keeping what was known when either can't be read.
+/// icons for buffs and names for abilities, keeping what was known when any can't be read.
 async fn read_loadout(
     state: &Arc<AppState>,
     abilities: &mut Vec<String>,
     icons: &mut Vec<(String, String)>,
+    names: &mut Vec<(String, String)>,
 ) {
     let owned = Arc::clone(state);
     let looked_up = blocking("read the equipped abilities", move || {
         let core = lock(&owned.core);
-        (core.equipped_abilities(), core.buff_icons())
+        (
+            core.equipped_abilities(),
+            core.buff_icons(),
+            core.ability_names(),
+        )
     })
     .await;
-    let (equipped, known) = looked_up.unwrap_or_default();
+    let (equipped, known, titles) = looked_up.unwrap_or_default();
+    if !titles.is_empty() {
+        *names = titles;
+    }
     let equipped = equipped.unwrap_or_default();
     if !known.is_empty() {
         *icons = known;
@@ -303,7 +312,9 @@ impl BuffSource for AbilityHudSource {
             readings.extend(shown.timers.iter().enumerate().map(|(index, &seconds)| {
                 Reading {
                     id: format!("ability{}:hud{hud}.{index}", shown.ability),
-                    label: String::new(),
+                    label: names
+                        .get(&index)
+                        .map_or_else(String::new, |name| title(name)),
                     slot: u8::try_from(shown.ability + 1).ok(),
                     rank: selected
                         .and_then(|selected| u8::try_from((index + count - selected) % count).ok()),
@@ -582,25 +593,77 @@ impl Tray {
     }
 }
 
-fn timers(shown: &[Shown], now_ms: f64, icons: &[(String, String)]) -> Vec<BuffTimer> {
+/// What the strip shows of each buff. Every one says what it is, so none shows as a bare
+/// number away from its ability's dot: a buff named in game keeps its name, one in an ability
+/// slot takes its ability's, and one past the dots takes its ability's icon where the game has
+/// one, like an operator ability's cooldown.
+fn timers(
+    shown: &[Shown],
+    now_ms: f64,
+    icons: &[(String, String)],
+    abilities: &[String],
+    names: &[(String, String)],
+) -> Vec<BuffTimer> {
     shown
         .iter()
         .map(|buff| {
             let slot = buff.slot;
+            let ability = slot
+                .and_then(|slot| slot.checked_sub(1))
+                .and_then(|index| abilities.get(usize::from(index)));
+            let label = if !buff.label.is_empty() {
+                buff.label.clone()
+            } else if let Some(ability) = ability {
+                ability_name(ability, names)
+            } else {
+                title(key(&buff.id))
+            };
+            let past_dots = slot.is_some_and(|slot| slot > DOTS);
             BuffTimer {
                 id: buff.id.clone(),
-                label: buff.label.clone(),
+                label,
                 slot,
                 rank: buff.rank,
-                icon: buff
-                    .icon
-                    .clone()
-                    .or_else(|| slot.is_none().then(|| icon(&buff.id, icons)).flatten()),
+                icon: buff.icon.clone().or_else(|| match (slot, ability) {
+                    (None, _) => icon(&buff.id, icons),
+                    (Some(_), Some(ability)) if past_dots => icon(ability, icons),
+                    (Some(_), _) => None,
+                }),
                 total: buff.total,
                 ends_at: buff.remaining.map(|left| (now_ms + left * 1000.0).round()),
             }
         })
         .collect()
+}
+
+/// The ability dots the strip draws round; slots past them, like the operator's abilities,
+/// sit beside them instead.
+const DOTS: u8 = 4;
+
+/// An ability's in-game name, `Grasp of Lohk` for `.../BrokenGraspAbility`. The operator's
+/// aren't any warframe's, so they have their own; anything else is read from its own name.
+fn ability_name(ability: &str, names: &[(String, String)]) -> String {
+    let key = key(ability);
+    match key {
+        "OperatorFocusPowerAbility" => return "Focus".into(),
+        "OperatorTransferenceAbility" => return "Transference".into(),
+        _ => {}
+    }
+    names
+        .iter()
+        .find(|(stem, _)| stem == key)
+        .map_or_else(|| title(key), |(_, name)| name.clone())
+}
+
+/// A readable name from a game identifier: `thorns` gives `Thorns`, `FairyDustAbilityName`
+/// gives `Fairy Dust`.
+fn title(name: &str) -> String {
+    let words = label(name);
+    let mut chars = words.chars();
+    chars.next().map_or_else(
+        || "Buff".into(),
+        |first| first.to_uppercase().chain(chars).collect(),
+    )
 }
 
 /// A buff's id without the instance number the game gives each application of it:
@@ -994,6 +1057,54 @@ mod tests {
     }
 
     #[test]
+    fn every_buff_says_what_it_is() {
+        let xaku = [
+            "BrokenRotAbility",
+            "BrokenGraspAbility",
+            "BrokenEmbraceAbility",
+            "BrokenDestructAbility",
+            "OperatorFocusPowerAbility",
+        ]
+        .map(String::from);
+        let names = [("BrokenGraspAbility".to_owned(), "Grasp of Lohk".to_owned())];
+        let icons = [("OperatorFocusPower".to_owned(), "Focus.png".to_owned())];
+        let shown = |id: &str, label: &str, slot: Option<u8>| Shown {
+            id: id.into(),
+            label: label.into(),
+            slot,
+            rank: None,
+            icon: None,
+            remaining: Some(5.0),
+            total: 10.0,
+        };
+        let sent = timers(
+            &[
+                shown("ability1:label", "", Some(2)),
+                shown("ability4:cooldown", "", Some(5)),
+                shown("ability0:hud0.1", "Thorns", Some(1)),
+                shown("/Lotus/Language/Suits/OddTag#3", "", None),
+            ],
+            0.0,
+            &icons,
+            &xaku,
+            &names,
+        );
+        let said: Vec<_> = sent
+            .iter()
+            .map(|t| (t.label.as_str(), t.icon.as_deref()))
+            .collect();
+        assert_eq!(
+            said,
+            [
+                ("Grasp of Lohk", None),
+                ("Focus", Some("Focus.png")),
+                ("Thorns", None),
+                ("Odd Tag", None),
+            ]
+        );
+    }
+
+    #[test]
     fn labels_fill_abilities_without_timers() {
         let timed = [Reading {
             slot: Some(4),
@@ -1251,6 +1362,8 @@ mod tests {
             ],
             0.0,
             &icons,
+            &titania,
+            &[],
         );
         assert_eq!(
             sent[0].icon, None,
@@ -1303,13 +1416,15 @@ mod tests {
             remaining: Some(10.0),
             total: 20.0,
         }];
-        let first = timers(&shown, 0.0, &[]);
+        let first = timers(&shown, 0.0, &[], &[], &[]);
         let later = timers(
             &[Shown {
                 remaining: Some(9.9),
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
+            &[],
             &[],
         );
         assert!(same(&later, &first));
@@ -1319,6 +1434,8 @@ mod tests {
                 ..shown[0].clone()
             }],
             100.0,
+            &[],
+            &[],
             &[],
         );
         assert!(!same(&recast, &first));

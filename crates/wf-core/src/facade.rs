@@ -238,6 +238,21 @@ impl Core {
         icons
     }
 
+    /// Abilities' in-game names, keyed by the last part of their path (`BrokenGraspAbility`
+    /// gives `Grasp of Lohk`), so the buff strip can say whose timer each is.
+    pub fn ability_names(&self) -> Vec<(String, String)> {
+        let mut names: Vec<(String, String)> = self
+            .catalog
+            .items()
+            .filter_map(|item| item.abilities.as_ref())
+            .flatten()
+            .map(|ability| (stem(&ability.unique_name), ability.name.clone()))
+            .collect();
+        names.sort();
+        names.dedup_by(|a, b| a.0 == b.0);
+        names
+    }
+
     pub fn latest_snapshot(&self) -> Option<&Snapshot> {
         self.latest_snapshot.as_ref()
     }

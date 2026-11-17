@@ -20,6 +20,8 @@ import type {
 // outer end inward. They carry no warning colours, so amber and red only ever mean a timer, and
 // they fade back while both are nearly full. Of the other buffs, only the one about to run out
 // shows, its icon and seconds well right of the dots so it doesn't read as a fifth ability.
+// No number shows away from its ability's dot without saying what it counts: where there's no
+// icon, its name follows the seconds, small and cut short, like the operator's Focus cooldown.
 //
 // Everything stays below the crosshair, as the game keeps its own fixed reticle parts: clear of
 // the reticle's spread, which the app can't read, and of world markers, which sit above it. It
@@ -104,6 +106,9 @@ const TRAY_DOT = 2.2;
 /** The mark's tick, on the side facing the dots. */
 const TICK_HEIGHT = 7;
 const TICK_WIDTH = 1.5;
+/** A name beside seconds, for a buff with no icon: smaller than the seconds and cut short. */
+const NOTE_TEXT = 0.7;
+const NOTE_CHARS = 12;
 /** Room between the rows under the rings. */
 const ROW_SPACE = 2;
 /** A buff warms once this share of it is left, or, for an ability's buffs, once the settings'
@@ -286,7 +291,15 @@ function Ring({
   );
 }
 
-/** Seconds centred on `x`, their middle on `y`. */
+/** A label beside seconds, shortened so it stays on the strip. */
+function shortLabel(label: string) {
+  return label.length > NOTE_CHARS
+    ? `${label.slice(0, NOTE_CHARS - 1).trimEnd()}…`
+    : label;
+}
+
+/** Seconds centred on `x`, their middle on `y`, with `note` naming what they count on the far
+ * side from `anchor`, so the number stays put whatever the note's length. */
 function Seconds({
   text,
   x,
@@ -294,6 +307,7 @@ function Seconds({
   colour,
   fontSize,
   anchor = "middle",
+  note,
 }: {
   text: string;
   x: number;
@@ -301,7 +315,14 @@ function Seconds({
   colour: string;
   fontSize: number;
   anchor?: "middle" | "start" | "end";
+  note?: string;
 }) {
+  const label = note ? (
+    <tspan fontSize={fontSize * NOTE_TEXT} fontWeight={500} opacity={0.9}>
+      {shortLabel(note)}
+    </tspan>
+  ) : null;
+  const gap = <tspan fontSize={fontSize * NOTE_TEXT}> </tspan>;
   return (
     <text
       x={x}
@@ -314,7 +335,19 @@ function Seconds({
       fontSize={fontSize}
       {...TEXT_OUTLINE}
     >
-      {text}
+      {label && anchor === "end" && (
+        <>
+          {label}
+          {gap}
+        </>
+      )}
+      <tspan>{text}</tspan>
+      {label && anchor !== "end" && (
+        <>
+          {gap}
+          {label}
+        </>
+      )}
     </text>
   );
 }
@@ -415,6 +448,7 @@ function Tray({
               colour={colour}
               fontSize={fontSize * (marked ? 1 : TRAY_REST_TEXT)}
               anchor={side < 0 ? "end" : "start"}
+              note={buff.icon ? undefined : buff.label}
             />
           </g>
         );
@@ -630,6 +664,7 @@ function UrgentBuff({
         colour={WARN}
         fontSize={fontSize}
         anchor="start"
+        note={buff.icon ? undefined : buff.label}
       />
     </g>
   );
