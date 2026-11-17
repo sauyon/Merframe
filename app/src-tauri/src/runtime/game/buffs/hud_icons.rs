@@ -106,13 +106,21 @@ fn decode(
 }
 
 /// The icon at `path` in the cache, decoded into `images` unless it already is, by its name
-/// there.
+/// there. Some icons, like `FocusCleanMadurai.png`, keep their pixels in a `_d` texture beside
+/// the named one, which then has none.
 fn save(bodies: &Package, images: &Path, path: &str) -> Option<String> {
     let name = format!("{PREFIX}{}", path.rsplit('/').next()?);
     let file = images.join(&name);
     if !file.exists() {
+        let beside = path
+            .strip_suffix(".png")
+            .map(|stem| format!("{stem}_d.png"));
         let png = bodies
             .read(path)
+            .and_then(|body| match (body, &beside) {
+                (None, Some(beside)) => bodies.read(beside),
+                (body, _) => Ok(body),
+            })
             .and_then(|body| body.map(|body| wf_cache::icon_png(&body)).transpose())
             .map_err(|error| debug!(%error, path, "Ability HUD icon not decoded"))
             .ok()??;
