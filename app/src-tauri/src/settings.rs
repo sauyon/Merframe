@@ -399,8 +399,12 @@ pub struct BuffSettings {
     pub buffs_abilities: bool,
     /// The player's other buffs, from arcanes, mods and the like, beside the dots.
     pub buffs_own: bool,
-    /// Buffs squadmates' abilities put on the player, beside the dots.
+    /// Buffs squadmates' abilities put on the player, beside the dots. Off unless asked for:
+    /// the player can't do anything about most of them.
     pub buffs_squad: bool,
+    /// Squadmates' buffs shown even with `buffs_squad` off, by the start of their name: the
+    /// ones the player acts on, like staying by Wisp's reservoirs for her motes.
+    pub buffs_squad_shown: Vec<String>,
     /// Buffs never shown, by name.
     pub buffs_hidden: Vec<String>,
     /// Seconds left at which an ability's buff turns amber.
@@ -413,12 +417,17 @@ pub struct BuffSettings {
     pub buffs_vitals: bool,
 }
 
+/// The squadmates' buffs shown by default: Wisp's motes, which last only while she or her
+/// reservoirs are near.
+pub const SQUAD_SHOWN: [&str; 1] = ["WispFrameReservoir"];
+
 impl Default for BuffSettings {
     fn default() -> Self {
         Self {
             buffs_abilities: true,
             buffs_own: true,
-            buffs_squad: true,
+            buffs_squad: false,
+            buffs_squad_shown: SQUAD_SHOWN.iter().map(|&name| name.to_owned()).collect(),
             buffs_hidden: Vec::new(),
             buffs_warn_seconds: 10,
             buffs_scale: 100,

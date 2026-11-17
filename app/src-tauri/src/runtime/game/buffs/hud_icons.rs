@@ -40,6 +40,25 @@ pub(super) fn find(
         .collect()
 }
 
+/// The game's icon named `name`, like `FocusCleanMadurai.png`, decoded into `images` unless
+/// it already is, for icons the item catalog doesn't carry, like the operator's focus school.
+pub(super) fn find_named(log: Option<&Path>, images: &Path, name: &str) -> Option<String> {
+    let (headers, bodies) = log.and_then(open)?;
+    let wanted = name.to_lowercase();
+    let path = headers
+        .paths()
+        .filter(|path| {
+            path.rsplit('/')
+                .next()
+                .is_some_and(|file| file.to_lowercase() == wanted)
+        })
+        .min_by_key(|path| path.len())?
+        .to_owned();
+    let found = save(&bodies, images, &path);
+    debug!(name, ?found, "Named game icon");
+    found
+}
+
 fn open(log: &Path) -> Option<(Package, Package)> {
     let mut head = Vec::new();
     std::fs::File::open(log)
@@ -83,6 +102,12 @@ fn decode(
             })
         })
         .min_by_key(|path| path.len())?;
+    save(bodies, images, path)
+}
+
+/// The icon at `path` in the cache, decoded into `images` unless it already is, by its name
+/// there.
+fn save(bodies: &Package, images: &Path, path: &str) -> Option<String> {
     let name = format!("{PREFIX}{}", path.rsplit('/').next()?);
     let file = images.join(&name);
     if !file.exists() {

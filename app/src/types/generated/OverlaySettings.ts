@@ -19,9 +19,15 @@ buffs_abilities: boolean,
  */
 buffs_own: boolean, 
 /**
- * Buffs squadmates' abilities put on the player, beside the dots.
+ * Buffs squadmates' abilities put on the player, beside the dots. Off unless asked for:
+ * the player can't do anything about most of them.
  */
 buffs_squad: boolean, 
+/**
+ * Squadmates' buffs shown even with `buffs_squad` off, by the start of their name: the
+ * ones the player acts on, like staying by Wisp's reservoirs for her motes.
+ */
+buffs_squad_shown: Array<string>, 
 /**
  * Buffs never shown, by name.
  */

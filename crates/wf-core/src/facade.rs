@@ -101,6 +101,25 @@ fn unmastered<'a>(account: Option<&Account>, catalog: &'a Catalog) -> HashSet<&'
 
 /// The last part of a game path: `/Lotus/Upgrades/.../AbilityDurationOnCast` gives
 /// `AbilityDurationOnCast`.
+/// The stems an ability's buffs' names can start with: its own name without the `Ability`
+/// suffix, and its icon's name, which is what the game names its buffs by where the two
+/// differ: Grendel's Nourish is `DevourerConsumeAbility` but its buff `GrendelConsume...`,
+/// like its icon `GrendelConsume.png`.
+fn ability_stems(ability: &wf_data::Ability) -> Vec<String> {
+    let own = stem(&ability.unique_name);
+    let mut stems = vec![own.strip_suffix("Ability").unwrap_or(&own).to_owned()];
+    if let Some(icon) = ability
+        .image_name
+        .as_deref()
+        .and_then(|image| image.rsplit_once('.'))
+        .map(|(icon, _)| icon.to_owned())
+        && !stems.contains(&icon)
+    {
+        stems.push(icon);
+    }
+    stems
+}
+
 fn stem(unique_name: &str) -> String {
     unique_name
         .rsplit('/')
@@ -227,10 +246,11 @@ impl Core {
             .items()
             .filter_map(|item| item.abilities.as_ref())
             .flatten()
-            .filter_map(|ability| {
-                let stem = stem(&ability.unique_name);
-                let stem = stem.strip_suffix("Ability").unwrap_or(&stem).to_owned();
-                Some((stem, ability.image_name.clone()?))
+            .filter_map(|ability| Some((ability, ability.image_name.clone()?)))
+            .flat_map(|(ability, image)| {
+                ability_stems(ability)
+                    .into_iter()
+                    .map(move |stem| (stem, image.clone()))
             });
         let mut icons: Vec<(String, String)> = arcanes.chain(abilities).collect();
         icons.sort();
@@ -238,19 +258,41 @@ impl Core {
         icons
     }
 
-    /// Abilities' in-game names, keyed by the last part of their path (`BrokenGraspAbility`
-    /// gives `Grasp of Lohk`), so the buff strip can say whose timer each is.
+    /// Abilities' in-game names, keyed like [`Self::buff_icons`] by the stems the ability's
+    /// own name and its buffs' names start with (`BrokenGrasp` gives `Grasp of Lohk`), so the
+    /// buff strip can say whose each timer is.
     pub fn ability_names(&self) -> Vec<(String, String)> {
         let mut names: Vec<(String, String)> = self
             .catalog
             .items()
             .filter_map(|item| item.abilities.as_ref())
             .flatten()
-            .map(|ability| (stem(&ability.unique_name), ability.name.clone()))
+            .flat_map(|ability| {
+                ability_stems(ability)
+                    .into_iter()
+                    .map(|stem| (stem, ability.name.clone()))
+            })
             .collect();
         names.sort();
         names.dedup_by(|a, b| a.0 == b.0);
         names
+    }
+
+    /// The operator's focus school, `Madurai`, from the way its equipped focus ability is in.
+    pub fn focus_school(&self) -> Option<&'static str> {
+        let ability = self.inventory()?.focus_ability.as_deref()?;
+        let way = ability
+            .strip_prefix("/Lotus/Upgrades/Focus/")?
+            .split('/')
+            .next()?;
+        match way {
+            "Power" => Some("Madurai"),
+            "Defense" => Some("Vazarin"),
+            "Tactic" => Some("Naramon"),
+            "Ward" => Some("Unairu"),
+            "Attack" => Some("Zenurik"),
+            _ => None,
+        }
     }
 
     pub fn latest_snapshot(&self) -> Option<&Snapshot> {

@@ -63,20 +63,14 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
     let mut layout: Option<BuffLayout> = None;
     let started = Instant::now();
     let mut seen: Option<Vec<usize>> = None;
-    let mut abilities: Vec<String> = Vec::new();
-    let mut icons: Vec<(String, String)> = Vec::new();
-    let mut names: Vec<(String, String)> = Vec::new();
+    let mut loadout = Loadout::default();
     let mut hud_icons: HashMap<hud_icons::Wanted, Option<String>> = HashMap::new();
-    let mut loadout_read: Option<Instant> = None;
     // The abilities the HUD names, which follow a warframe switch at once: the inventory's
     // loadout only changes when the game downloads it again, sometimes a mission later.
     let mut live: Option<Vec<String>> = None;
     loop {
         tick.tick().await;
-        if loadout_read.is_none_or(|at| at.elapsed() >= LOADOUT_EVERY) {
-            loadout_read = Some(Instant::now());
-            read_loadout(&state, &mut abilities, &mut icons, &mut names).await;
-        }
+        loadout.refresh(&state).await;
         let wanted = read(&state.status).pid.is_some()
             && overlay::enabled(&read(&state.settings), overlay::Kind::Buffs);
         let (readings, vitals) = if wanted {
@@ -130,9 +124,15 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             seen.clone_from(&counts);
         }
         let idle = readings.is_none();
-        let slots = live.as_deref().unwrap_or(&abilities);
+        let Loadout {
+            abilities,
+            icons,
+            names,
+            ..
+        } = &loadout;
+        let slots = live.as_deref().unwrap_or(abilities);
         let mut readings = merge(readings.unwrap_or_default(), slots);
-        add_hud_icons(&mut readings, &state, slots, &icons, &mut hud_icons).await;
+        add_hud_icons(&mut readings, &state, slots, icons, &mut hud_icons).await;
         if changed {
             let read: Vec<_> = readings
                 .iter()
@@ -141,7 +141,7 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
             debug!(wanted, ?counts, ?read, "Buffs read");
         }
         tracker.update(&readings, now);
-        let timers = timers(&tracker.shown(), unix_ms(), &icons, slots, &names);
+        let timers = timers(&tracker.shown(), unix_ms(), icons, slots, names);
         let timers = shown_by(
             timers,
             &read(&state.settings).overlays.buffs,
@@ -160,12 +160,36 @@ pub(crate) async fn buffs_task<R: Runtime>(app: AppHandle<R>, state: Arc<AppStat
 
 /// Looks up the equipped warframe's abilities, which give the ability slots, and the game's
 /// icons for buffs and names for abilities, keeping what was known when any can't be read.
+/// The equipped warframe's abilities and what the catalog and cache say about them, read again
+/// every `LOADOUT_EVERY`.
+#[derive(Default)]
+struct Loadout {
+    abilities: Vec<String>,
+    icons: Vec<(String, String)>,
+    names: Vec<(String, String)>,
+    /// The operator's focus school and the game's icon for it, which the catalog lacks.
+    focus: Option<(&'static str, Option<String>)>,
+    read_at: Option<Instant>,
+}
+
+impl Loadout {
+    async fn refresh(&mut self, state: &Arc<AppState>) {
+        if self.read_at.is_some_and(|at| at.elapsed() < LOADOUT_EVERY) {
+            return;
+        }
+        self.read_at = Some(Instant::now());
+        let school =
+            read_loadout(state, &mut self.abilities, &mut self.icons, &mut self.names).await;
+        add_focus_icon(state, school, &mut self.focus, &mut self.icons).await;
+    }
+}
+
 async fn read_loadout(
     state: &Arc<AppState>,
     abilities: &mut Vec<String>,
     icons: &mut Vec<(String, String)>,
     names: &mut Vec<(String, String)>,
-) {
+) -> Option<&'static str> {
     let owned = Arc::clone(state);
     let looked_up = blocking("read the equipped abilities", move || {
         let core = lock(&owned.core);
@@ -173,10 +197,11 @@ async fn read_loadout(
             core.equipped_abilities(),
             core.buff_icons(),
             core.ability_names(),
+            core.focus_school(),
         )
     })
     .await;
-    let (equipped, known, titles) = looked_up.unwrap_or_default();
+    let (equipped, known, titles, school) = looked_up.unwrap_or_default();
     if !titles.is_empty() {
         *names = titles;
     }
@@ -188,7 +213,38 @@ async fn read_loadout(
         debug!(?equipped, "Buff strip slots");
         *abilities = equipped;
     }
+    school
 }
+
+/// Gives the operator's focus ability the icon of its school, as the game's own button shows
+/// it, looking it up in the game's cache when the school is first seen or changes.
+async fn add_focus_icon(
+    state: &AppState,
+    school: Option<&'static str>,
+    focus: &mut Option<(&'static str, Option<String>)>,
+    icons: &mut Vec<(String, String)>,
+) {
+    let Some(school) = school else { return };
+    if focus.as_ref().is_none_or(|(known, _)| *known != school) {
+        let log = read(&state.settings).log_path();
+        let images = state.images.dir().to_owned();
+        let name = format!("FocusClean{school}.png");
+        let found = blocking("find the focus school's icon", move || {
+            hud_icons::find_named(log.as_deref(), &images, &name)
+        })
+        .await
+        .flatten();
+        *focus = Some((school, found));
+    }
+    if let Some((_, Some(image))) = focus
+        && !icons.iter().any(|(stem, _)| stem == FOCUS_STEM)
+    {
+        icons.push((FOCUS_STEM.to_owned(), image.clone()));
+    }
+}
+
+/// What the operator's focus ability's name starts with, `OperatorFocusPowerAbility`.
+const FOCUS_STEM: &str = "OperatorFocusPower";
 
 /// Gives buffs an ability's own HUD names the game's icons for them, looking up in the game's
 /// cache the ones not looked up before.
@@ -611,12 +667,14 @@ fn timers(
             let ability = slot
                 .and_then(|slot| slot.checked_sub(1))
                 .and_then(|index| abilities.get(usize::from(index)));
-            let label = if !buff.label.is_empty() {
-                buff.label.clone()
-            } else if let Some(ability) = ability {
-                ability_name(ability, names)
-            } else {
-                title(key(&buff.id))
+            // A buff an ability's own HUD names keeps that name; one in a slot is its ability's;
+            // any other takes the in-game name of the ability it's from, where known.
+            let label = match (slot, ability) {
+                _ if slot.is_some() && !buff.label.is_empty() => buff.label.clone(),
+                (Some(_), Some(ability)) => ability_name(ability, names),
+                _ => named(&buff.id, names)
+                    .or_else(|| (!buff.label.is_empty()).then(|| buff.label.clone()))
+                    .unwrap_or_else(|| title(key(&buff.id))),
             };
             let past_dots = slot.is_some_and(|slot| slot > DOTS);
             BuffTimer {
@@ -643,16 +701,22 @@ const DOTS: u8 = 4;
 /// An ability's in-game name, `Grasp of Lohk` for `.../BrokenGraspAbility`. The operator's
 /// aren't any warframe's, so they have their own; anything else is read from its own name.
 fn ability_name(ability: &str, names: &[(String, String)]) -> String {
-    let key = key(ability);
-    match key {
-        "OperatorFocusPowerAbility" => return "Focus".into(),
-        "OperatorTransferenceAbility" => return "Transference".into(),
-        _ => {}
+    match key(ability) {
+        "OperatorFocusPowerAbility" => "Focus".into(),
+        "OperatorTransferenceAbility" => "Transference".into(),
+        key => named(key, names).unwrap_or_else(|| title(key)),
     }
+}
+
+/// The in-game name of the ability whose stem `id`'s name starts with, the longest when
+/// several do, like [`icon`].
+fn named(id: &str, names: &[(String, String)]) -> Option<String> {
+    let key = key(id);
     names
         .iter()
-        .find(|(stem, _)| stem == key)
-        .map_or_else(|| title(key), |(_, name)| name.clone())
+        .filter(|(stem, _)| !stem.is_empty() && key.starts_with(stem.as_str()))
+        .max_by_key(|(stem, _)| stem.len())
+        .map(|(_, name)| name.clone())
 }
 
 /// A readable name from a game identifier: `thorns` gives `Thorns`, `FairyDustAbilityName`
@@ -759,19 +823,26 @@ fn shown_by(
     );
     timers
         .into_iter()
-        .filter(|timer| {
-            let wanted = match kind_of(timer) {
-                BuffKind::Ability => settings.buffs_abilities,
-                BuffKind::Own => settings.buffs_own,
-                BuffKind::Squad => settings.buffs_squad,
-            };
-            wanted
-                && !settings
-                    .buffs_hidden
-                    .iter()
-                    .any(|name| name == key(&timer.id))
-        })
+        .filter(|timer| wanted(timer, settings))
         .collect()
+}
+
+/// Whether the settings show the buff: its kind is on, or it is a squadmate's buff whose name
+/// starts one of the always-shown ones, and it isn't hidden by name.
+fn wanted(timer: &BuffTimer, settings: &BuffSettings) -> bool {
+    let name = key(&timer.id);
+    let kind_on = match kind_of(timer) {
+        BuffKind::Ability => settings.buffs_abilities,
+        BuffKind::Own => settings.buffs_own,
+        BuffKind::Squad => {
+            settings.buffs_squad
+                || settings
+                    .buffs_squad_shown
+                    .iter()
+                    .any(|shown| name.starts_with(shown.as_str()))
+        }
+    };
+    kind_on && !settings.buffs_hidden.iter().any(|hidden| hidden == name)
 }
 
 /// The last part of a buff's name: `.../Suits/FairyDustAbilityName#35` gives
@@ -1066,8 +1137,17 @@ mod tests {
             "OperatorFocusPowerAbility",
         ]
         .map(String::from);
-        let names = [("BrokenGraspAbility".to_owned(), "Grasp of Lohk".to_owned())];
-        let icons = [("OperatorFocusPower".to_owned(), "Focus.png".to_owned())];
+        let names = [
+            ("BrokenGrasp", "Grasp of Lohk"),
+            ("DevourerConsume", "Nourish"),
+            ("GrendelConsume", "Nourish"),
+        ]
+        .map(|(stem, name)| (stem.to_owned(), name.to_owned()));
+        let icons = [
+            ("OperatorFocusPower", "Focus.png"),
+            ("GrendelConsume", "GrendelConsume.png"),
+        ]
+        .map(|(stem, image)| (stem.to_owned(), image.to_owned()));
         let shown = |id: &str, label: &str, slot: Option<u8>| Shown {
             id: id.into(),
             label: label.into(),
@@ -1083,6 +1163,11 @@ mod tests {
                 shown("ability4:cooldown", "", Some(5)),
                 shown("ability0:hud0.1", "Thorns", Some(1)),
                 shown("/Lotus/Language/Suits/OddTag#3", "", None),
+                shown(
+                    "/Lotus/Language/Suits/GrendelConsumeAbilityName#7",
+                    "Grendel Consume",
+                    None,
+                ),
             ],
             0.0,
             &icons,
@@ -1100,6 +1185,7 @@ mod tests {
                 ("Focus", Some("Focus.png")),
                 ("Thorns", None),
                 ("Odd Tag", None),
+                ("Nourish", Some("GrendelConsume.png")),
             ]
         );
     }
@@ -1439,5 +1525,35 @@ mod tests {
             &[],
         );
         assert!(!same(&recast, &first));
+    }
+
+    #[test]
+    fn squad_buffs_show_only_when_listed() {
+        let buff = |tag: &str| BuffTimer {
+            id: format!("/Lotus/Language/Suits/{tag}#4"),
+            label: String::new(),
+            slot: None,
+            rank: None,
+            icon: None,
+            total: 30.0,
+            ends_at: Some(1.0),
+        };
+        let mote = buff("WispFrameReservoirAbilitySpeedMote");
+        let roar = buff("RhinoRoarAbilityName");
+        let mut settings = BuffSettings::default();
+        assert!(wanted(&mote, &settings));
+        assert!(!wanted(&roar, &settings));
+
+        settings.buffs_squad_shown.push("RhinoRoar".to_owned());
+        assert!(wanted(&roar, &settings));
+
+        settings
+            .buffs_hidden
+            .push("WispFrameReservoirAbilitySpeedMote".to_owned());
+        assert!(!wanted(&mote, &settings));
+
+        settings.buffs_squad = true;
+        settings.buffs_squad_shown.clear();
+        assert!(wanted(&roar, &settings));
     }
 }

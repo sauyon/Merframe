@@ -433,6 +433,8 @@ pub struct Inventory {
     pub(crate) daily_affiliation_library: Option<u32>,
     pub(crate) daily_affiliation_pvp: Option<u32>,
     pub daily_focus: Option<u32>,
+    /// The operator's focus school, by its way's ability: `/Lotus/Upgrades/Focus/Power/...`.
+    pub focus_ability: Option<String>,
     pub gifts_remaining: Option<u32>,
     pub calendar_progress: Option<CalendarProgress>,
     #[serde(default)]

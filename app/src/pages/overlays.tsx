@@ -556,12 +556,7 @@ export function OverlaysPage() {
             : OFF
         }
       >
-        {buffs && (
-          <BuffFilters
-            hidden={settings.buffs_hidden}
-            onChange={(hidden) => saveSettings({ buffs_hidden: hidden })}
-          />
-        )}
+        {buffs && <BuffFilters filters={settings} onChange={saveSettings} />}
       </Section>
 
       <Section
