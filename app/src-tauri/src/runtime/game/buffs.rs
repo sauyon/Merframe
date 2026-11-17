@@ -783,8 +783,9 @@ struct Reading {
     remaining: f64,
 }
 
-/// Which effects count down. Learned from the data rather than from type ids: an effect is
-/// timed once its value has been seen falling.
+/// Which effects count down: the game says an effect's value is seconds, and it has been seen
+/// falling, since the tray keeps frozen entries around. Counts fall too, like Grasp of Lohk's
+/// weapons as each expires, so falling alone doesn't make a timer.
 #[derive(Default)]
 struct Ticking {
     last: HashMap<u32, f32>,
@@ -794,19 +795,26 @@ struct Ticking {
 impl Ticking {
     fn timed(&mut self, effects: &[StatusEffect]) -> Vec<Reading> {
         for effect in effects {
-            if self
+            let fell = self
                 .last
                 .get(&effect.id)
-                .is_some_and(|&prev| effect.data < prev)
-            {
-                self.timed.insert(effect.id);
+                .is_some_and(|&prev| effect.data < prev);
+            if fell && self.timed.insert(effect.id) && !effect.is_timed() {
+                debug!(
+                    tag = %effect.name_tag,
+                    buff_type = effect.buff_type,
+                    data = effect.data,
+                    "Buff falls but isn't a timer"
+                );
             }
         }
         self.last = effects.iter().map(|e| (e.id, e.data)).collect();
         self.timed.retain(|id| self.last.contains_key(id));
         effects
             .iter()
-            .filter(|e| !e.is_debuff && cast(&e.name_tag) && self.timed.contains(&e.id))
+            .filter(|e| {
+                e.is_timed() && !e.is_debuff && cast(&e.name_tag) && self.timed.contains(&e.id)
+            })
             .map(|e| Reading {
                 id: format!("{}#{}", e.name_tag, e.id),
                 label: label(&e.name_tag),
@@ -997,7 +1005,7 @@ mod tests {
         StatusEffect {
             id,
             name_tag: format!("/Lotus/Language/Suits/E{id}AbilityName"),
-            buff_type: 0,
+            buff_type: wf_scan::TIMED,
             data,
             pending_data: None,
             initial_data: data,
@@ -1086,6 +1094,18 @@ mod tests {
         let shown = t.timed(&[procs, sculptor]);
         assert_eq!(shown.len(), 1);
         assert_eq!(shown[0].label, "Ability Duration On Cast");
+    }
+
+    #[test]
+    fn falling_counts_are_not_timers() {
+        // Grasp of Lohk's tray entry counts the weapons held, which falls as each expires.
+        let mut t = Ticking::default();
+        let mut grasp = effect(8, 10.0);
+        grasp.name_tag = "/Lotus/Language/Suits/BrokenGraspAbilityName".into();
+        grasp.buff_type = 5;
+        t.timed(&[grasp.clone()]);
+        grasp.data = 9.0;
+        assert!(t.timed(&[grasp]).is_empty());
     }
 
     #[test]
