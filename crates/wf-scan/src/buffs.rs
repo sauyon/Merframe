@@ -16,8 +16,10 @@ const IS_DEBUFF: &str = "mIsDebuff";
 const PAUSED: &str = "mEffectIsPaused";
 const ID: &str = "Id";
 
-/// `mBuffType` of an effect whose data is seconds remaining.
-pub const TIMED: u32 = 1;
+/// `mBuffType`s of effects whose data is seconds remaining: 1 for an ability like Speed, 3
+/// for a timed stat bonus like an arcane's or Shock's augment. Others hold counts or values,
+/// like Grasp of Lohk's weapons (5) or The Vast Untime's 75 (2).
+pub const TIMED: [u32; 2] = [1, 3];
 
 /// One icon in the local player's HUD buff tray.
 #[derive(Debug, Clone, PartialEq)]
@@ -38,7 +40,7 @@ pub struct StatusEffect {
 
 impl StatusEffect {
     pub fn is_timed(&self) -> bool {
-        self.buff_type == TIMED
+        TIMED.contains(&self.buff_type)
     }
 }
 

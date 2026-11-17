@@ -1005,7 +1005,7 @@ mod tests {
         StatusEffect {
             id,
             name_tag: format!("/Lotus/Language/Suits/E{id}AbilityName"),
-            buff_type: wf_scan::TIMED,
+            buff_type: 1,
             data,
             pending_data: None,
             initial_data: data,
@@ -1106,6 +1106,18 @@ mod tests {
         t.timed(&[grasp.clone()]);
         grasp.data = 9.0;
         assert!(t.timed(&[grasp]).is_empty());
+    }
+
+    #[test]
+    fn timed_stat_bonuses_are_timers() {
+        // Shock's augment reads as type 3, not the abilities' 1.
+        let mut t = Ticking::default();
+        let mut shock = effect(9, 63.2);
+        shock.name_tag = "/Lotus/Language/Suits/ShockAbilityAugment1Name".into();
+        shock.buff_type = 3;
+        t.timed(&[shock.clone()]);
+        shock.data = 62.2;
+        assert_eq!(t.timed(&[shock]).len(), 1);
     }
 
     #[test]
