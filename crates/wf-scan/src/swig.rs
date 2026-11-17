@@ -111,6 +111,24 @@ impl Image {
             .collect()
     }
 
+    /// Where each direct `call` in the `len` bytes of code at `address` goes, when into the
+    /// image, in the order they're made.
+    pub fn calls(&self, address: u64, len: usize) -> Vec<u64> {
+        let Some(code) = self.code(address, len) else {
+            return Vec::new();
+        };
+        (0..code.len().saturating_sub(4))
+            .filter(|&at| code[at] == CALL)
+            .filter_map(|at| {
+                let rel = i64::from(i32::from_le_bytes(
+                    code.get(at + 1..at + 5)?.try_into().ok()?,
+                ));
+                let target = address.checked_add_signed(i64::try_from(at + 5).ok()? + rel)?;
+                self.holds(target).then_some(target)
+            })
+            .collect()
+    }
+
     /// The start of the function holding `address`: the nearest aligned address after the
     /// int3 padding the compiler puts between functions.
     pub fn function_start(&self, address: u64) -> Option<u64> {

@@ -18,6 +18,8 @@ use crate::type_names::TypeNames;
 
 const HUD_CLASS: &str = "LotusHudRedux";
 const ADD_TIMER: &str = "AddAbilityTimer";
+/// Writes the seconds an ability script counts down itself under its icon, as text.
+const SET_TIMER: &str = "SetAbilityTimer";
 /// How much of `AddAbilityTimer`'s implementation to read for its field accesses.
 const IMPL_SPAN: usize = 0x400;
 /// Array headers: `{pointer, u32 bytes, u32 capacity}`.
@@ -27,6 +29,8 @@ const LIST: u64 = 16;
 const TIMER: u64 = 16;
 const MAX_ABILITIES: u64 = 16;
 const MAX_TIMERS: u64 = 32;
+/// A label: a string with its text inline while short, ending in the room it has left.
+const LABEL: u64 = 16;
 
 /// One timer the HUD runs for an ability.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -36,6 +40,16 @@ pub struct AbilityTimer {
     /// What the ability script told it apart by: one per buff it keeps up.
     pub key: u64,
     /// Seconds left.
+    pub remaining: f32,
+}
+
+/// Seconds an ability script counts down itself and has the HUD write under its icon, like
+/// Grasp of Lohk's. Whole seconds, and held still while the ability is paused.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AbilityLabel {
+    /// Which of the suit's abilities it belongs to, from 0, in the suit's own order.
+    pub ability: usize,
+    /// Seconds left, as shown.
     pub remaining: f32,
 }
 
@@ -49,6 +63,8 @@ pub struct AbilityTimers {
     names: Option<TypeNames>,
     vitals: Option<HudVitals>,
     cooldowns: Option<CooldownFields>,
+    /// The HUD's array of one label per ability, which `SetAbilityTimer` writes.
+    labels: Option<u64>,
 }
 
 impl AbilityTimers {
@@ -88,6 +104,7 @@ impl AbilityTimers {
                             names,
                             vitals: None,
                             cooldowns: None,
+                            labels: None,
                         };
                         timers.read(reader).is_some().then_some(timers)
                     })
@@ -110,9 +127,17 @@ impl AbilityTimers {
         if cooldowns.is_none() {
             tracing::debug!("No ability cooldowns in the image");
         }
+        let labels = class
+            .method(&image, SET_TIMER)
+            .and_then(|wrapper| image.callee(wrapper))
+            .and_then(|body| found.label_array(reader, &image, body));
+        if labels.is_none() {
+            tracing::debug!("No {HUD_CLASS}:{SET_TIMER} labels");
+        }
         Ok(Some(Self {
             vitals,
             cooldowns,
+            labels,
             ..found
         }))
     }
@@ -182,6 +207,56 @@ impl AbilityTimers {
         )
     }
 
+    /// Where the HUD keeps its labels: `SetAbilityTimer` formats the seconds and hands them to
+    /// a function that indexes an array of them by the ability's place. It is one of the
+    /// calls the formatting makes; the array is the one holding a label per ability.
+    fn label_array<R: MemoryReader + ?Sized>(
+        &self,
+        reader: &R,
+        image: &Image,
+        body: u64,
+    ) -> Option<u64> {
+        let (_, count) = array(reader, self.hud + self.abilities, ABILITY)?;
+        image
+            .calls(body, IMPL_SPAN)
+            .into_iter()
+            .filter_map(|target| image.code(target, IMPL_SPAN))
+            .flat_map(indexed_arrays)
+            .map(u64::from)
+            .filter(|&field| field != self.lists)
+            .find(|&field| {
+                array(reader, self.hud + field, LABEL).is_some_and(|(_, labels)| labels == count)
+            })
+    }
+
+    /// The seconds written under each ability's icon, for the ones showing a number. `None`
+    /// once the HUD is gone or the labels can't be read.
+    pub fn labels<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<AbilityLabel>> {
+        if reader.read_u64(self.handle).ok()? != self.hud {
+            return None;
+        }
+        let (labels, count) = array(reader, self.hud + self.labels?, LABEL)?;
+        if count > MAX_ABILITIES {
+            return None;
+        }
+        let data = reader
+            .read_vec(labels, usize::try_from(count * LABEL).ok()?)
+            .ok()?;
+        Some(
+            data.as_chunks::<16>()
+                .0
+                .iter()
+                .enumerate()
+                .filter_map(|(ability, label)| {
+                    Some(AbilityLabel {
+                        ability,
+                        remaining: seconds(label)?,
+                    })
+                })
+                .collect(),
+        )
+    }
+
     /// The suit's ability objects, in its own order. `None` once the HUD is gone.
     fn objects<R: MemoryReader + ?Sized>(&self, reader: &R) -> Option<Vec<u64>> {
         if reader.read_u64(self.handle).ok()? != self.hud {
@@ -220,6 +295,17 @@ fn header_of(header: &[u8], stride: u64) -> Option<(u64, u64)> {
     let capacity = u64::from(read_u32_le(header, 12)?);
     (bytes.is_multiple_of(stride) && bytes <= capacity && (bytes == 0 || pointer != 0))
         .then_some((pointer, bytes / stride))
+}
+
+/// The seconds a label shows, when it holds a number inline: the last byte is how many of
+/// the 15 it has room for are left.
+fn seconds(label: &[u8; 16]) -> Option<f32> {
+    let len = 15usize.checked_sub(usize::from(label[15]))?;
+    let text = std::str::from_utf8(&label[..len]).ok()?;
+    text.trim()
+        .parse::<f32>()
+        .ok()
+        .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
 }
 
 fn array<R: MemoryReader + ?Sized>(reader: &R, at: u64, stride: u64) -> Option<(u64, u64)> {
@@ -269,6 +355,7 @@ mod tests {
             names: None,
             vitals: None,
             cooldowns: None,
+            labels: None,
         };
         (heap, found)
     }
@@ -292,6 +379,50 @@ mod tests {
                 },
             ]
         );
+    }
+
+    fn label(text: &str) -> [u8; 16] {
+        let mut label = [0u8; 16];
+        label[..text.len()].copy_from_slice(text.as_bytes());
+        label[15] = u8::try_from(15 - text.len()).expect("short");
+        label
+    }
+
+    #[test]
+    fn labels_read_as_seconds() {
+        assert_eq!(seconds(&label("17")), Some(17.0));
+        assert_eq!(seconds(&label("2.5")), Some(2.5));
+        assert_eq!(seconds(&label("")), None);
+        // Left over from a longer label, past the length.
+        let mut stale = label("6");
+        stale[1] = b'6';
+        assert_eq!(seconds(&stale), Some(6.0));
+        // A long label, kept elsewhere.
+        let mut long = [0u8; 16];
+        long[15] = 0x80;
+        assert_eq!(seconds(&long), None);
+    }
+
+    #[test]
+    fn reads_the_label_under_each_ability() {
+        let (mut heap, timers) = hud_heap();
+        let labels = HEAP + 0xb00;
+        header(&mut heap, timers.hud + 0x458, labels, 2 * 16);
+        put(&mut heap, labels, &label(""));
+        put(&mut heap, labels + 16, &label("17"));
+        let reader = FakeReader::new(vec![(HEAP, heap)]);
+        let with = AbilityTimers {
+            labels: Some(0x458),
+            ..timers
+        };
+        assert_eq!(
+            with.labels(&reader),
+            Some(vec![AbilityLabel {
+                ability: 1,
+                remaining: 17.0
+            }])
+        );
+        assert_eq!(timers.labels(&reader), None);
     }
 
     #[test]

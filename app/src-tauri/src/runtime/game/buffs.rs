@@ -14,9 +14,9 @@ use tauri::{AppHandle, Runtime};
 use tracing::debug;
 use wf_mem::MemoryReader;
 use wf_scan::{
-    AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect, ability_dots,
-    ability_hud, ability_huds, hud_hidden, in_gameplay, menu_open, status_effects, status_list,
-    switch_index, switched_to,
+    AbilityLabel, AbilityTimers, DotsLayout, HudTables, LuaState, LuaTable, StatusEffect,
+    ability_dots, ability_hud, ability_huds, hud_hidden, in_gameplay, menu_open, status_effects,
+    status_list, switch_index, switched_to,
 };
 
 use super::ticks;
@@ -460,6 +460,11 @@ impl BuffSource for AbilityTimerSource {
             })
             .collect();
         let mut readings = first_ending(self.falling.keep(readings));
+        let labels = self
+            .timers
+            .and_then(|timers| timers.labels(reader.as_ref()))
+            .unwrap_or_default();
+        readings.extend(from_labels(&readings, labels));
         // A cooldown always counts down, and is the ability's own, apart from its casts'.
         readings.extend(cooldowns.into_iter().map(|cooldown| Reading {
             id: format!("ability{}:cooldown", cooldown.ability),
@@ -481,6 +486,30 @@ impl BuffSource for AbilityTimerSource {
     fn vitals(&self) -> Option<wf_scan::Vitals> {
         self.vitals
     }
+}
+
+/// Readings for the seconds ability scripts write under their icons themselves, like Grasp of
+/// Lohk's, for abilities the HUD runs no timer for. The HUD only shows them while they run,
+/// and they hold still while the ability is paused, as under The Vast Untime, so unlike its
+/// timers they needn't be seen falling.
+fn from_labels(timed: &[Reading], labels: Vec<AbilityLabel>) -> Vec<Reading> {
+    labels
+        .into_iter()
+        .filter(|label| {
+            let ability = format!("ability{}", label.ability);
+            !timed.iter().any(|reading| reading.id == ability)
+        })
+        .map(|label| Reading {
+            id: format!("ability{}:label", label.ability),
+            label: String::new(),
+            slot: u8::try_from(label.ability + 1).ok(),
+            rank: None,
+            buff: None,
+            icon: None,
+            total: None,
+            remaining: f64::from(label.remaining),
+        })
+        .collect()
 }
 
 /// One reading per ability: the cast that runs out first, under an id of the ability's alone so
@@ -962,6 +991,30 @@ mod tests {
         ]);
         let read: Vec<_> = read.iter().map(|r| (r.id.as_str(), r.remaining)).collect();
         assert_eq!(read, [("ability0", 12.5), ("ability2", 4.0)]);
+    }
+
+    #[test]
+    fn labels_fill_abilities_without_timers() {
+        let timed = [Reading {
+            slot: Some(4),
+            ..r("ability3", 12.0)
+        }];
+        let labels = vec![
+            AbilityLabel {
+                ability: 1,
+                remaining: 17.0,
+            },
+            AbilityLabel {
+                ability: 3,
+                remaining: 12.0,
+            },
+        ];
+        let read = from_labels(&timed, labels);
+        let read: Vec<_> = read
+            .iter()
+            .map(|r| (r.id.as_str(), r.slot, r.remaining))
+            .collect();
+        assert_eq!(read, [("ability1:label", Some(2), 17.0)]);
     }
 
     #[test]
